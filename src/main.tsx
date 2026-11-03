@@ -1,2 +1,21 @@
 import { createRoot } from 'react-dom/client';
-createRoot(document.getElementById('root')!).render(<div>Lofi</div>);
+import './ui/theme/fonts';
+import './ui/styles.css';
+import { ThemeProvider } from './ui/theme/ThemeProvider';
+import { App } from './ui/shell/App';
+import { useStore } from './store/store';
+
+async function boot() {
+  const q = new URLSearchParams(location.search);
+  if (q.get('reset')) localStorage.clear();
+  const seed = q.get('seed');
+  if (seed) {
+    const { seedDemo } = await import('./dev/seed');
+    localStorage.setItem('lofi-data', JSON.stringify(seedDemo(seed)));
+  }
+  await useStore.getState().load();
+  if (q.get('view')) useStore.getState().go(q.get('view') as never);
+  createRoot(document.getElementById('root')!).render(<ThemeProvider><App /></ThemeProvider>);
+  (window as unknown as { __lofi: unknown }).__lofi = useStore;
+}
+boot();
