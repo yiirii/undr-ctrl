@@ -85,9 +85,9 @@ export function Setup({ onDone, onSkip, embedded, startStep = 0 }: { onDone: () 
             {step === 3 && (
               <>
                 <p className="dim">Optional. Give it a name and a target. Undr Ctrl works out how much to put aside each month.</p>
-                <label className="field"><span>Goal</span><input className="input" placeholder="e.g. New laptop" value={goal.name} onChange={(e) => setGoal({ ...goal, name: e.target.value })} /></label>
+                <label className="field"><span>Goal</span><input className="input" placeholder="Goal name" value={goal.name} onChange={(e) => setGoal({ ...goal, name: e.target.value })} /></label>
                 <div className="two">
-                  <label className="field"><span>Target (RM)</span><input className="input" inputMode="decimal" placeholder="4000" value={goal.target} onChange={(e) => setGoal({ ...goal, target: e.target.value })} /></label>
+                  <label className="field"><span>Target (RM)</span><input className="input" inputMode="decimal" placeholder="Target RM" value={goal.target} onChange={(e) => setGoal({ ...goal, target: e.target.value })} /></label>
                   <label className="field"><span>By (optional)</span><input className="input" type="date" value={goal.date} onChange={(e) => setGoal({ ...goal, date: e.target.value })} /></label>
                 </div>
                 {savings > 0 && <div className="card flat dim" style={{ fontSize: '.88rem' }}>Your monthly savings slice is <b style={{ color: 'var(--in)' }}>{fmt.rm(savings)}</b>.</div>}

@@ -152,7 +152,7 @@ test('business: buy two, sell one; Wealth follows the cash (−80 bought, +78 re
   await page.click('.nav-item:has-text("Money")');
   await page.click('.money-tabs button:has-text("Business")');
   await page.click('button:has-text("Log your first purchase")');
-  await page.fill('input[placeholder^="e.g. Funko"]', 'Funko Pop! Groot #49');
+  await page.fill('input[placeholder="Item name"]', 'Funko Pop! Groot #49');
   await page.locator('.sheet input[inputmode="decimal"]').first().fill('40');
   await page.click('.sheet .seg-ctl button:has-text("+")');
   await page.click('button:has-text("Add to stock")');
@@ -180,7 +180,7 @@ test('reservation: deposit, then balance paid becomes a sale; a big profit shows
   await page.click('.nav-item:has-text("Money")');
   await page.click('.money-tabs button:has-text("Business")');
   await page.click('button:has-text("Log your first purchase")');
-  await page.fill('input[placeholder^="e.g. Funko"]', 'Stitch #1045');
+  await page.fill('input[placeholder="Item name"]', 'Stitch #1045');
   await page.locator('.sheet input[inputmode="decimal"]').first().fill('42');
   await page.click('button:has-text("Add to stock")');
   await page.locator('.stock-card button[title="Reserve for a buyer"]').click();

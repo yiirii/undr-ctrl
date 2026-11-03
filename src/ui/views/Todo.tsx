@@ -117,7 +117,7 @@ export function MyDay() {
       {habits.length > 0 && (<><div className="section-label" style={{ marginTop: 0 }}>Habits today</div><div className="habit-strip">{habits.map((t) => <HabitPill key={t.id} t={t} />)}</div></>)}
       <div className="section-label">Tasks</div>
       <div className="tasks">
-        <AddRow listId={s.lists.find((l) => l.id === 'personal')?.id ?? s.lists[0]?.id} myDay placeholder="Add a task… try “essay due fri 5pm #uni”" />
+        <AddRow listId={s.lists.find((l) => l.id === 'personal')?.id ?? s.lists[0]?.id} myDay placeholder="Add a task" />
         <AnimatePresence initial={false}>{open.map((t) => <motion.div key={t.id} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, marginTop: -6 }}><TaskRow task={t} showList /></motion.div>)}</AnimatePresence>
       </div>
       {all.length === 0 && <Empty title="A calm, empty day" text={<>Add what matters today, or press <span className="kbd">Ctrl Space</span> to add anything: a task, a habit or an expense.</>} />}
@@ -151,7 +151,7 @@ export function Planned() {
         <div className="meta"><span>This week</span><span>{weekDone} of {weekTasks.length} done</span></div>
         <Bar value={weekDone} max={Math.max(1, weekTasks.length)} height={10} />
       </div>
-      <AddRow listId={s.lists[0]?.id} placeholder="Add a dated task… “lab report on 12 nov #uni”" />
+      <AddRow listId={s.lists[0]?.id} placeholder="Add a task" />
       {groups.map(([label, ts]) => ts.length > 0 && (
         <div key={label}>
           <div className="section-label" style={label === 'Overdue' ? { color: 'var(--bad)' } : undefined}>{label} · {ts.length}</div>
@@ -254,7 +254,7 @@ export function Habits() {
       <div className="card flat stack" style={{ marginBottom: 22 }}>
         <form className="add-row" style={{ background: 'var(--bg0)' }} onSubmit={(e) => { e.preventDefault(); add(); }}>
           <span className="plus"><Icon name="diamond" size={18} stroke={2.2} /></span>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New habit, like “Read 20 pages”" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Add a habit" />
           <span className="kbd">Enter</span>
         </form>
         <div className="row" style={{ flexWrap: 'wrap', gap: 10 }}>

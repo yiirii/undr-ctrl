@@ -29,7 +29,7 @@ export function QuickAdd() {
       <motion.div className="qa" initial={{ y: -14, opacity: 0, scale: 0.98 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={SPRING}>
         <div className="qa-input">
           <Icon name="plus" size={22} stroke={2.4} style={{ color: 'var(--accent)' }} />
-          <input autoFocus value={text} placeholder="Add anything… “essay due fri 5pm #uni”, “12.50 lunch”, “+500 allowance”"
+          <input autoFocus value={text} placeholder="Add a task or expense"
             onChange={(e) => { setText(e.target.value); setIdx(0); }}
             onKeyDown={(e) => {
               if (e.key === 'Escape') close();

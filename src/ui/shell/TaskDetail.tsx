@@ -123,7 +123,7 @@ function Steps({ task, color }: { task: Task; color: string }) {
           ))}
         </AnimatePresence>
       </Reorder.Group>
-      <div className="step add"><Icon name="plus" size={16} /><input className="step-input" placeholder={steps.length ? 'Next step' : 'Add a step (+2 XP each)'} value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }} onBlur={add} /></div>
+      <div className="step add"><Icon name="plus" size={16} /><input className="step-input" placeholder="Add a step" value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }} onBlur={add} /></div>
     </div>
   );
 }
