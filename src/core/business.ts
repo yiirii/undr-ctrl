@@ -16,7 +16,7 @@ export interface BizItem {
   feesSen?: number; // shipping / platform fees on the sale
   note?: string;
   platform?: string; // where it sold / was reserved
-  reservation?: { depositSen: number; dueOn: string; on: string; note?: string };
+  reservation?: { depositSen: number; dueOn: string; on: string; note?: string; priceSen?: number }; // priceSen: agreed total, optional
   valueSen?: number; // collection: my value estimate
   valueOn?: string;
 }

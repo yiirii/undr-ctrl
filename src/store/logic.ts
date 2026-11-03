@@ -403,10 +403,10 @@ export function setBizValue(s: AppState, id: string, valueSen: number | undefine
   return done(setItem(s, { ...it, valueSen: posSen(valueSen), valueOn: posSen(valueSen) ? dayKey(now) : undefined }));
 }
 
-export function reserveBizItem(s: AppState, id: string, r: { depositSen: number; dueOn: string; platform?: string; note?: string }, now: Date): Result {
+export function reserveBizItem(s: AppState, id: string, r: { depositSen: number; dueOn: string; platform?: string; note?: string; priceSen?: number }, now: Date): Result {
   const it = s.business.items.find((i) => i.id === id);
   if (!it || !(it.status === 'stock' || it.status === 'kept') || !(r.depositSen > 0) || !r.dueOn) return done(s);
-  const res: BizItem = { ...it, status: 'reserved', platform: r.platform || undefined, reservation: { depositSen: Math.round(r.depositSen), dueOn: r.dueOn, on: dayKey(now), note: r.note?.trim() || undefined } };
+  const res: BizItem = { ...it, status: 'reserved', platform: r.platform || undefined, reservation: { depositSen: Math.round(r.depositSen), dueOn: r.dueOn, on: dayKey(now), note: r.note?.trim() || undefined, priceSen: posSen(r.priceSen) } };
   let next: AppState = { ...setItem(s, res), ledger: [...s.ledger, ...wealthForDeposit(res, iso(now))] };
   next = addLinkedTask(next, `Collect balance: ${it.name}`, r.dueOn, { kind: 'biz-collect', itemId: id }, now);
   return settle(s, next, now, []);
