@@ -101,7 +101,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 4: beginner-fri
 1. **Money in:** "How much comes in each month?"
    - Add one or more sources, each with an icon and an expected monthly amount: Allowance, Salary, Part-time, Scholarship/PTPTN, Other.
    - "It changes every month" is allowed; in that case enter a typical amount.
-2. **Categories:** a grid of friendly category bubbles (shape icon + name). Tap to select and long-press to rename. Suggested picks:
+2. **Categories:** a loose cloud of friendly category bubbles (shape icon + name). Tap to select and long-press to rename. Suggested picks:
    - Food, Transport, Shopping, Bills, Fun, Health, Education, Gifts, Subscriptions, Other.
    - You can add your own with an icon, colour and emoji.
 3. **Split:** the app suggests a starting split from the 50/30/20 idea, explained in one sentence: needs, wants, savings.
