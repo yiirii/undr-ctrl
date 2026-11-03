@@ -1,11 +1,11 @@
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { useStore, act } from '../../../store/store';
 import {
   addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense, deleteBizIncome,
   keepBizItem, unkeepBizItem, setBizValue, reserveBizItem, completeReservation, cancelReservation, setPlatforms,
 } from '../../../store/logic';
-import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, type BizItem } from '../../../core/business';
+import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, matchesQuery, type BizItem } from '../../../core/business';
 import { parseAmount } from '../../../core/money';
 import { addDays, dayKey, diffDays, monthName, MONTHS, monthKey } from '../../../core/dates';
 import { Icon } from '../../shapes/icons';
@@ -23,6 +23,7 @@ type Sheet =
   | { kind: 'platforms' }
   | { kind: 'item'; id: string };
 
+const PAGE = 48; // cards shown before "Show more"
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const groupKey = (i: BizItem) => `${i.name}|${i.costSen}`;
 function groupItems(items: BizItem[]) {
@@ -47,9 +48,12 @@ export function Business({ mk }: { mk: string }) {
   const res = reservationsDue(b.items, today);
   const costs = m.cogsSen + m.feesSen + m.expensesSen;
   const scale = Math.max(m.salesSen + m.otherIncomeSen, costs, 1);
-  const match = (i: BizItem) => i.name.toLowerCase().includes(q.toLowerCase());
-  const stockGroups = useMemo(() => groupItems(b.items.filter((x) => x.status === 'stock' && match(x))), [b.items, q]); // eslint-disable-line react-hooks/exhaustive-deps
-  const kept = useMemo(() => groupItems(b.items.filter((x) => x.status === 'kept' && match(x))), [b.items, q]); // eslint-disable-line react-hooks/exhaustive-deps
+  // typing stays instant; the (possibly long) card lists catch up a beat later
+  const dq = useDeferredValue(q);
+  const stockGroups = useMemo(() => groupItems(b.items.filter((x) => x.status === 'stock' && matchesQuery(x, dq))), [b.items, dq]);
+  const kept = useMemo(() => groupItems(b.items.filter((x) => x.status === 'kept' && matchesQuery(x, dq))), [b.items, dq]);
+  const [showStock, setShowStock] = useState(PAGE);
+  const [showKept, setShowKept] = useState(PAGE);
   const soldThisMonth = b.items.filter((i) => i.status === 'sold' && i.soldOn && monthKey(i.soldOn) === mk).sort((a, c) => c.soldOn!.localeCompare(a.soldOn!));
   const costsThisMonth = b.expenses.filter((e) => monthKey(e.date) === mk).sort((a, c) => c.date.localeCompare(a.date));
   const incomeThisMonth = b.income.filter((e) => monthKey(e.date) === mk);
@@ -139,11 +143,11 @@ export function Business({ mk }: { mk: string }) {
           </div>
 
           <div className="mcard">
-            <div className="mcard-h"><h3>In stock</h3><div className="grow" /><input className="input" style={{ width: 200, height: 32 }} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            <div className="mcard-h"><h3>In stock</h3>{dq && <span className="muted">{stockGroups.reduce((n, g) => n + g.length, 0)} match</span>}<div className="grow" /><input className="input" style={{ width: 200, height: 32 }} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
             {stockGroups.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>{q ? 'Nothing matches.' : 'Everything is sold or reserved. Time to restock?'}</div>}
             <div className="stock">
               <AnimatePresence initial={false}>
-                {stockGroups.map((g) => {
+                {stockGroups.slice(0, showStock).map((g) => {
                   const i = g[0];
                   const days = diffDays(i.boughtOn, today);
                   return (
@@ -163,6 +167,7 @@ export function Business({ mk }: { mk: string }) {
                 })}
               </AnimatePresence>
             </div>
+            {stockGroups.length > showStock && <button className="btn ghost show-more" onClick={() => setShowStock(showStock + PAGE * 2)}>Show more · {stockGroups.length - showStock} left</button>}
           </div>
 
           <div className="mcard">
@@ -176,7 +181,7 @@ export function Business({ mk }: { mk: string }) {
             )}
             {col.count === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>Pieces you keep for yourself. They still cost Wealth when you buy them, and you can sell one any time.</div>}
             <div className="stock">
-              {kept.map((g) => {
+              {kept.slice(0, showKept).map((g) => {
                 const i = g[0];
                 const gain = (i.valueSen ?? i.costSen) - i.costSen;
                 return (
@@ -192,6 +197,7 @@ export function Business({ mk }: { mk: string }) {
                 );
               })}
             </div>
+            {kept.length > showKept && <button className="btn ghost show-more" onClick={() => setShowKept(showKept + PAGE * 2)}>Show more · {kept.length - showKept} left</button>}
           </div>
 
           <div className="two">
@@ -327,17 +333,20 @@ function ItemPicker({ statuses, onPick }: { statuses: BizItem['status'][]; onPic
   const allItems = useStore((x) => x.s.business.items);
   const fmt = useFmt();
   const [q, setQ] = useState('');
-  const groups = useMemo(() => groupItems(allItems.filter((i) => statuses.includes(i.status) && i.name.toLowerCase().includes(q.toLowerCase()))).sort((a, c) => (a[0].status === 'kept' ? 1 : 0) - (c[0].status === 'kept' ? 1 : 0)), [allItems, q, statuses]);
+  const dq = useDeferredValue(q);
+  const key = statuses.join(',');
+  const groups = useMemo(() => groupItems(allItems.filter((i) => statuses.includes(i.status) && matchesQuery(i, dq))).sort((a, c) => (a[0].status === 'kept' ? 1 : 0) - (c[0].status === 'kept' ? 1 : 0)), [allItems, dq, key]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
       <input className="input" autoFocus placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && groups[0]) onPick(groups[0][0]); }} />
       <div className="tl-items" style={{ maxHeight: 320, overflowY: 'auto' }}>
-        {groups.map((g) => { const i = g[0]; return (
+        {groups.slice(0, 40).map((g) => { const i = g[0]; return (
           <div key={i.id} className="tl-item" onClick={() => onPick(i)}>
             <div className="grow"><div className="tl-note">{i.name}{g.length > 1 && <span className="muted"> ×{g.length}</span>}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}{i.status === 'kept' ? ' · from my collection' : ''}</div></div>
             <Icon name="right" size={16} />
           </div>
         ); })}
+        {groups.length > 40 && <div className="muted" style={{ fontSize: '.84rem', padding: '4px 2px' }}>{groups.length - 40} more. Keep typing to narrow it down.</div>}
         {!groups.length && <div className="muted">Nothing matches.</div>}
       </div>
     </>

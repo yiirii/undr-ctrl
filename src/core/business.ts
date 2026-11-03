@@ -132,3 +132,12 @@ export function migrateToCashFlow(items: BizItem[], ledger: LedgerEntry[], at: s
   }
   return [...out, ...comps, ...fresh];
 }
+
+const norm = (s: string) => s.toLowerCase().replace(/#/g, ' ').replace(/\s+/g, ' ').trim();
+/** Search: every word of the query must appear in the name or note (any order, case and # ignored). */
+export function matchesQuery(i: Pick<BizItem, 'name' | 'note'>, q: string): boolean {
+  const words = norm(q).split(' ').filter(Boolean);
+  if (!words.length) return true;
+  const hay = ` ${norm(`${i.name} ${i.note ?? ''}`)} `;
+  return words.every((w) => hay.includes(w));
+}

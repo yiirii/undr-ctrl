@@ -15,6 +15,7 @@ interface UI {
   quickAdd: boolean;
   logSheet: false | { kind: 'in' | 'out'; editId?: string };
   recapMonth: string | null;
+  moneyTab?: 'personal' | 'business'; // remembered while the app is open
   saveError: boolean;
   recovered: boolean;
   loaded: boolean;

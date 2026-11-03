@@ -25,7 +25,8 @@ export function Money() {
   const today = dayKey(new Date());
   const [mk, setMk] = useState(monthKey(today));
   const [setup, setSetup] = useState<false | number>(false);
-  const [tab, setTab] = useState<'personal' | 'business'>('personal');
+  const tab = useStore((x) => x.ui.moneyTab ?? 'personal');
+  const setTab = (moneyTab: 'personal' | 'business') => useStore.getState().setUI({ moneyTab });
   const [catId, setCatId] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState(false);
   const [addingCat, setAddingCat] = useState(false);

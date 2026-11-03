@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { wealthForBuy, itemProfit, bizMonth, stockSummary, wealthForSale, wealthForBizExpense, bizSixMonths, type BizItem, type BizExpense } from './business';
+import { matchesQuery, wealthForBuy, itemProfit, bizMonth, stockSummary, wealthForSale, wealthForBizExpense, bizSixMonths, type BizItem, type BizExpense } from './business';
 import { suggestFromHistory, defaultCategories, type MoneyState } from './money';
 import type { MoneyEntry } from './types';
 
@@ -61,5 +61,17 @@ describe('suggestFromHistory (track first, budget later)', () => {
     expect(r.days).toBe(30);
     expect(r.limits.food).toBe(31000); // 300 / 30 * 30.4 = 304 → 310
     expect(r.limits.transport).toBe(2000); // 12 / 30 * 30.4 = 12.16 → RM 20
+  });
+});
+
+describe('search', () => {
+  test('every word must appear, in any order; # and case are ignored; notes count', () => {
+    const it = { name: 'Funko Pop! Groot #49', note: 'box damaged' } as any;
+    expect(matchesQuery(it, 'groot 49')).toBe(true);
+    expect(matchesQuery(it, '#49 groot')).toBe(true);
+    expect(matchesQuery(it, '49')).toBe(true);
+    expect(matchesQuery(it, 'damaged')).toBe(true);
+    expect(matchesQuery(it, 'groot 50')).toBe(false);
+    expect(matchesQuery(it, '   ')).toBe(true);
   });
 });
