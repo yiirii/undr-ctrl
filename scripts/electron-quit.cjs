@@ -14,7 +14,7 @@ const fs = require('fs'), path = require('path'), os = require('os');
   await win.keyboard.press('Enter');
   await app.evaluate(({ app }) => app.quit()); // within the 500 ms debounce
   await app.close().catch(() => {});
-  const file = path.join(home, '.config', 'Lofi', 'data.json');
+  const file = path.join(home, '.config', 'Undr Ctrl', 'data.json');
   const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
   const ok = saved.tasks.some((t) => t.title === 'saved right before quit');
   console.log(ok ? 'QUIT-SAVE OK' : 'QUIT-SAVE LOST');

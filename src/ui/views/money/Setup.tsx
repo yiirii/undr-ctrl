@@ -81,7 +81,7 @@ export function Setup({ onDone, onSkip, embedded }: { onDone: () => void; onSkip
             {step === 2 && <Split income={income} cats={cats} limits={limits} setLimits={setLimits} savings={savings} setSavings={setSavings} />}
             {step === 3 && (
               <>
-                <p className="dim">Optional. Give it a name and a target. Lofi works out how much to put aside each month.</p>
+                <p className="dim">Optional. Give it a name and a target. Undr Ctrl works out how much to put aside each month.</p>
                 <label className="field"><span>Goal</span><input className="input" placeholder="e.g. New laptop" value={goal.name} onChange={(e) => setGoal({ ...goal, name: e.target.value })} /></label>
                 <div className="two">
                   <label className="field"><span>Target (RM)</span><input className="input" inputMode="decimal" placeholder="4000" value={goal.target} onChange={(e) => setGoal({ ...goal, target: e.target.value })} /></label>

@@ -66,7 +66,7 @@ export function App() {
           <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 30 }}>
             <div className="banner">
               <Icon name="bell" size={16} />
-              {ui.saveError ? 'Not saved yet. Lofi will keep trying.' : 'Your data file was damaged, so Lofi loaded the latest backup.'}
+              {ui.saveError ? 'Not saved yet. Undr Ctrl will keep trying.' : 'Your data file was damaged, so Undr Ctrl loaded the latest backup.'}
               {ui.recovered && <button className="icon-btn" onClick={() => setUI({ recovered: false })}><Icon name="x" size={14} /></button>}
             </div>
           </div>

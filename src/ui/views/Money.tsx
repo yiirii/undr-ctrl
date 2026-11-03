@@ -77,7 +77,7 @@ export function Money() {
           <div className="money-hero" style={{ justifyContent: 'center', textAlign: 'center', flexDirection: 'column', gap: 12, padding: 36 }}>
             <Ambient size={160} />
             <h2>Set up your budget</h2>
-            <p className="dim" style={{ maxWidth: 420, lineHeight: 1.5 }}>One minute: tell Lofi what comes in, pick your categories, and it suggests a simple split you can adjust.</p>
+            <p className="dim" style={{ maxWidth: 420, lineHeight: 1.5 }}>One minute: tell Undr Ctrl what comes in, pick your categories, and it suggests a simple split you can adjust.</p>
             <button className="btn primary lg" onClick={() => setSetup(true)}>Start money setup</button>
           </div>
         ) : (

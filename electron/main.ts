@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { loadWithFallback, saveAtomic } from './storage';
 
-app.setName('Lofi');
-app.setAppUserModelId('app.lofi.desktop');
-const dataDir = path.join(app.getPath('appData'), 'Lofi');
+app.setName('Undr Ctrl');
+app.setAppUserModelId('app.undrctrl.desktop');
+const dataDir = path.join(app.getPath('appData'), 'Undr Ctrl');
 app.setPath('userData', dataDir);
 const musicDir = path.join(dataDir, 'music');
 const prefsFile = path.join(dataDir, 'prefs.json');
@@ -38,7 +38,7 @@ function showWindow() {
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1360, height: 880, minWidth: 980, minHeight: 640, show: false, backgroundColor: '#1e1f22', autoHideMenuBar: true, title: 'Lofi',
+    width: 1360, height: 880, minWidth: 980, minHeight: 640, show: false, backgroundColor: '#1e1f22', autoHideMenuBar: true, title: 'Undr Ctrl',
     icon: asset('icon.png'),
     webPreferences: { preload: asset('preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, backgroundThrottling: false },
   });
@@ -50,7 +50,7 @@ function createWindow() {
     e.preventDefault();
     win!.hide();
     if (!readPrefs().trayHintShown && tray) {
-      tray.displayBalloon?.({ title: 'Lofi is still here', content: 'Lofi keeps running in the tray so reminders work. Quit from the tray menu.', iconType: 'info' });
+      tray.displayBalloon?.({ title: 'Undr Ctrl is still here', content: 'Undr Ctrl keeps running in the tray so reminders work. Quit from the tray menu.', iconType: 'info' });
       writePrefs({ trayHintShown: true });
     }
   });
@@ -62,9 +62,9 @@ function createWindow() {
 function createTray() {
   const img = nativeImage.createFromPath(asset('tray.png'));
   tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
-  tray.setToolTip('Lofi');
+  tray.setToolTip('Undr Ctrl');
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Open Lofi', click: showWindow },
+    { label: 'Open Undr Ctrl', click: showWindow },
     { label: 'Quick add…', click: () => { showWindow(); send('open-quick-add'); } },
     { type: 'separator' },
     { label: 'Quit', click: () => { quitting = true; app.quit(); } },
@@ -130,13 +130,13 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('music:exists', (_e, stored: string) => fs.existsSync(resolveMusic(stored)));
   ipcMain.handle('data:export', async (_e, json: string) => {
-    const r = await dialog.showSaveDialog(win!, { title: 'Export Lofi backup', defaultPath: `lofi-backup-${today()}.lofi.json`, filters: [{ name: 'Lofi backup', extensions: ['json'] }] });
+    const r = await dialog.showSaveDialog(win!, { title: 'Export Undr Ctrl backup', defaultPath: `undr-ctrl-backup-${today()}.undrctrl.json`, filters: [{ name: 'Undr Ctrl backup', extensions: ['json'] }] });
     if (r.canceled || !r.filePath) return false;
     fs.writeFileSync(r.filePath, json);
     return true;
   });
   ipcMain.handle('data:import', async () => {
-    const r = await dialog.showOpenDialog(win!, { title: 'Import Lofi backup', properties: ['openFile'], filters: [{ name: 'Lofi backup', extensions: ['json'] }] });
+    const r = await dialog.showOpenDialog(win!, { title: 'Import Undr Ctrl backup', properties: ['openFile'], filters: [{ name: 'Undr Ctrl backup', extensions: ['json'] }] });
     return r.canceled ? null : fs.readFileSync(r.filePaths[0], 'utf8');
   });
   ipcMain.on('notify', (_e, title: string, body: string, taskId?: string) => {

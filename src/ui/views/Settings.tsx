@@ -28,7 +28,7 @@ export function Settings() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('General');
   return (
     <div className="page page-wide">
-      <div className="ph"><div><h1>Settings</h1><div className="sub">Make Lofi yours</div></div></div>
+      <div className="ph"><div><h1>Settings</h1><div className="sub">Make Undr Ctrl yours</div></div></div>
       <div className="seg-ctl" style={{ marginBottom: 22 }}>{TABS.map((t) => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t}</button>)}</div>
       {tab === 'General' && <General />}
       {tab === 'Appearance' && <AppearanceTab />}
@@ -252,7 +252,7 @@ function MusicTab() {
       <div className={`mcard drop ${drag ? 'over' : ''}`}>
         <div className="row" style={{ gap: 16 }}>
           <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--bg0)', display: 'grid', placeItems: 'center' }}><Icon name="music" size={24} /></div>
-          <div className="grow"><div className="set-l">Your music</div><div className="set-h">Lofi plays only tracks you add (mp3, m4a, ogg, opus, wav, flac). Drop files here or add them. Music always pauses when Lofi is minimised or in the tray.</div></div>
+          <div className="grow"><div className="set-l">Your music</div><div className="set-h">Undr Ctrl plays only tracks you add (mp3, m4a, ogg, opus, wav, flac). Drop files here or add them. Music always pauses when Undr Ctrl is minimised or in the tray.</div></div>
           <button className="btn primary" onClick={importNative}><Icon name="plus" size={16} />Add tracks</button>
           <input ref={fileRef} type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.opus,.wav,.flac" multiple hidden onChange={(e) => fromFiles(e.target.files)} />
         </div>
@@ -310,25 +310,25 @@ function DataTab() {
     if (b) { if (await b.exportData(json)) setMsg('Exported.'); return; }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-    a.download = `lofi-backup-${new Date().toISOString().slice(0, 10)}.lofi.json`;
+    a.download = `undr-ctrl-backup-${new Date().toISOString().slice(0, 10)}.undrctrl.json`;
     a.click();
     setMsg('Exported.');
   };
   const load = (json: string) => {
-    try { const data = JSON.parse(json); if (!data || typeof data !== 'object' || !('tasks' in data)) throw new Error(); if (confirm('Replace everything in Lofi with this backup?')) { replace(data); setMsg('Imported.'); } }
-    catch { setMsg("That file isn't a Lofi backup."); }
+    try { const data = JSON.parse(json); if (!data || typeof data !== 'object' || !('tasks' in data)) throw new Error(); if (confirm('Replace everything in Undr Ctrl with this backup?')) { replace(data); setMsg('Imported.'); } }
+    catch { setMsg("That file isn't an Undr Ctrl backup."); }
   };
   const doImport = async () => { const b = bridge(); if (b) { const j = await b.importData(); if (j) load(j); } else fileRef.current?.click(); };
   return (
     <div className="stack" style={{ maxWidth: 760 }}>
       <div className="mcard stack">
-        <Row label="Export a backup" hint="Everything: tasks, money, progress and settings, in one .lofi.json file."><button className="btn" onClick={doExport}><Icon name="download" size={16} />Export</button></Row>
-        <Row label="Import a backup" hint="Replaces what's here now. Lofi keeps 14 daily backups automatically too."><button className="btn" onClick={doImport}><Icon name="upload" size={16} />Import</button></Row>
+        <Row label="Export a backup" hint="Everything: tasks, money, progress and settings, in one .undrctrl.json file."><button className="btn" onClick={doExport}><Icon name="download" size={16} />Export</button></Row>
+        <Row label="Import a backup" hint="Replaces what's here now. Undr Ctrl keeps 14 daily backups automatically too."><button className="btn" onClick={doImport}><Icon name="upload" size={16} />Import</button></Row>
         <input ref={fileRef} type="file" accept=".json" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) load(await f.text()); }} />
         {msg && <div className="chip ok" style={{ alignSelf: 'flex-start' }}>{msg}</div>}
       </div>
       <div className="mcard dim" style={{ fontSize: '.86rem', lineHeight: 1.6 }}>
-        Your data lives only on this PC in <code>%APPDATA%\Lofi</code>. {s.tasks.length} tasks · {s.money.entries.length} money entries · {s.ledger.length} XP events.
+        Your data lives only on this PC in <code>%APPDATA%\Undr Ctrl</code>. {s.tasks.length} tasks · {s.money.entries.length} money entries · {s.ledger.length} XP events.
       </div>
     </div>
   );

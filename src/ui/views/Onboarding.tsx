@@ -27,7 +27,7 @@ export function Onboarding() {
         {step === 0 && (
           <motion.form key="name" className="onb-card" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={SPRING} onSubmit={(e) => { e.preventDefault(); if (name.trim()) setStep(1); }}>
             <Ambient size={240} />
-            <h1>Hi, I'm Lofi.</h1>
+            <h1>Welcome to Undr Ctrl.</h1>
             <p>A calm place for your tasks, your money and your focus, where real life levels you up.</p>
             <input className="input onb-name" autoFocus placeholder="What should we call you?" value={name} onChange={(e) => setName(e.target.value)} />
             <button className="btn primary lg" disabled={!name.trim()}>Continue<Icon name="right" size={16} /></button>

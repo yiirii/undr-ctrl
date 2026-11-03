@@ -1,8 +1,8 @@
 {
-  "name": "lofi",
-  "productName": "Lofi",
+  "name": "undr-ctrl",
+  "productName": "Undr Ctrl",
   "version": "1.0.0",
-  "description": "Lofi — a calm, gamified to-do, money and focus app",
+  "description": "Undr Ctrl \u2014 a calm, gamified to-do, money and focus app",
   "author": "Chloe",
   "private": true,
   "main": "dist-electron/main.js",
@@ -14,8 +14,8 @@
     "dist": "npm run build && electron-builder --win --x64 --publish never"
   },
   "build": {
-    "appId": "app.lofi.desktop",
-    "productName": "Lofi",
+    "appId": "app.undrctrl.desktop",
+    "productName": "Undr Ctrl",
     "directories": {
       "output": "release"
     },
@@ -33,8 +33,8 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "Lofi-Setup.exe",
-      "shortcutName": "Lofi"
+      "artifactName": "Undr-Ctrl-Setup.exe",
+      "shortcutName": "Undr Ctrl"
     },
     "publish": []
   },

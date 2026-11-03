@@ -15,7 +15,7 @@ const fs = require('fs'), path = require('path'), os = require('os');
   await win.keyboard.type('read chapter 5 tmr #uni');
   await win.keyboard.press('Enter');
   await win.waitForTimeout(1500);
-  const dataDir = path.join(home, '.config', 'Lofi');
+  const dataDir = path.join(home, '.config', 'Undr Ctrl');
   const file = path.join(dataDir, 'data.json');
   const saved = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
   console.log('data.json saved:', !!saved, 'tasks:', saved?.tasks?.length, 'name:', saved?.profile?.name, 'backups:', fs.existsSync(path.join(dataDir, 'backups')) ? fs.readdirSync(path.join(dataDir, 'backups')) : []);
@@ -27,6 +27,7 @@ const fs = require('fs'), path = require('path'), os = require('os');
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show());
   await win.waitForTimeout(300);
   await win.screenshot({ path: 'shots/electron.png' });
+  console.log('title:', await win.title(), '| app name:', await app.evaluate(({ app }) => app.getName()));
   // close hides instead of quitting
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close());
   await win.waitForTimeout(300);

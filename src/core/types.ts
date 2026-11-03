@@ -1,4 +1,4 @@
-// Domain types for Lofi. Money is integer sen. Dates are local 'YYYY-MM-DD' keys.
+// Domain types for Undr Ctrl. Money is integer sen. Dates are local 'YYYY-MM-DD' keys.
 
 export type Stat = 'int' | 'str' | 'wea' | 'dis' | 'cre' | 'cha';
 export const STATS: Stat[] = ['int', 'str', 'wea', 'dis', 'cre', 'cha'];

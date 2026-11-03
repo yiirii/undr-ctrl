@@ -1,14 +1,14 @@
-# Lofi
+# Undr Ctrl
 
 A calm, gamified to-do, money and focus app for Windows. Real life levels you up.
 
 ## Install
 
-1. Run `Lofi-Setup.exe`.
+1. Run `Undr-Ctrl-Setup.exe`.
 2. Windows SmartScreen will warn you, because the app isn't code-signed. Click **More info**, then **Run anyway**.
-3. Lofi starts with Windows into the system tray. Closing the window hides it to the tray. To quit, use the tray menu.
+3. Undr Ctrl starts with Windows into the system tray. Closing the window hides it to the tray. To quit, use the tray menu.
 
-Your data lives only on this PC, in `%APPDATA%\Lofi`. Lofi keeps 14 daily backups there and loads one automatically if `data.json` ever gets damaged.
+Your data lives only on this PC, in `%APPDATA%\Undr Ctrl`. Undr Ctrl keeps 14 daily backups there and loads one automatically if `data.json` ever gets damaged.
 
 ## Everyday keys
 
@@ -34,7 +34,7 @@ Your data lives only on this PC, in `%APPDATA%\Lofi`. Lofi keeps 14 daily backup
 
 ## Music
 
-In Settings → Music, add your own audio files: mp3, m4a, ogg, opus, wav or flac. Music always pauses when Lofi is minimised or in the tray, and resumes when you come back if it was playing.
+In Settings → Music, add your own audio files: mp3, m4a, ogg, opus, wav or flac. Music always pauses when Undr Ctrl is minimised or in the tray, and resumes when you come back if it was playing.
 
 ## Development
 
@@ -43,7 +43,7 @@ npm install
 npm run dev:web      # browser build at http://localhost:5173 (?seed=demo for sample data)
 npm test             # unit tests (vitest)
 npm run e2e          # end-to-end flows (playwright)
-npm run dist         # Windows installer → release/Lofi-Setup.exe (needs wine64 on Linux)
+npm run dist         # Windows installer → release/Undr-Ctrl-Setup.exe (needs wine64 on Linux)
 ```
 
 - **Spec:** `docs/superpowers/specs/2026-11-03-lofi-design.md`

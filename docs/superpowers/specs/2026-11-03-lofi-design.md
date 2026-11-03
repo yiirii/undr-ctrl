@@ -1,4 +1,4 @@
-# Lofi: design spec
+# Undr Ctrl (formerly Lofi): design spec
 
 *A personal, gamified to-do and budget app for Windows. Real-life progress levels you up like an RPG character, inside a calm, minimal 2D interface.*
 
@@ -23,7 +23,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: **approved for build** (rev 6: name,
 
 | Topic | Decision |
 |---|---|
-| Name | **Lofi** |
+| Name | **Undr Ctrl** (renamed from Lofi). App icon: a black sword on white, cut from Chloe's reference image. |
 | Platform | Windows desktop app (.exe). Starts with Windows into the system tray; closing the window hides it to the tray. |
 | Who | Student |
 | Data | Stored on this PC only. Export and import for backup. No sync. |
@@ -216,7 +216,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: **approved for build** (rev 6: name,
 
 - **No bundled music or ambient sounds.** Lofi plays only audio you add yourself.
 - **Adding music:** Settings → Music → **Add tracks**, or drag files onto the app. Supported formats: mp3, m4a/aac, ogg, opus, wav and flac.
-  - Files are **copied** into `%APPDATA%/Lofi/music/`, so they keep working even if the originals move. A "link instead of copy" option is available for large libraries.
+  - Files are **copied** into `%APPDATA%/Undr Ctrl/music/`, so they keep working even if the originals move. A "link instead of copy" option is available for large libraries.
   - Title and artist are read from the file's tags, falling back to the file name. Cover art is shown if embedded; otherwise a generated geometric cover.
 - **Playlists:** a default "All tracks" plus user playlists, with reorder by drag, shuffle, repeat (off, all, one) and volume.
 - **Mini player:** pinned at the bottom of the sidebar.
@@ -475,11 +475,11 @@ electron/
 - The motion layer queues them, so several moments at once play in sequence instead of on top of each other.
 
 **Data and persistence:**
-- One JSON document, stored in `%APPDATA%/Lofi/data.json`.
+- One JSON document, stored in `%APPDATA%/Undr Ctrl/data.json`.
 - Writes are atomic (write to a temp file, then rename) and debounced by 500 ms.
 - Rolling daily backups keep 14 copies.
 - A schema `version` field, with migrations, protects existing data when the app updates.
-- Export and import are a single `.lofi.json` file.
+- Export and import are a single `.undrctrl.json` file.
 
 **Reminders:**
 - The main process keeps a timer per upcoming reminder and shows a native Windows toast. Clicking it focuses the task.
@@ -493,7 +493,7 @@ electron/
 4. Resets My Day.
 
 **Packaging:**
-- electron-builder targets an NSIS installer (`Lofi-Setup.exe`), with a portable `.exe` as a fallback.
+- electron-builder targets an NSIS installer (`Undr-Ctrl-Setup.exe`), with a portable `.exe` as a fallback.
 - The app is unsigned, so Windows SmartScreen shows "More info → Run anyway" the first time.
 
 ## 6. Error handling
