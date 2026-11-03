@@ -17,9 +17,19 @@ describe('spending insights', () => {
     expect(food.months.map((m) => m.sen)).toEqual([0, 0, 30000, 30000, 30000, 45000]);
     expect(food.avgSen).toBe(30000); // average of earlier months that had spending
   });
-  test('biggest changes vs your average, largest first', () => {
-    expect(r.changes[0]).toMatchObject({ id: 'food', diffSen: 15000 });
-    expect(r.changes[1]).toMatchObject({ id: 'transport', diffSen: -8000 });
+  test('biggest changes vs what you usually spend by this day of the month, largest first', () => {
+    // 3 Nov = 3/30 of the month: usual food by now = 30000 * 0.1 = 3000; this month 45000 → +42000
+    expect(r.paceFrac).toBeCloseTo(0.1, 5);
+    expect(r.changes[0]).toMatchObject({ id: 'food', usualByNowSen: 3000, diffSen: 42000 });
+  });
+  test('totals: usual month and usual by today', () => {
+    expect(r.totalAvgSen).toBe(Math.round((30000 + 40000 + 30000) / 3));
+    expect(r.totalUsualByNowSen).toBe(Math.round(r.totalAvgSen * 0.1));
+  });
+  test('on the last day the pace comparison equals the full-month comparison', () => {
+    const end = spendingInsights(money, '2026-11-30');
+    expect(end.paceFrac).toBe(1);
+    expect(end.changes.find((c) => c.id === 'food')!.diffSen).toBe(15000);
   });
   test('weekday vs weekend daily average over the last 90 days', () => {
     // 2026-11-01 is a Sunday, 2026-11-02 a Monday

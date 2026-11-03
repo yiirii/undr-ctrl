@@ -13,6 +13,7 @@ import { Focus, FocusTicker } from '../views/Focus';
 import { Onboarding } from '../views/Onboarding';
 import { Moments } from '../motion/Moments';
 import { Reminders } from './Reminders';
+import { Insights } from '../views/Insights';
 import { Icon } from '../shapes/icons';
 import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
@@ -26,6 +27,7 @@ function View() {
   else if (view === 'planned') el = <Planned />;
   else if (view === 'habits') el = <Habits />;
   else if (view === 'money') el = <Money />;
+  else if (view === 'insights') el = <Insights />;
   else if (view === 'quests') el = <Quests />;
   else if (view === 'profile') el = <Profile />;
   else if (view === 'settings') el = <Settings />;

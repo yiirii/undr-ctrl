@@ -1,15 +1,18 @@
 // Insights: where money goes, and how productive you are. Pure functions over app data.
 import type { Category, FocusLogEntry, LedgerEntry, MoneyEntry, Stat, Task } from './types';
 import { STATS } from './types';
-import { addDays, addMonths, dayKey, diffDays, monthKey, weekday, weekStart } from './dates';
+import { addDays, addMonths, dayKey, dayOfMonth, daysInMonth, diffDays, monthKey, weekday, weekStart } from './dates';
 import { deriveProgress } from './ledger';
 
 export interface CatTrend { id: string; name: string; color: string; months: { mk: string; sen: number }[]; thisSen: number; avgSen: number }
 export interface SpendingInsights {
   categories: CatTrend[]; // only categories with any spending in the window, biggest this month first
-  changes: { id: string; name: string; color: string; thisSen: number; avgSen: number; diffSen: number }[];
+  /** Compared with what you usually spend by this day of the month (avg × paceFrac). */
+  changes: { id: string; name: string; color: string; thisSen: number; avgSen: number; usualByNowSen: number; diffSen: number }[];
+  paceFrac: number; // share of the month passed (day / days in month)
   totalThisSen: number;
   totalAvgSen: number;
+  totalUsualByNowSen: number;
   week: { weekdaySen: number; weekendSen: number }; // average spend per weekday / weekend day, last 90 days
 }
 
@@ -23,9 +26,10 @@ export function spendingInsights(money: { categories: Category[]; entries: Money
     const avgSen = earlier.length ? Math.round(earlier.reduce((n, m) => n + m.sen, 0) / earlier.length) : 0;
     return { id: c.id, name: c.name, color: c.color, months, thisSen: months[5].sen, avgSen };
   }).filter((c) => c.months.some((m) => m.sen > 0)).sort((a, b) => b.thisSen - a.thisSen || b.avgSen - a.avgSen);
+  const paceFrac = dayOfMonth(today) / daysInMonth(today);
   const changes = categories
     .filter((c) => c.avgSen > 0)
-    .map((c) => ({ id: c.id, name: c.name, color: c.color, thisSen: c.thisSen, avgSen: c.avgSen, diffSen: c.thisSen - c.avgSen }))
+    .map((c) => { const usualByNowSen = Math.round(c.avgSen * paceFrac); return { id: c.id, name: c.name, color: c.color, thisSen: c.thisSen, avgSen: c.avgSen, usualByNowSen, diffSen: c.thisSen - usualByNowSen }; })
     .filter((c) => c.diffSen !== 0)
     .sort((a, b) => Math.abs(b.diffSen) - Math.abs(a.diffSen))
     .slice(0, 3);
@@ -40,11 +44,14 @@ export function spendingInsights(money: { categories: Category[]; entries: Money
     const w = weekday(d);
     if (w === 0 || w === 6) { we += sum; weDays++; } else { wd += sum; wdDays++; }
   }
+  const totalAvgSen = earlierTotals.length ? Math.round(earlierTotals.reduce((a, b) => a + b, 0) / earlierTotals.length) : 0;
   return {
     categories,
     changes,
+    paceFrac,
     totalThisSen: monthTotal(mkNow),
-    totalAvgSen: earlierTotals.length ? Math.round(earlierTotals.reduce((a, b) => a + b, 0) / earlierTotals.length) : 0,
+    totalAvgSen,
+    totalUsualByNowSen: Math.round(totalAvgSen * paceFrac),
     week: { weekdaySen: wdDays ? Math.round(wd / wdDays) : 0, weekendSen: weDays ? Math.round(we / weDays) : 0 },
   };
 }

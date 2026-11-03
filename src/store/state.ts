@@ -5,8 +5,8 @@ import { DEFAULT_PLATFORMS, migrateToCashFlow, type BizItem, type BizExpense, ty
 import { DEFAULT_APPEARANCE, type Appearance } from '../core/appearance';
 import { defaultCategories, defaultSources } from '../core/money';
 
-export type View = 'myday' | 'planned' | 'habits' | 'money' | 'quests' | 'profile' | 'settings' | 'focus' | `list:${string}`;
-export const NAV_PAGES = ['myday', 'planned', 'habits', 'money', 'quests', 'profile'] as const;
+export type View = 'myday' | 'planned' | 'habits' | 'money' | 'insights' | 'quests' | 'profile' | 'settings' | 'focus' | `list:${string}`;
+export const NAV_PAGES = ['myday', 'planned', 'habits', 'money', 'insights', 'quests', 'profile'] as const;
 
 export interface Settings {
   sound: 'soft' | 'glass' | 'wood' | 'chime';
@@ -107,7 +107,19 @@ export function migrate(raw: unknown): AppState {
     focusSettings: { ...base.focusSettings, ...(s.focusSettings ?? {}) },
     music: { ...base.music, ...(s.music ?? {}) },
     appearance: { ...base.appearance, ...(s.appearance ?? {}) },
-    settings: { ...base.settings, ...(s.settings ?? {}) },
+    settings: withAllPages({ ...base.settings, ...(s.settings ?? {}) }),
     version: 1,
   };
+}
+
+/** Pages added in later versions get slotted into a saved sidebar order (right after the page before them). */
+function withAllPages(st: Settings): Settings {
+  const order = [...st.navOrder];
+  NAV_PAGES.forEach((k, i) => {
+    if (order.includes(k)) return;
+    const prev = NAV_PAGES[i - 1];
+    const at = prev ? order.indexOf(prev) + 1 : 0;
+    order.splice(at > 0 ? at : order.length, 0, k);
+  });
+  return { ...st, navOrder: order };
 }

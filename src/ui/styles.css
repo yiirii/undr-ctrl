@@ -443,3 +443,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .coin-tower .coin:nth-child(even) { background: color-mix(in srgb, var(--in) 80%, var(--xp)); }
 .diamonds.big { gap: 14px; height: 110px; align-items: center; }
 .diamonds.big .d { width: 26px; height: 26px; }
+.insight-line { font-size: .92rem; color: var(--t2); line-height: 1.5; }
+.insight-big { font-family: var(--font-head); font-size: 1.9rem; font-weight: 900; letter-spacing: -.5px; margin: -4px 0 14px; }
+.insight-empty { display: flex; align-items: center; gap: 14px; color: var(--t2); line-height: 1.5; }
+.cat-trends { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.cat-trend { padding: 14px; border-radius: calc(var(--radius) + 2px); background: color-mix(in srgb, var(--bg0) 35%, transparent); }
+.pvd { display: flex; gap: 8px; height: 150px; align-items: flex-end; }
+.pvd-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; }
+.pvd-bars { flex: 1; width: 100%; display: flex; justify-content: center; align-items: flex-end; gap: 3px; }
+.pvd-plan, .pvd-done { width: 40%; max-width: 14px; border-radius: 5px 5px 2px 2px; min-height: 2px; }
+.pvd-plan { background: var(--bg4); }
+.pvd-done { background: var(--accent); }
+.legend { font-size: .76rem; color: var(--t3); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
