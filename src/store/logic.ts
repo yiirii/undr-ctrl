@@ -202,7 +202,7 @@ export function toggleStep(s: AppState, taskId: string, stepId: string, now: Dat
   const next = mapTask(s, taskId, (x) => ({ ...x, steps: x.steps!.map((y) => (y.id === stepId ? { ...y, done: !y.done } : y)) }));
   if (st.done) return done({ ...next, ledger: reverse(s.ledger, ref, iso(now)) });
   const stat = taskStat(s, t);
-  return settle(s, { ...next, ledger: [...s.ledger, entry('step', stat, STEP_XP, true, ref, iso(now))] }, now, [{ type: 'xp', amount: STEP_XP, stat, label: 'Step' }]);
+  return settle(s, { ...next, ledger: [...s.ledger, entry('step', stat, STEP_XP, true, ref, iso(now))] }, now, []);
 }
 export function deleteStep(s: AppState, taskId: string, stepId: string, now: Date): Result {
   const next = mapTask(s, taskId, (t) => ({ ...t, steps: (t.steps ?? []).filter((y) => y.id !== stepId) }));

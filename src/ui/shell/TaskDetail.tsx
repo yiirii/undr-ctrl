@@ -1,11 +1,15 @@
-import { motion } from 'framer-motion';
+import { motion, Reorder, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import { useStore, act } from '../../store/store';
-import { updateTask, deleteTask, toggleMyDay, focusStart } from '../../store/logic';
+import { updateTask, deleteTask, toggleMyDay, focusStart, addStep, toggleStep, renameStep, deleteStep } from '../../store/logic';
+import { taskStat } from '../../store/facts';
+import { CheckCircle } from './TaskRow';
+import { sfx } from '../sound/synth';
 import { STAT_META, STATS, type Recurrence, type Size, type Task } from '../../core/types';
 import { SIZE_XP } from '../../core/rules';
 import { dayKey } from '../../core/dates';
 import { Icon } from '../shapes/icons';
-import { SPRING } from '../shapes/Progress';
+import { SPRING, Bar } from '../shapes/Progress';
 
 function recKind(r?: Recurrence) { return r ? r.kind : 'none'; }
 
@@ -33,6 +37,7 @@ export function TaskDetail({ id }: { id: string }) {
         <button className="icon-btn" title="Close (Esc)" onClick={() => setUI({ detailId: null })}><Icon name="x" /></button>
       </div>
       <input className="detail-title" value={t.title} onChange={(e) => up({ title: e.target.value })} />
+      {!t.habit && <Steps task={t} color={(() => { const st = taskStat(s, t); return st && s.appearance.useStatColours ? STAT_META[st].hue : 'var(--accent)'; })()} />}
 
       {!t.habit && (
         <button className="opt" onClick={() => act(toggleMyDay, id, new Date())} style={{ color: t.myDay === today ? 'var(--accent)' : undefined }}>
@@ -96,5 +101,29 @@ export function TaskDetail({ id }: { id: string }) {
         <button className="btn ghost danger sm" onClick={() => { act(deleteTask, id); setUI({ detailId: null }); }}><Icon name="trash" size={15} />Delete</button>
       </div>
     </motion.aside>
+  );
+}
+
+function Steps({ task, color }: { task: Task; color: string }) {
+  const [draft, setDraft] = useState('');
+  const steps = task.steps ?? [];
+  const done = steps.filter((x) => x.done).length;
+  const add = () => { if (draft.trim()) { act(addStep, task.id, draft); setDraft(''); } };
+  return (
+    <div className="steps">
+      {steps.length > 0 && <Bar value={done} max={steps.length} color={color} height={4} />}
+      <Reorder.Group axis="y" values={steps.map((x) => x.id)} onReorder={(ids: string[]) => act(updateTask, task.id, { steps: ids.map((id) => steps.find((x) => x.id === id)!).filter(Boolean) })} className="steps-list">
+        <AnimatePresence initial={false}>
+          {steps.map((st) => (
+            <Reorder.Item key={st.id} value={st.id} className={`step ${st.done ? 'done' : ''}`} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+              <CheckCircle done={st.done} color={color} size={18} onToggle={() => { act(toggleStep, task.id, st.id, new Date()); if (!st.done) sfx.tink(); }} />
+              <input className="step-input" defaultValue={st.title} onBlur={(e) => e.target.value.trim() && e.target.value !== st.title && act(renameStep, task.id, st.id, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+              <button className="icon-btn step-x" title="Remove step" onClick={() => act(deleteStep, task.id, st.id, new Date())}><Icon name="x" size={13} /></button>
+            </Reorder.Item>
+          ))}
+        </AnimatePresence>
+      </Reorder.Group>
+      <div className="step add"><Icon name="plus" size={16} /><input className="step-input" placeholder={steps.length ? 'Next step' : 'Add a step (+2 XP each)'} value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }} onBlur={add} /></div>
+    </div>
   );
 }

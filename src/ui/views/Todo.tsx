@@ -1,12 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState, type ReactNode } from 'react';
 import { useStore, act, useProgress } from '../../store/store';
-import { myDayTasks, completeTask, uncompleteTask, toggleMyDay, updateList, deleteList, addTask } from '../../store/logic';
+import { myDayTasks, completeTask, uncompleteTask, toggleMyDay, updateList, deleteList, addTask, focusStart, dismissNudge } from '../../store/logic';
+import { startNudges, NUDGE_DAYS } from '../../core/deadline';
 import { taskStat } from '../../store/facts';
 import { addDays, dayKey, weekStart, diffDays } from '../../core/dates';
 import { isScheduled, describeRecurrence } from '../../core/recurrence';
 import { STAT_META, STATS, type Stat, type Task, type Recurrence } from '../../core/types';
-import { Bar, SegBar } from '../shapes/Progress';
+import { Bar, SegBar, Ring, SPRING } from '../shapes/Progress';
 import { Icon, LIST_ICONS } from '../shapes/icons';
 import { Ambient } from '../shapes/Ambient';
 import { TaskRow } from '../shell/TaskRow';
@@ -49,6 +50,8 @@ export function HabitPill({ t }: { t: Task }) {
 // ---------------- My Day ----------------
 export function MyDay() {
   const s = useStore((x) => x.s);
+  const setUI = useStore((x) => x.setUI);
+  const go = useStore((x) => x.go);
   const today = dayKey(new Date());
   const [suggest, setSuggest] = useState(false);
   const all = myDayTasks(s, new Date());
@@ -58,7 +61,9 @@ export function MyDay() {
   const doneTasks = tasks.filter((t) => !!t.doneAt);
   const doneCount = all.filter((t) => isDone(t, today)).length;
   const xpToday = s.ledger.filter((e) => e.lifetime && dayKey(new Date(e.at)) === today && e.amount > 0 && e.source !== 'reverse').reduce((n, e) => n + e.amount, 0);
-  const suggestions = s.tasks.filter((t) => !t.habit && !t.doneAt && t.myDay !== today && ((t.due && t.due <= today) || (!t.due && t.size === 'big')));
+  const early = startNudges(s.tasks, s.focusLog, today);
+  const suggestions = s.tasks.filter((t) => !t.habit && !t.doneAt && t.myDay !== today && ((t.due && t.due <= today) || (!t.due && t.size === 'big') || early.some((n) => n.task.id === t.id)));
+  const nudge = early.find((n) => !s.money.dismissedNudges.includes(`start:${n.task.id}:${today}`));
   return (
     <div className="page">
       <div className="ph">
@@ -92,6 +97,20 @@ export function MyDay() {
                 </div>
               )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {nudge && (
+          <motion.div key={nudge.task.id} className="start-nudge" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, marginBottom: 0 }} transition={SPRING}>
+            <Ring value={NUDGE_DAYS - nudge.daysLeft + 1} max={NUDGE_DAYS + 1} size={40} stroke={4} color="var(--warn)"><span style={{ fontSize: '.8rem', fontWeight: 800 }}>{nudge.daysLeft}d</span></Ring>
+            <div className="grow" style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 700 }}>{nudge.task.title} is due in {nudge.daysLeft} day{nudge.daysLeft === 1 ? '' : 's'}.</div>
+              <div className="muted" style={{ fontSize: '.84rem' }}>Big tasks feel lighter started early. Break it into steps, or do one focus session today.</div>
+            </div>
+            <button className="btn sm" onClick={() => setUI({ detailId: nudge.task.id })}>Add steps</button>
+            <button className="btn sm primary" onClick={() => { if (nudge.task.myDay !== today) act(toggleMyDay, nudge.task.id, new Date()); act(focusStart, nudge.task.id, s.focusSettings.focusMin, Date.now()); go('focus'); }}><Icon name="target" size={14} />Start now</button>
+            <button className="icon-btn" title="Not today" onClick={() => act(dismissNudge, `start:${nudge.task.id}:${today}`)}><Icon name="x" size={15} /></button>
           </motion.div>
         )}
       </AnimatePresence>
