@@ -572,7 +572,7 @@ This replaces the earlier "a sale adds its profit" rule.
   - **Balance paid** turns it into a sale: sold price = deposit + balance, and fees are optional. Profit counts only at that point.
   - **Cancel:** the piece returns to stock. Choose "deposit kept" (counts as other income in the business, which raises profit) or "deposit refunded".
   - Deposits held are shown as a liability line ("Deposits held: RM X"), not as profit.
-  - **Overdue balance:** a gentle nudge card and an auto-task.
+  - **Overdue balance:** the reservation shows an amber "N d overdue" chip, and its Collect balance task shows as late in My Day and Planned.
 - **Personal collection:**
   - Pieces you keep, each with what you paid and your own value estimate (editable, with the date it was last updated).
   - Shows total cost, total estimated value and the gain or loss, as a gallery of cards (never a table).
@@ -590,7 +590,7 @@ This replaces the earlier "a sale adds its profit" rule.
 - **Deadline countdowns:**
   - A task with a due date shows a "days left" chip.
   - Normal and Big tasks also show a thin bar that drains from when the task was created to its due date.
-  - **Early nudge:** a Big task due within 5 days with no steps done and no focus time shows "Due in N days. Start today?" in My Day Suggestions.
+  - **Early nudge:** a Big task due within 5 days, with no steps done and no focus time, gets a card at the top of My Day with "Add steps", "Start now" (a focus session) and "Not today". It is also listed in Suggestions.
 
 ### Delight
 - **Sale moment scales with profit:**
@@ -608,8 +608,8 @@ This replaces the earlier "a sale adds its profit" rule.
   - This month versus your average.
   - Biggest changes.
   - A weekday-versus-weekend spending pattern.
-- **Productivity:**
   - Comparisons are paced: this month so far is set against what you usually spend by the same day of the month.
+- **Productivity:**
   - Tasks finished versus planned in My Day each day.
   - Best weekday and best time of day.
   - Focus minutes per week.
@@ -617,5 +617,5 @@ This replaces the earlier "a sale adds its profit" rule.
 
 ### Backup to Google Drive
 - Chloe will install **Google Drive for desktop** and sign in with her Google account. Drive for desktop shows which account is signed in, so she confirms the email there.
-- In Settings → Backup, she **chooses the folder** (for example `G:\My Drive\Undr Ctrl`). Nothing is copied until a folder is chosen and confirmed. Settings shows the full path and the time of the last backup.
+- In Settings → Data → *Daily backup to Google Drive*, she **chooses the folder** (for example `G:\My Drive\Undr Ctrl`). Nothing is copied until a folder is chosen and confirmed. Settings shows the full path and the time of the last backup.
 - **One file, replaced daily:** `Undr Ctrl backup.json`, written atomically. Drive keeps it as a single file, so old copies don't pile up. The 14 local backups on this PC stay as they are.
