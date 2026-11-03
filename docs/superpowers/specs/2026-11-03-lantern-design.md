@@ -36,7 +36,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 3: added custom
 | Customisation | Themes, accent colours, fonts, text size, layout & density. Practical options are free from day one; special themes, accents and sound packs are earned. |
 | Art | **2D only:** geometric shapes, no illustrations or 3D assets |
 | Layout | Two columns, like Microsoft To Do |
-| UI look | Minimal and zen. Dark Discord-style greys. Starts monochrome; accent colours are unlocked by playing. |
+| UI look | Minimal and zen. Dark Discord-style greys by default, monochrome accent by default (free accents available; special ones earned). |
 | Feel | **Calm by default, big on moments.** Everyday actions get soft springs and subtle sound; celebrations are saved for milestones. |
 
 ## 2. Experience overview
@@ -50,9 +50,9 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 3: added custom
 2. **Main area:** the current view, with generous whitespace and one clear focal point per screen.
 
 **Visual language:**
-- **Greys:** background `#1e1f22`, sidebar `#2b2d31`, main `#313338`, cards `#383a40`.
-- **Typography:** Inter, with a tight heading scale (28 / 15 / 13 / 11).
-- **Colour discipline:** colour appears only where it means something. Each stat has a hue; gold means XP, green means done, red means over budget. Plus the accent once unlocked.
+- **Default theme greys:** background `#1e1f22`, sidebar `#2b2d31`, main `#313338`, cards `#383a40`.
+- **Typography:** Inter by default (changeable, §3.6), with a tight heading scale (28 / 15 / 13 / 11).
+- **Colour discipline:** colour appears only where it means something. Each stat has a hue; gold means XP, green means done, red means over budget. Plus your chosen accent.
 - **Shapes as a language:**
   - Circles are tasks.
   - Hexagons are character and stats.
