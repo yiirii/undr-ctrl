@@ -2,7 +2,7 @@
 
 *Working title. A personal, gamified to-do and budget app for Windows. Real-life progress levels you up like an RPG character, inside a calm, minimal 2D interface.*
 
-Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 2: 3D town, assets and coins removed)
+Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 3: added customisation)
 
 ---
 
@@ -33,6 +33,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 2: 3D town, ass
 | Decay | None. Only streaks reset. |
 | RPG layers | Daily & weekly quests, achievements & titles. Unlocks come from levels and achievements. |
 | Character visual | A stat radar (hexagon) that morphs as stats change |
+| Customisation | Themes, accent colours, fonts, text size, layout & density. Practical options are free from day one; special themes, accents and sound packs are earned. |
 | Art | **2D only:** geometric shapes, no illustrations or 3D assets |
 | Layout | Two columns, like Microsoft To Do |
 | UI look | Minimal and zen. Dark Discord-style greys. Starts monochrome; accent colours are unlocked by playing. |
@@ -155,16 +156,73 @@ About 35 at launch, in tiers (bronze, silver, gold), shown as a grid of hexagon 
 - Night Owl: a task completed after midnight.
 - Renaissance: every stat at level 5 or higher.
 
-### 3.6 Unlocks (no currency)
+### 3.6 Customisation
 
-Levelling up and achievements unlock cosmetics automatically:
-- **Accent colours:** Mint (Lv 3), Violet (Lv 6), Coral (Lv 10), Sky (Lv 15), Gold (Lv 20), Rose (achievement), Aurora gradient (Lv 35).
+**Principle:** practical customisation is **free from day one**. The *special* extras are **earned** through levels and achievements (§3.7). Everything lives in **Settings → Appearance**, with a live preview pane that updates instantly as you change things.
+
+**Themes:** each theme sets the background, surface, text and line colours. The meaning colours (stats, XP, done, over budget) are retuned per theme to keep contrast.
+
+| Theme | Availability | Feel |
+|---|---|---|
+| Discord Grey (default) | free | the current greys |
+| Midnight | free | near-black, for OLED and late nights |
+| Light | free | soft off-white with grey surfaces |
+| Nord | free | cool blue-grey |
+| Sepia | free | warm paper tones, easy on the eyes |
+| Follow system | free | switches between Discord Grey and Light with Windows |
+| Dusk gradient | earned: Lv 12 | a subtle violet-to-ink gradient behind the main area |
+| Forest | earned: achievement "Iron Will" | deep green-greys |
+| Aurora | earned: Lv 35 | a slowly shifting gradient sidebar |
+
+**Accent colour:**
+- **Free:** Monochrome (default), Mint, Violet, Sky, Coral, plus a custom accent picker with any hex value, which automatically adjusts lightness for contrast.
+- **Earned:** Gold (Lv 20), Rose (achievement), animated gradient accents such as Sunset (Lv 25) and Aurora (Lv 35).
+- The accent tints the focus rings, the selected nav item, the XP bar, buttons, checkbox fills (when "use stat colours" is off) and celebration effects.
+
+**Fonts & text:**
+- **Bundled fonts**, offline, all free:
+  - Inter (default)
+  - Manrope (geometric, friendly)
+  - Nunito (rounded, soft)
+  - Space Grotesk (quirky, techy)
+  - IBM Plex Sans (crisp, neutral)
+  - JetBrains Mono (mono, for a terminal feel)
+- **Separate choices** for the UI font and the heading font, so headings can use a display face.
+- **Text size:** 90%, 100%, 110%, 125% or 140%. The whole UI scales from one root size.
+- **Number style:** tabular or proportional figures, and an RM format of "RM 12.50" or "RM12.50".
+
+**Layout & density:**
+- **Density:** Compact, Cozy (default) or Spacious. Changes row height, padding and gaps.
+- **Corner roundness:** Sharp (4 px), Soft (10 px, default) or Round (18 px). Applies to cards, buttons and chips.
+- **Sidebar:** drag to resize between 220 and 340 px, collapse to an icon rail, and choose which pages appear (hide Planned, Quests and so on) and in what order.
+- **Start page:** My Day (default), Planned, any list, Budget or Profile.
+- **Week starts on** Monday (default) or Sunday. This affects weekly quests, Planned grouping and charts.
+- **Date format:** 3 Nov, 03/11 or 2026-11-03. **Time format:** 12-hour or 24-hour.
+
+**Per-list appearance:** each list's colour, icon (from the geometric icon set) and an optional emoji in place of the icon.
+
+**Basics (kept from motion & sound):**
+- Sound pack, master volume and mute.
+- Reduced motion.
+
+**Storage:**
+- Appearance settings are saved with the data file and included in export and import.
+- "Reset appearance" restores the defaults without touching any tasks or data.
+
+**How it's built:**
+- Every visual property comes from CSS custom properties (design tokens: colour, radius, spacing, font and size).
+- A theme is just a token set, and changing a setting swaps tokens at the root with a 200 ms cross-fade. Nothing reloads.
+
+### 3.7 Earned unlocks (no currency)
+
+Levelling up and achievements unlock the special extras automatically:
+- **Earned themes and accents** from §3.6.
 - **Completion sound packs:** Soft (default), Glass (Lv 8), Wood (Lv 12), Chime (achievement).
 - **Titles:** from ranks and achievements.
 
-The UI starts **monochrome**: greys and white, plus the meaning colours. An accent tints the focus rings, the selected nav item, the XP bar, buttons and celebration effects.
+A new unlock appears in the level-up overlay with an **"Apply now"** button. Locked items show in Settings as faded tiles labelled with their requirement (for example "Reach Lv 20"), so there's always something visible to work toward.
 
-### 3.7 Motion & feel: "calm by default, big on moments"
+### 3.8 Motion & feel: "calm by default, big on moments"
 
 **Everyday tier (subtle):**
 - Every state change uses spring physics. Nothing snaps, nothing bounces too much.
@@ -247,13 +305,15 @@ src/
     parser.ts      quick-add natural-language parser
     quests.ts      quest templates, rolling, progress evaluation
     achievements.ts
-    unlocks.ts     accents, sound packs, titles by level/achievement
+    unlocks.ts     earned themes, accents, sound packs, titles by level/achievement
+    appearance.ts  settings schema, defaults, token sets per theme, validation
     budget.ts      month aggregation, category status, allowance drip
     clock.ts       injectable clock for midnight jobs and tests
   store/           Zustand store; actions call core, emit "moments", persist
   persistence/     adapter interface + electron-ipc and localStorage implementations
   ui/
     shell/         two-column layout, sidebar, quick-add, detail panel
+    theme/         design tokens, theme provider, font loading (bundled woff2)
     views/         MyDay, Planned, List, Habits, Budget, Quests, Profile, Settings
     shapes/        radar, progress ring, liquid fill, diamond streak, icon set
     motion/        spring presets, moment overlays, particle canvas
@@ -305,9 +365,11 @@ electron/
   - Streaks.
   - The parser (at least 40 phrasings).
   - Quest rolling and progress, achievements and unlocks.
+  - Appearance settings validation and theme token completeness (every theme defines every token, with WCAG AA contrast for text).
   - Drip catch-up.
   - Migrations.
 - **UI (Playwright, against the browser build):**
+  - Screenshots of every view in every free theme and at all three densities.
   - Golden flows: add task → complete → XP and level up; log expense → Wealth drop; deposit → Wealth gain; quest completion.
   - Screenshots of every view and every moment overlay at 1600×1000, reviewed by eye.
 - **Packaging:** build the NSIS installer and verify it.
@@ -323,4 +385,4 @@ The 3D town and any illustrated assets, coins and shops, sync, a mobile app, inc
 3. **Budget:** categories, expenses, savings goals, charts and the Wealth rules.
 4. **Character:** stats, the radar, levels, titles, Profile and the everyday motion tier.
 5. **Quests, achievements & unlocks,** plus the moment tier (overlays, particles, sound).
-6. **Polish & package:** settings, onboarding, reduced motion, the installer and a full visual QA pass.
+6. **Customisation & polish:** the Appearance settings with live preview (themes, accents, fonts, size, density, sidebar), onboarding, reduced motion, the installer and a full visual QA pass.
