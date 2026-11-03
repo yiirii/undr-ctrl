@@ -7,7 +7,7 @@ const on = (ch: string, cb: (...a: unknown[]) => void) => {
 };
 
 contextBridge.exposeInMainWorld('lofi', {
-  storage: { load: () => ipcRenderer.invoke('storage:load'), save: (json: string) => ipcRenderer.invoke('storage:save', json) },
+  storage: { load: () => ipcRenderer.invoke('storage:load'), save: (json: string) => ipcRenderer.invoke('storage:save', json), saveSync: (json: string) => ipcRenderer.sendSync('storage:saveSync', json) as boolean },
   music: {
     import: (link?: boolean) => ipcRenderer.invoke('music:import', !!link),
     importPaths: (paths: string[], link?: boolean) => ipcRenderer.invoke('music:importPaths', paths, !!link),

@@ -113,3 +113,12 @@ test('quest completion claims XP and shows a toast', async ({ page }) => {
   }
   await expect(page.locator('.toast', { hasText: 'Quest complete' })).toBeVisible();
 });
+
+test('add a money category inline (no browser prompt)', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=money');
+  await page.keyboard.press('Escape');
+  await page.click('button:has-text("Category")');
+  await page.locator('.new-cat input').fill('Coffee');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.bubble', { hasText: 'Coffee' })).toBeVisible();
+});

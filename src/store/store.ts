@@ -37,6 +37,14 @@ let adapter: Adapter | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let failures = 0;
 
+/** Write immediately (used when the window is closing so a pending debounced save is never lost). */
+export function flushSave(json: string) {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  const b = typeof window !== 'undefined' ? window.lofi : undefined;
+  if (b) return b.storage.saveSync(json);
+  try { localStorage.setItem('lofi-data', json); return true; } catch { return false; }
+}
+
 function scheduleSave(get: () => Store, set: (p: Partial<Store>) => void) {
   if (!adapter) return;
   if (saveTimer) clearTimeout(saveTimer);
@@ -69,6 +77,7 @@ export const useStore = create<Store>((set, get) => ({
     set({ s: r.state, ui: { ...get().ui, loaded: true, recovered: !!got?.recovered, view: r.state.settings.startPage } });
     scheduleSave(get, set);
     if (r.moments.length) moments.emit(r.moments);
+    window.addEventListener('beforeunload', () => { if (saveTimer) flushSave(JSON.stringify(get().s)); });
   },
 }));
 

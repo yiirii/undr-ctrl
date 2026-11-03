@@ -24,6 +24,8 @@ export function Money() {
   const [setup, setSetup] = useState(false);
   const [catId, setCatId] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState(false);
+  const [addingCat, setAddingCat] = useState(false);
+  const [catName, setCatName] = useState('');
   const isCurrent = mk === monthKey(today);
   const m = monthSummary(s.money, mk, today);
   const prevMk = addMonths(monthKey(today), -1);
@@ -110,7 +112,11 @@ export function Money() {
         </div>
 
         <div className="mcard">
-          <div className="mcard-h"><h3>Categories</h3><span className="muted">Tap one to see where it went</span><div className="grow" /><button className="btn sm ghost" onClick={() => { const name = prompt('New category name'); if (name?.trim()) act(upsertCategory, { name: name.trim() }); }}><Icon name="plus" size={14} />Category</button></div>
+          <div className="mcard-h"><h3>Categories</h3><span className="muted">Tap one to see where it went</span><div className="grow" />{addingCat ? (
+            <form className="row new-cat" onSubmit={(e) => { e.preventDefault(); if (catName.trim()) act(upsertCategory, { name: catName.trim() }); setCatName(''); setAddingCat(false); }}>
+              <input className="input" autoFocus style={{ height: 32, width: 180 }} placeholder="Category name" value={catName} onChange={(e) => setCatName(e.target.value)} onBlur={() => { if (!catName.trim()) setAddingCat(false); }} />
+            </form>
+          ) : <button className="btn sm ghost" onClick={() => setAddingCat(true)}><Icon name="plus" size={14} />Category</button>}</div>
           <div className="bubbles">
             {s.money.categories.map((c) => <CategoryBubble key={c.id} c={c} sum={m.categories.find((x) => x.id === c.id)!} onClick={() => setCatId(c.id)} />)}
           </div>

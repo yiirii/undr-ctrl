@@ -119,6 +119,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('storage:load', () => loadWithFallback(dataDir));
   ipcMain.handle('storage:save', (_e, json: string) => { try { saveAtomic(dataDir, json, today()); return true; } catch { return false; } });
+  ipcMain.on('storage:saveSync', (e, json: string) => { try { saveAtomic(dataDir, json, today()); e.returnValue = true; } catch { e.returnValue = false; } });
   ipcMain.handle('music:import', async (_e, link: boolean) => {
     const r = await dialog.showOpenDialog(win!, { title: 'Add music', properties: ['openFile', 'multiSelections'], filters: [{ name: 'Audio', extensions: AUDIO }] });
     return r.canceled ? [] : importFiles(r.filePaths, !!link);
