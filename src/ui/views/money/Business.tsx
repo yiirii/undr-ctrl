@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useStore, act } from '../../../store/store';
 import {
   addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense, deleteBizIncome,
@@ -151,7 +151,7 @@ export function Business({ mk }: { mk: string }) {
                   const i = g[0];
                   const days = diffDays(i.boughtOn, today);
                   return (
-                    <motion.div key={i.id} layout className="stock-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING} onClick={() => setSheet({ kind: 'item', id: i.id })}>
+                    <motion.div key={groupKey(i)} layout className="stock-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING} onClick={() => setSheet({ kind: 'item', id: i.id })}>
                       <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
                         <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}{i.askSen ? ` · asking ${fmt.rm(i.askSen)}` : ''}</div></div>
                         {g.length > 1 && <span className="chip">×{g.length}</span>}
@@ -185,7 +185,7 @@ export function Business({ mk }: { mk: string }) {
                 const i = g[0];
                 const gain = (i.valueSen ?? i.costSen) - i.costSen;
                 return (
-                  <motion.div key={i.id} layout className="stock-card kept" onClick={() => setSheet({ kind: 'item', id: i.id })} whileHover={{ y: -2 }}>
+                  <motion.div key={groupKey(i)} layout className="stock-card kept" onClick={() => setSheet({ kind: 'item', id: i.id })} whileHover={{ y: -2 }}>
                     <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
                       <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">Paid {fmt.rm(i.costSen)}{i.valueSen ? ` · worth ${fmt.rm(i.valueSen)}` : ''}</div></div>
                       {g.length > 1 && <span className="chip">×{g.length}</span>}
@@ -365,7 +365,7 @@ function ProfitPreview({ profit, of }: { profit: number; of: number }) {
 
 function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => void }) {
   const allItems = useStore((x) => x.s.business.items);
-  const names = useMemo(() => [...new Set(allItems.map((i) => i.name))].slice(-40), [allItems]);
+  const names = useMemo(() => [...new Set(allItems.map((i) => i.name))].slice(-200), [allItems]);
   const today = dayKey(new Date());
   const [name, setName] = useState('');
   const [cost, setCost] = useState('');
@@ -374,26 +374,42 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
   const [date, setDate] = useState(today);
   const [kept, setKept] = useState(!!keptInit);
   const [hint, setHint] = useState('');
+  const [added, setAdded] = useState<{ n: number; last: string }>({ n: 0, last: '' });
+  const nameRef = useRef<HTMLInputElement>(null);
   const fmt = useFmt();
   const c = parseAmount(cost);
-  const save = () => {
-    if (!name.trim()) return setHint('Give it a name.');
+  /** Save this piece. `next` keeps the sheet open for the next one (catalogue mode). */
+  const save = (next: boolean) => {
+    if (!name.trim()) { if (next && added.n > 0 && !cost) return onClose(); return setHint('Give it a name.'); }
     if (!c) return setHint('Type what it cost you, above RM 0.');
     act(addBizItems, { name, costSen: c, qty, boughtOn: date, askSen: parseAmount(ask) ?? undefined, kept }, new Date());
     sfx.tink();
-    onClose();
+    if (!next) return onClose();
+    setAdded({ n: added.n + qty, last: name.trim() });
+    setName(''); setCost(''); setAsk(''); setQty(1); setHint('');
+    nameRef.current?.focus();
   };
+  const enter = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); save(true); } };
   return (
     <Sheet title={kept ? 'Added to my collection' : 'Bought stock'} onClose={onClose}>
-      <div className="seg-ctl" style={{ alignSelf: 'flex-start' }}>
-        <button className={!kept ? 'on' : ''} onClick={() => setKept(false)}>To sell</button>
-        <button className={kept ? 'on' : ''} onClick={() => setKept(true)}>For my collection</button>
+      <div className="row" style={{ gap: 10 }}>
+        <div className="seg-ctl">
+          <button className={!kept ? 'on' : ''} onClick={() => setKept(false)}>To sell</button>
+          <button className={kept ? 'on' : ''} onClick={() => setKept(true)}>For my collection</button>
+        </div>
+        <div className="grow" />
+        {added.n > 0 && <motion.span key={added.n} className="chip ok added-chip" initial={{ scale: 0.85 }} animate={{ scale: 1 }} transition={SPRING}><Icon name="check" size={12} stroke={2.6} />{added.n} added · last: {added.last}</motion.span>}
       </div>
-      <label className="field"><span>Item</span><input className="input" autoFocus list="biz-names" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></label>
+      <label className="field"><span>Item</span><input ref={nameRef} className="input" autoFocus list="biz-names" placeholder="Item name" value={name} onChange={(e) => {
+        const v = e.target.value; setName(v);
+        // known piece: prefill the last cost and asking price used for it
+        const prev = [...allItems].reverse().find((i) => i.name === v.trim());
+        if (prev && !cost) { setCost(String(prev.costSen / 100)); if (prev.askSen && !ask) setAsk(String(prev.askSen / 100)); }
+      }} onKeyDown={enter} /></label>
       <datalist id="biz-names">{names.map((n) => <option key={n} value={n} />)}</datalist>
       <div className="two">
-        <MoneyField label="Cost per piece" value={cost} set={setCost} onEnter={save} />
-        {!kept && <MoneyField label="Asking price (optional)" value={ask} set={setAsk} placeholder="—" onEnter={save} />}
+        <MoneyField label="Cost per piece" value={cost} set={setCost} onEnter={() => save(true)} />
+        {!kept && <MoneyField label="Asking price (optional)" value={ask} set={setAsk} placeholder="—" onEnter={() => save(true)} />}
       </div>
       <div className="row" style={{ gap: 14 }}>
         <div className="field"><span>Quantity</span><div className="seg-ctl"><button onClick={() => setQty(Math.max(1, qty - 1))}>−</button><button className="on" style={{ minWidth: 44 }}>{qty}</button><button onClick={() => setQty(Math.min(200, qty + 1))}>+</button></div></div>
@@ -401,7 +417,12 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
       </div>
       {c ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>Total spent: <b style={{ color: 'var(--t1)' }}>{fmt.rm(c * qty)}</b>. Your Wealth drops by this now{kept ? '.' : ' and goes back up by what you receive when each piece sells.'}</div> : null}
       {hint && <div className="chip warn" style={{ alignSelf: 'flex-start' }}>{hint}</div>}
-      <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save}><Icon name="check" size={16} stroke={2.4} />{kept ? 'Add to collection' : 'Add to stock'}</button></div>
+      <div className="row" style={{ gap: 8 }}>
+        <span className="muted" style={{ fontSize: '.78rem', whiteSpace: 'nowrap' }}><span className="kbd">Enter</span> add & next</span>
+        <div className="grow" />
+        <button className="btn lg" onClick={() => save(true)}><Icon name="plus" size={16} stroke={2.4} />Add & next</button>
+        <button className="btn primary lg" onClick={() => (added.n > 0 && !name.trim() && !cost ? onClose() : save(false))}><Icon name="check" size={16} stroke={2.4} />{added.n > 0 && !name.trim() && !cost ? 'Done' : kept ? 'Add to collection' : 'Add to stock'}</button>
+      </div>
     </Sheet>
   );
 }

@@ -619,3 +619,19 @@ This replaces the earlier "a sale adds its profit" rule.
 - Chloe will install **Google Drive for desktop** and sign in with her Google account. Drive for desktop shows which account is signed in, so she confirms the email there.
 - In Settings → Data → *Daily backup to Google Drive*, she **chooses the folder** (for example `G:\My Drive\Undr Ctrl`). Nothing is copied until a folder is chosen and confirmed. Settings shows the full path and the time of the last backup.
 - **One file, replaced daily:** `Undr Ctrl backup.json`, written atomically. Drive keeps it as a single file, so old copies don't pile up. The 14 local backups on this PC stay as they are.
+
+## Rev 9: Catalogue-ready and stability (2026-11-04)
+
+- **Catalogue mode:** the Bought window has **Add & next**, and Enter does the same. The piece is saved, the window stays open with the name cleared, and a "N added · last: …" chip keeps count. Choosing a name already used prefills its last cost and asking price. **Done** closes the window.
+- **Big inventories:**
+  - Search matches every word in any order, ignoring case and "#", across the name and the note.
+  - Lists show 48 cards, then "Show more".
+  - The pick list shows 40 matches, then "keep typing".
+  - Filtering is deferred so typing stays instant. This was tested with 1,500 pieces.
+- **Money remembers its tab** (Personal or Business) while the app is open.
+- **Plain placeholders everywhere** ("Add a task", "Item name", "Search"), with no example text.
+- **Fixed (critical):**
+  - Leaving Money after switching tabs left the old page invisible and stuck over the app. Page contents are now isolated from the page transition.
+  - A sale could leave an invisible window blocking all clicks. Windows are now keyed, never block clicks while closing, and keep showing the sold piece while they close.
+- **Big moments:** the full-screen blur behind them is gone, and they use fewer particles, so they're smoother on Windows.
+- **Checks:** `npm run sweep` performs every main action and then visits every page, checking for errors, stuck windows and invisible pages.
