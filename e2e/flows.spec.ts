@@ -240,3 +240,29 @@ test('switching Money tabs never freezes navigation', async ({ page }) => {
   await page.locator('.nav-item:has-text("My Day")').click();
   await expect(page.locator('h1')).toHaveText('My Day');
 });
+
+test('catalogue mode: Enter adds a piece and starts the next one; known names prefill the cost', async ({ page }) => {
+  await open(page, 'reset=1&seed=fresh');
+  await page.evaluate(() => (window as any).__lofi.getState().patch((s: any) => ({ ...s, profile: { ...s.profile, name: 'C', onboarded: true } })));
+  await page.click('.nav-item:has-text("Money")');
+  await page.click('.money-tabs button:has-text("Business")');
+  await page.click('button:has-text("Log your first purchase")');
+  const name = page.locator('input[placeholder="Item name"]');
+  const cost = page.locator('.sheet input[inputmode="decimal"]').first();
+  await name.fill('Groot #49'); await cost.fill('40'); await page.keyboard.press('Enter');
+  await expect(page.locator('.sheet .chip.ok')).toContainText('1 added');
+  await expect(name).toBeFocused();
+  await name.fill('Hedwig #76'); await cost.fill('39'); await page.keyboard.press('Enter');
+  await name.fill('Groot #49');
+  await expect(cost).toHaveValue('40');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.sheet .chip.ok')).toContainText('3 added');
+  await page.click('.sheet button:has-text("Done")');
+  await expect(page.locator('.modal')).toHaveCount(0);
+  await expect(page.locator('.stock-card', { hasText: 'Groot #49' })).toContainText('×2');
+  await expect(page.locator('.stock-card', { hasText: 'Hedwig #76' })).toBeVisible();
+  // leaving and coming back keeps the Business tab
+  await page.click('.nav-item:has-text("My Day")');
+  await page.click('.nav-item:has-text("Money")');
+  await expect(page.locator('.money-tabs button.on')).toHaveText('Business');
+});

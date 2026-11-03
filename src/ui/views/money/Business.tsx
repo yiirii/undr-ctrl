@@ -1,11 +1,11 @@
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useStore, act } from '../../../store/store';
 import {
   addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense, deleteBizIncome,
   keepBizItem, unkeepBizItem, setBizValue, reserveBizItem, completeReservation, cancelReservation, setPlatforms,
 } from '../../../store/logic';
-import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, type BizItem } from '../../../core/business';
+import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, matchesQuery, type BizItem } from '../../../core/business';
 import { parseAmount } from '../../../core/money';
 import { addDays, dayKey, diffDays, monthName, MONTHS, monthKey } from '../../../core/dates';
 import { Icon } from '../../shapes/icons';
@@ -23,6 +23,7 @@ type Sheet =
   | { kind: 'platforms' }
   | { kind: 'item'; id: string };
 
+const PAGE = 48; // cards shown before "Show more"
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const groupKey = (i: BizItem) => `${i.name}|${i.costSen}`;
 function groupItems(items: BizItem[]) {
@@ -47,9 +48,12 @@ export function Business({ mk }: { mk: string }) {
   const res = reservationsDue(b.items, today);
   const costs = m.cogsSen + m.feesSen + m.expensesSen;
   const scale = Math.max(m.salesSen + m.otherIncomeSen, costs, 1);
-  const match = (i: BizItem) => i.name.toLowerCase().includes(q.toLowerCase());
-  const stockGroups = useMemo(() => groupItems(b.items.filter((x) => x.status === 'stock' && match(x))), [b.items, q]); // eslint-disable-line react-hooks/exhaustive-deps
-  const kept = useMemo(() => groupItems(b.items.filter((x) => x.status === 'kept' && match(x))), [b.items, q]); // eslint-disable-line react-hooks/exhaustive-deps
+  // typing stays instant; the (possibly long) card lists catch up a beat later
+  const dq = useDeferredValue(q);
+  const stockGroups = useMemo(() => groupItems(b.items.filter((x) => x.status === 'stock' && matchesQuery(x, dq))), [b.items, dq]);
+  const kept = useMemo(() => groupItems(b.items.filter((x) => x.status === 'kept' && matchesQuery(x, dq))), [b.items, dq]);
+  const [showStock, setShowStock] = useState(PAGE);
+  const [showKept, setShowKept] = useState(PAGE);
   const soldThisMonth = b.items.filter((i) => i.status === 'sold' && i.soldOn && monthKey(i.soldOn) === mk).sort((a, c) => c.soldOn!.localeCompare(a.soldOn!));
   const costsThisMonth = b.expenses.filter((e) => monthKey(e.date) === mk).sort((a, c) => c.date.localeCompare(a.date));
   const incomeThisMonth = b.income.filter((e) => monthKey(e.date) === mk);
@@ -139,15 +143,15 @@ export function Business({ mk }: { mk: string }) {
           </div>
 
           <div className="mcard">
-            <div className="mcard-h"><h3>In stock</h3><div className="grow" /><input className="input" style={{ width: 200, height: 32 }} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            <div className="mcard-h"><h3>In stock</h3>{dq && <span className="muted">{stockGroups.reduce((n, g) => n + g.length, 0)} match</span>}<div className="grow" /><input className="input" style={{ width: 200, height: 32 }} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
             {stockGroups.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>{q ? 'Nothing matches.' : 'Everything is sold or reserved. Time to restock?'}</div>}
             <div className="stock">
               <AnimatePresence initial={false}>
-                {stockGroups.map((g) => {
+                {stockGroups.slice(0, showStock).map((g) => {
                   const i = g[0];
                   const days = diffDays(i.boughtOn, today);
                   return (
-                    <motion.div key={i.id} layout className="stock-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING} onClick={() => setSheet({ kind: 'item', id: i.id })}>
+                    <motion.div key={groupKey(i)} layout className="stock-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING} onClick={() => setSheet({ kind: 'item', id: i.id })}>
                       <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
                         <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}{i.askSen ? ` · asking ${fmt.rm(i.askSen)}` : ''}</div></div>
                         {g.length > 1 && <span className="chip">×{g.length}</span>}
@@ -163,6 +167,7 @@ export function Business({ mk }: { mk: string }) {
                 })}
               </AnimatePresence>
             </div>
+            {stockGroups.length > showStock && <button className="btn ghost show-more" onClick={() => setShowStock(showStock + PAGE * 2)}>Show more · {stockGroups.length - showStock} left</button>}
           </div>
 
           <div className="mcard">
@@ -176,11 +181,11 @@ export function Business({ mk }: { mk: string }) {
             )}
             {col.count === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>Pieces you keep for yourself. They still cost Wealth when you buy them, and you can sell one any time.</div>}
             <div className="stock">
-              {kept.map((g) => {
+              {kept.slice(0, showKept).map((g) => {
                 const i = g[0];
                 const gain = (i.valueSen ?? i.costSen) - i.costSen;
                 return (
-                  <motion.div key={i.id} layout className="stock-card kept" onClick={() => setSheet({ kind: 'item', id: i.id })} whileHover={{ y: -2 }}>
+                  <motion.div key={groupKey(i)} layout className="stock-card kept" onClick={() => setSheet({ kind: 'item', id: i.id })} whileHover={{ y: -2 }}>
                     <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
                       <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">Paid {fmt.rm(i.costSen)}{i.valueSen ? ` · worth ${fmt.rm(i.valueSen)}` : ''}</div></div>
                       {g.length > 1 && <span className="chip">×{g.length}</span>}
@@ -192,6 +197,7 @@ export function Business({ mk }: { mk: string }) {
                 );
               })}
             </div>
+            {kept.length > showKept && <button className="btn ghost show-more" onClick={() => setShowKept(showKept + PAGE * 2)}>Show more · {kept.length - showKept} left</button>}
           </div>
 
           <div className="two">
@@ -327,17 +333,20 @@ function ItemPicker({ statuses, onPick }: { statuses: BizItem['status'][]; onPic
   const allItems = useStore((x) => x.s.business.items);
   const fmt = useFmt();
   const [q, setQ] = useState('');
-  const groups = useMemo(() => groupItems(allItems.filter((i) => statuses.includes(i.status) && i.name.toLowerCase().includes(q.toLowerCase()))).sort((a, c) => (a[0].status === 'kept' ? 1 : 0) - (c[0].status === 'kept' ? 1 : 0)), [allItems, q, statuses]);
+  const dq = useDeferredValue(q);
+  const key = statuses.join(',');
+  const groups = useMemo(() => groupItems(allItems.filter((i) => statuses.includes(i.status) && matchesQuery(i, dq))).sort((a, c) => (a[0].status === 'kept' ? 1 : 0) - (c[0].status === 'kept' ? 1 : 0)), [allItems, dq, key]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
       <input className="input" autoFocus placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && groups[0]) onPick(groups[0][0]); }} />
       <div className="tl-items" style={{ maxHeight: 320, overflowY: 'auto' }}>
-        {groups.map((g) => { const i = g[0]; return (
+        {groups.slice(0, 40).map((g) => { const i = g[0]; return (
           <div key={i.id} className="tl-item" onClick={() => onPick(i)}>
             <div className="grow"><div className="tl-note">{i.name}{g.length > 1 && <span className="muted"> ×{g.length}</span>}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}{i.status === 'kept' ? ' · from my collection' : ''}</div></div>
             <Icon name="right" size={16} />
           </div>
         ); })}
+        {groups.length > 40 && <div className="muted" style={{ fontSize: '.84rem', padding: '4px 2px' }}>{groups.length - 40} more. Keep typing to narrow it down.</div>}
         {!groups.length && <div className="muted">Nothing matches.</div>}
       </div>
     </>
@@ -356,7 +365,7 @@ function ProfitPreview({ profit, of }: { profit: number; of: number }) {
 
 function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => void }) {
   const allItems = useStore((x) => x.s.business.items);
-  const names = useMemo(() => [...new Set(allItems.map((i) => i.name))].slice(-40), [allItems]);
+  const names = useMemo(() => [...new Set(allItems.map((i) => i.name))].slice(-200), [allItems]);
   const today = dayKey(new Date());
   const [name, setName] = useState('');
   const [cost, setCost] = useState('');
@@ -365,26 +374,42 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
   const [date, setDate] = useState(today);
   const [kept, setKept] = useState(!!keptInit);
   const [hint, setHint] = useState('');
+  const [added, setAdded] = useState<{ n: number; last: string }>({ n: 0, last: '' });
+  const nameRef = useRef<HTMLInputElement>(null);
   const fmt = useFmt();
   const c = parseAmount(cost);
-  const save = () => {
-    if (!name.trim()) return setHint('Give it a name.');
+  /** Save this piece. `next` keeps the sheet open for the next one (catalogue mode). */
+  const save = (next: boolean) => {
+    if (!name.trim()) { if (next && added.n > 0 && !cost) return onClose(); return setHint('Give it a name.'); }
     if (!c) return setHint('Type what it cost you, above RM 0.');
     act(addBizItems, { name, costSen: c, qty, boughtOn: date, askSen: parseAmount(ask) ?? undefined, kept }, new Date());
     sfx.tink();
-    onClose();
+    if (!next) return onClose();
+    setAdded({ n: added.n + qty, last: name.trim() });
+    setName(''); setCost(''); setAsk(''); setQty(1); setHint('');
+    nameRef.current?.focus();
   };
+  const enter = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); save(true); } };
   return (
     <Sheet title={kept ? 'Added to my collection' : 'Bought stock'} onClose={onClose}>
-      <div className="seg-ctl" style={{ alignSelf: 'flex-start' }}>
-        <button className={!kept ? 'on' : ''} onClick={() => setKept(false)}>To sell</button>
-        <button className={kept ? 'on' : ''} onClick={() => setKept(true)}>For my collection</button>
+      <div className="row" style={{ gap: 10 }}>
+        <div className="seg-ctl">
+          <button className={!kept ? 'on' : ''} onClick={() => setKept(false)}>To sell</button>
+          <button className={kept ? 'on' : ''} onClick={() => setKept(true)}>For my collection</button>
+        </div>
+        <div className="grow" />
+        {added.n > 0 && <motion.span key={added.n} className="chip ok added-chip" initial={{ scale: 0.85 }} animate={{ scale: 1 }} transition={SPRING}><Icon name="check" size={12} stroke={2.6} />{added.n} added · last: {added.last}</motion.span>}
       </div>
-      <label className="field"><span>Item</span><input className="input" autoFocus list="biz-names" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></label>
+      <label className="field"><span>Item</span><input ref={nameRef} className="input" autoFocus list="biz-names" placeholder="Item name" value={name} onChange={(e) => {
+        const v = e.target.value; setName(v);
+        // known piece: prefill the last cost and asking price used for it
+        const prev = [...allItems].reverse().find((i) => i.name === v.trim());
+        if (prev && !cost) { setCost(String(prev.costSen / 100)); if (prev.askSen && !ask) setAsk(String(prev.askSen / 100)); }
+      }} onKeyDown={enter} /></label>
       <datalist id="biz-names">{names.map((n) => <option key={n} value={n} />)}</datalist>
       <div className="two">
-        <MoneyField label="Cost per piece" value={cost} set={setCost} onEnter={save} />
-        {!kept && <MoneyField label="Asking price (optional)" value={ask} set={setAsk} placeholder="—" onEnter={save} />}
+        <MoneyField label="Cost per piece" value={cost} set={setCost} onEnter={() => save(true)} />
+        {!kept && <MoneyField label="Asking price (optional)" value={ask} set={setAsk} placeholder="—" onEnter={() => save(true)} />}
       </div>
       <div className="row" style={{ gap: 14 }}>
         <div className="field"><span>Quantity</span><div className="seg-ctl"><button onClick={() => setQty(Math.max(1, qty - 1))}>−</button><button className="on" style={{ minWidth: 44 }}>{qty}</button><button onClick={() => setQty(Math.min(200, qty + 1))}>+</button></div></div>
@@ -392,7 +417,12 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
       </div>
       {c ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>Total spent: <b style={{ color: 'var(--t1)' }}>{fmt.rm(c * qty)}</b>. Your Wealth drops by this now{kept ? '.' : ' and goes back up by what you receive when each piece sells.'}</div> : null}
       {hint && <div className="chip warn" style={{ alignSelf: 'flex-start' }}>{hint}</div>}
-      <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save}><Icon name="check" size={16} stroke={2.4} />{kept ? 'Add to collection' : 'Add to stock'}</button></div>
+      <div className="row" style={{ gap: 8 }}>
+        <span className="muted" style={{ fontSize: '.78rem', whiteSpace: 'nowrap' }}><span className="kbd">Enter</span> add & next</span>
+        <div className="grow" />
+        <button className="btn lg" onClick={() => save(true)}><Icon name="plus" size={16} stroke={2.4} />Add & next</button>
+        <button className="btn primary lg" onClick={() => (added.n > 0 && !name.trim() && !cost ? onClose() : save(false))}><Icon name="check" size={16} stroke={2.4} />{added.n > 0 && !name.trim() && !cost ? 'Done' : kept ? 'Add to collection' : 'Add to stock'}</button>
+      </div>
     </Sheet>
   );
 }
