@@ -2,7 +2,7 @@
 
 *Working title. A personal, gamified to-do and budget app for Windows. Real-life progress levels you up like an RPG character, inside a calm, minimal 2D interface.*
 
-Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 3: added customisation)
+Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 4: beginner-friendly money tracker with income)
 
 ---
 
@@ -26,7 +26,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 3: added custom
 | Platform | Windows desktop app (.exe) |
 | Data | Stored on this PC only. Export and import for backup. No sync. |
 | To-do | My Day + custom lists, due dates & reminders, recurring tasks & habits |
-| Budget | Category budgets (monthly limits) and savings goals with charts. Expenses only, in RM. |
+| Money | Beginner-friendly. Tracks money in and money out (RM), with categories, monthly budgets set through a guided setup, savings goals, a live month page and a monthly recap story. **Never looks like a spreadsheet.** |
 | Game | RPG levelling only. No HP, no knockout, **no coins**. |
 | Stats | Intelligence (studying), Strength (working out), Wealth (saving raises it, every ringgit spent lowers it), Discipline, Creativity, Charisma |
 | Task → stat | Each list has a stat. Tasks inherit it and can override it individually. |
@@ -44,7 +44,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 3: added custom
 **Two-column window:**
 1. **Sidebar (left, 272 px):**
    - Character card: a mini stat radar, your name, title, level and XP bar.
-   - Navigation: My Day, Planned, Habits, Budget, Quests, Profile.
+   - Navigation: My Day, Planned, Habits, Money, Quests, Profile.
    - Then your lists, each with its stat colour dot and an open-task count.
    - Settings at the bottom.
 2. **Main area:** the current view, with generous whitespace and one clear focal point per screen.
@@ -62,7 +62,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 3: added custom
 
 **Quick-add (Ctrl+Space, available everywhere):** one input that understands both tasks and expenses.
 - `essay due fri 5pm #uni` creates a task in the Uni list, due Friday at 17:00.
-- `12.50 lunch food` logs an RM 12.50 expense, described as "lunch", in the Food category.
+- `12.50 lunch food` logs an RM 12.50 expense, described as "lunch", in the Food category. `+500 salary` logs income.
 - `gym every mon wed fri` creates a recurring habit.
 - A preview chip shows how it was understood before you press Enter. Tab cycles through other interpretations.
 
@@ -87,22 +87,79 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 3: added custom
 - **Task detail:** a slide-in panel from the right, like Microsoft To Do.
 - **Done:** completed tasks move to a collapsible "Completed" section. Undo reverses the XP exactly.
 
-### 3.2 Budget
+### 3.2 Money (budget tracker)
 
-- **Categories:** name, icon, colour and **monthly limit (RM)**.
-  - Defaults: Food 600, Transport 200, Shopping 300, Bills 400, Fun 200, Other 150. All editable.
-- **Expense:** amount, category, note and date (defaults to now). Logged via quick-add or a form.
-- **Month view:**
-  - One large focal number: **RM left this month**.
-  - Category bars below it. Each is neutral below 80%, amber from 80% to 100%, and red over 100%.
-  - A recent-expenses list, editable inline.
-- **Savings goals:** name, target and optional deadline.
-  - Shown as a rounded square that fills with liquid (a wave animation).
-  - "Add to goal" logs a deposit.
-- **Charts** (custom SVG, styled like the rest of the app):
-  - A donut of spend by category this month.
-  - A line of cumulative daily spend against the budget pace line.
-  - A 6-month bar history.
+**Design principles:**
+- **Built for a beginner.**
+  - Plain words: "Money in", "Money out", "Left to spend". No accounting jargon.
+  - **One big number at a time.**
+  - **No tables, grids or spreadsheet rows anywhere.** Money is shown as shapes, bars, bubbles and cards with generous spacing.
+- **Colour has meaning:** green-ish for money in, the category's colour for money out, and amber or red only as a gentle warning.
+- **Encouraging, not judgmental.** Warnings are framed as a plan, for example "RM 12 a day keeps Food on track", never as scolding.
+
+**Guided setup:** runs once, about a minute, and can be redone from Settings.
+1. **Money in:** "How much comes in each month?"
+   - Add one or more sources, each with an icon and an expected monthly amount: Allowance, Salary, Part-time, Scholarship/PTPTN, Other.
+   - "It changes every month" is allowed; in that case enter a typical amount.
+2. **Categories:** a grid of friendly category bubbles (shape icon + name). Tap to select and long-press to rename. Suggested picks:
+   - Food, Transport, Shopping, Bills, Fun, Health, Education, Gifts, Subscriptions, Other.
+   - You can add your own with an icon, colour and emoji.
+3. **Split:** the app suggests a starting split from the 50/30/20 idea, explained in one sentence: needs, wants, savings.
+   - It's shown as **one horizontal stacked bar** of your monthly income with draggable handles, plus per-category sliders below.
+   - The savings slice becomes your monthly **savings target**.
+   - A friendly checker shows "RM 140 not assigned yet" or "RM 60 over your income", with a one-tap "fix it" that scales everything to fit.
+4. **First goal (optional):** "Saving for something?" Name it, set a target and an optional date. The app works out the monthly amount needed.
+
+**Logging (two steps):**
+- A large **+** button sits on the Money page, and **Ctrl+E** works anywhere. It opens a sheet:
+  - A toggle at the top between **Out** (default) and **In**.
+  - **Step 1:** tap a big category bubble (or an income source when **In** is selected). Your most-used categories come first.
+  - **Step 2:** type the amount on a large on-screen number pad. Keyboard digits work too.
+  - Optional extras: a note, a date chip (defaults to today, with a quick pick for yesterday) and a "repeat monthly" toggle.
+  - Enter or the check button saves it. The entry lands in the timeline with a soft drop animation.
+- **Quick-add text still works** for speed: `12.50 lunch food` logs an expense, and `+500 salary` logs income.
+- **Editing:** click any entry to edit or delete it.
+- **Monthly repeats:** repeating entries are added on their day each month with a quiet "added automatically" note.
+
+**Money page (the live month):** a single scrolling page with month arrows at the top to step back through past months.
+1. **Hero card:** **Left to spend this month**, shown as one large number.
+   - A ring around it shows how much of the month's spending budget is used, against how much of the month has passed.
+   - Underneath, in small text: "**RM 21 a day** is safe to spend for the rest of the month."
+2. **In & Out:** two horizontal bars on the same scale. **Money in** (actual so far, with the expected amount ghosted) and **Money out**. The difference reads as "You've kept RM 320 so far".
+3. **Categories:** bubble cards in a flowing wrap layout, not a grid of cells.
+   - Each card shows the icon, name, "RM 412 of 600" and a fill that rises inside the bubble shape.
+   - The fill is calm grey/colour below 80%, amber from 80% to 100%, and soft red when over.
+   - Clicking a card opens that category's entries and a short tip.
+4. **Where it went:** a flow picture.
+   - Money in streams on the left split into category streams on the right, with whatever is left over flowing into "Kept".
+   - Built with soft curved bands (a simplified Sankey diagram). Hovering a band shows its amount.
+5. **Activity:** a timeline grouped by day ("Today", "Yesterday", "Mon 2 Nov").
+   - Each entry is a soft card with the category shape and colour, the note, and the amount.
+   - Income shows a "+" with a green tint. Each day shows its total.
+6. **Savings goals:**
+   - Rounded squares filling with gently moving liquid.
+   - "RM 1,200 of 4,000 · RM 400 a month gets you there by March".
+   - "Add to goal" moves money in.
+
+**Gentle nudges:** at most one at a time, shown as a dismissible card at the top of the Money page.
+- **A category passes 80%:** "Food is at 82% with 10 days left. About RM 11 a day keeps it on track."
+- **Payday logged:** "Nice, RM 1,500 in. Want to put RM 300 toward *New laptop*?" Clicking the button makes the deposit.
+- **No entries for 3 days:** "Haven't logged spending since Friday. Anything to add?"
+
+**Monthly recap story:** appears on the 1st of each month, and every recap stays available from the month arrows. It's a short set of swipeable full-screen cards: arrow keys, click or scroll. Each card has one idea, a big number and a geometric shape animation.
+1. "October: RM 1,850 came in."
+2. "RM 1,430 went out." A donut assembles from the category slices.
+3. "You kept RM 420." This is compared with last month: "RM 90 more than September".
+4. "Your top three": the categories that grew the most or shrank the most against last month.
+5. "Budgets": how many categories stayed within budget, each shown as a bubble that pops green or amber.
+6. "Goals": progress on each savings goal.
+7. "Next month": a one-tap "Keep the same budget" or "Adjust" (which reopens the split step), plus the Wealth XP change for the month.
+
+**Charts:** custom SVG, minimal, with no gridlines or axes clutter.
+- The flow picture.
+- A month donut.
+- A 6-month in-versus-out bar pair.
+- A cumulative spending line against the budget pace line, shown on a category's detail page.
 
 ### 3.3 Character & stats
 
@@ -195,7 +252,7 @@ About 35 at launch, in tiers (bronze, silver, gold), shown as a grid of hexagon 
 - **Density:** Compact, Cozy (default) or Spacious. Changes row height, padding and gaps.
 - **Corner roundness:** Sharp (4 px), Soft (10 px, default) or Round (18 px). Applies to cards, buttons and chips.
 - **Sidebar:** drag to resize between 220 and 340 px, collapse to an icon rail, and choose which pages appear (hide Planned, Quests and so on) and in what order.
-- **Start page:** My Day (default), Planned, any list, Budget or Profile.
+- **Start page:** My Day (default), Planned, any list, Money or Profile.
 - **Week starts on** Monday (default) or Sunday. This affects weekly quests, Planned grouping and charts.
 - **Date format:** 3 Nov, 03/11 or 2026-11-03. **Time format:** 12-hour or 24-hour.
 
@@ -259,6 +316,7 @@ A new unlock appears in the level-up overlay with an **"Apply now"** button. Loc
 
 ### 4.2 Wealth ("every ringgit counts")
 
+- Income never changes Wealth by itself, so a bigger salary isn't "levelling". What you do with money is what counts.
 - Every expense **subtracts** Wealth XP, at 1 XP per RM 1.
 - **Daily allowance drip:** each local day adds Wealth XP equal to (total monthly budget ÷ days in month).
   - It's applied at midnight, or caught up on the next app open.
@@ -267,7 +325,8 @@ A new unlock appears in the level-up overlay with an **"Apply now"** button. Loc
 - **Limits:**
   - Wealth XP can't drop below 0. The Wealth *level* can go down.
   - Spending and the drip never touch character level.
-- **Bookkeeping reward:** logging an expense on the day it happened gives +2 character XP.
+- **Bookkeeping reward:** logging an expense or income entry on the day it happened gives +2 character XP.
+- **Recap reward:** finishing the monthly recap gives +25 character XP.
 
 ### 4.3 Level curves
 
@@ -298,7 +357,7 @@ A new unlock appears in the level-up overlay with an **"Apply now"** button. Loc
 ```
 src/
   core/            pure TypeScript, no React or DOM, fully unit-tested
-    types.ts       Task, List, Expense, Category, Goal, LedgerEntry, Quest, Achievement…
+    types.ts       Task, List, Entry (in/out), IncomeSource, Category, Goal, LedgerEntry, Quest, Achievement…
     ledger.ts      append and derive: stat XP, levels, lifetime XP
     rules.ts       XP formulas, Wealth rules, level curves (all numbers from §4)
     recurrence.ts  next-occurrence calculation, streak evaluation
@@ -307,14 +366,14 @@ src/
     achievements.ts
     unlocks.ts     earned themes, accents, sound packs, titles by level/achievement
     appearance.ts  settings schema, defaults, token sets per theme, validation
-    budget.ts      month aggregation, category status, allowance drip
+    budget.ts      month aggregation, in/out totals, safe-to-spend, category status, split suggestion, nudges, recap data, allowance drip
     clock.ts       injectable clock for midnight jobs and tests
   store/           Zustand store; actions call core, emit "moments", persist
   persistence/     adapter interface + electron-ipc and localStorage implementations
   ui/
     shell/         two-column layout, sidebar, quick-add, detail panel
     theme/         design tokens, theme provider, font loading (bundled woff2)
-    views/         MyDay, Planned, List, Habits, Budget, Quests, Profile, Settings
+    views/         MyDay, Planned, List, Habits, Money (+ setup, logging sheet, recap), Quests, Profile, Settings
     shapes/        radar, progress ring, liquid fill, diamond streak, icon set
     motion/        spring presets, moment overlays, particle canvas
     sound/         WebAudio synth and packs
@@ -370,19 +429,25 @@ electron/
   - Migrations.
 - **UI (Playwright, against the browser build):**
   - Screenshots of every view in every free theme and at all three densities.
-  - Golden flows: add task → complete → XP and level up; log expense → Wealth drop; deposit → Wealth gain; quest completion.
+  - Golden flows:
+    - Add task → complete → XP and level up.
+    - Guided money setup → log out/in → hero and bars update.
+    - Log expense → Wealth drop.
+    - Deposit → Wealth gain.
+    - Recap story.
+    - Quest completion.
   - Screenshots of every view and every moment overlay at 1600×1000, reviewed by eye.
 - **Packaging:** build the NSIS installer and verify it.
 
 ## 8. Out of scope for v1
 
-The 3D town and any illustrated assets, coins and shops, sync, a mobile app, income tracking, recurring bills, subtasks, multiple currencies, and social or AI features.
+The 3D town and any illustrated assets, coins and shops, sync, a mobile app, bank or e-wallet import, subtasks, multiple currencies, and social or AI features.
 
 ## 9. Build phases (for the implementation plan)
 
 1. **Foundation:** the core rules engine, ledger, persistence and the Electron shell, with tests.
 2. **Shell & to-do:** the two-column layout, lists, My Day, Planned, task detail, recurring tasks, habits, reminders and quick-add.
-3. **Budget:** categories, expenses, savings goals, charts and the Wealth rules.
+3. **Money:** guided setup, logging sheet, money in and out, categories, the live month page, flow picture, nudges, savings goals, the monthly recap story and the Wealth rules.
 4. **Character:** stats, the radar, levels, titles, Profile and the everyday motion tier.
 5. **Quests, achievements & unlocks,** plus the moment tier (overlays, particles, sound).
 6. **Customisation & polish:** the Appearance settings with live preview (themes, accents, fonts, size, density, sidebar), onboarding, reduced motion, the installer and a full visual QA pass.
