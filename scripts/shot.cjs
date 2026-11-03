@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
     p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
     await p.goto(`http://localhost:5173/?${query}`);
     await p.waitForTimeout(1200);
-    if (action) { for (const a of action.split(';')) { const [k, v] = a.split('='); if (k === 'click') await p.click(v); if (k === 'press') await p.keyboard.press(v); if (k === 'type') await p.keyboard.type(v); if (k === 'wait') await p.waitForTimeout(+v); if (k === 'eval') await p.evaluate(v); } await p.waitForTimeout(900); }
+    if (action) { for (const a of action.split(';')) { const i = a.indexOf('='); const k = a.slice(0, i), v = a.slice(i + 1); if (k === 'click') await p.click(v); if (k === 'press') await p.keyboard.press(v); if (k === 'type') await p.keyboard.type(v); if (k === 'wait') await p.waitForTimeout(+v); if (k === 'eval') await p.evaluate(v); } await p.waitForTimeout(900); }
     await p.screenshot({ path: `shots/${name}.png` });
     console.log(name, errs.length ? 'ERRORS: ' + errs.slice(0, 3).join(' | ') : 'ok');
     await p.close();
