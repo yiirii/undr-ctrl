@@ -31,8 +31,8 @@ function BigMoment({ b, onDone }: { b: Big; onDone: () => void }) {
   useEffect(() => {
     const colors = b.kind === 'sale' ? [cssVar('--in'), cssVar('--xp'), cssVar('--wea'), cssVar('--t1')] : [cssVar('--accent'), cssVar('--xp'), cssVar('--int'), cssVar('--cre')];
     if (b.kind === 'sale') sfx.sale(2); else sfx.streak(b.streak);
-    const t1 = setTimeout(() => burst(window.innerWidth / 2, window.innerHeight / 2 - 40, colors, 70, 12, true), 380);
-    const t2 = setTimeout(() => burst(window.innerWidth / 2, window.innerHeight / 2 - 40, colors, 36, 7), 700);
+    const t1 = setTimeout(() => burst(window.innerWidth / 2, window.innerHeight / 2 - 40, colors, 48, 12, true), 380);
+    const t2 = setTimeout(() => burst(window.innerWidth / 2, window.innerHeight / 2 - 40, colors, 20, 7), 700);
     const key = (e: KeyboardEvent) => { e.preventDefault(); onDone(); };
     const k = setTimeout(() => window.addEventListener('keydown', key), 400);
     const auto = setTimeout(onDone, 6000);

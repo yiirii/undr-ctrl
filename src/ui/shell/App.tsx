@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion , PresenceContext } from 'framer-motion';
 import { useEffect } from 'react';
 import { useStore } from '../../store/store';
 import { Sidebar } from './Sidebar';
@@ -36,7 +36,9 @@ function View() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div key={view} className="main-scroll" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}>
-        {el}
+        {/* Isolate the page's contents from the page transition: a layout card unmounting inside a page
+            (e.g. switching Money tabs) must never be able to hold the page's exit open and freeze navigation. */}
+        <PresenceContext.Provider value={null}>{el}</PresenceContext.Provider>
       </motion.div>
     </AnimatePresence>
   );

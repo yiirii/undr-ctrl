@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useStore, act } from '../../../store/store';
 import {
@@ -232,13 +232,13 @@ export function Business({ mk }: { mk: string }) {
       )}
 
       <AnimatePresence>
-        {sheet?.kind === 'buy' && <BuySheet kept={sheet.kept} onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'sell' && <SellSheet presetId={sheet.id} onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'reserve' && <ReserveSheet presetId={sheet.id} onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'paid' && <PaidSheet id={sheet.id} onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'cost' && <CostSheet onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'platforms' && <PlatformsSheet onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'item' && <ItemSheet id={sheet.id} onClose={() => setSheet(null)} go={setSheet} />}
+        {sheet?.kind === 'buy' && <BuySheet key="buy" kept={sheet.kept} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'sell' && <SellSheet key="sell" presetId={sheet.id} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'reserve' && <ReserveSheet key="reserve" presetId={sheet.id} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'paid' && <PaidSheet key="paid" id={sheet.id} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'cost' && <CostSheet key="cost" onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'platforms' && <PlatformsSheet key="platforms" onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'item' && <ItemSheet key="item" id={sheet.id} onClose={() => setSheet(null)} go={setSheet} />}
       </AnimatePresence>
     </div>
   );
@@ -286,8 +286,10 @@ function PlatformBars({ rows }: { rows: { platform: string; count: number; sales
 }
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  // While closing, never block clicks, even if the exit animation lingers.
+  const present = useIsPresent();
   return (
-    <motion.div className="modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <motion.div className="modal" style={{ pointerEvents: present ? 'auto' : 'none' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.14 } }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div className="sheet" initial={{ y: 24, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={SPRING} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
         <div className="sheet-h"><h2>{title}</h2><div className="grow" /><button className="icon-btn" onClick={onClose}><Icon name="x" /></button></div>
         {children}
@@ -400,7 +402,8 @@ function SellSheet({ presetId, onClose }: { presetId?: string; onClose: () => vo
   const fmt = useFmt();
   const today = dayKey(new Date());
   const [id, setId] = useState(presetId ?? '');
-  const it = allItems.find((i) => i.id === id && (i.status === 'stock' || i.status === 'kept'));
+  const [saved, setSaved] = useState(false);
+  const it = allItems.find((i) => i.id === id && (saved || i.status === 'stock' || i.status === 'kept'));
   const [price, setPrice] = useState(it?.askSen ? String(it.askSen / 100) : '');
   const [fees, setFees] = useState('');
   const [date, setDate] = useState(today);
@@ -412,6 +415,7 @@ function SellSheet({ presetId, onClose }: { presetId?: string; onClose: () => vo
   const save = () => {
     if (!it) return setHint('Pick what you sold.');
     if (!p) return setHint('Type the sale price.');
+    setSaved(true);
     act(sellBizItem, it.id, { soldSen: p, feesSen: f, soldOn: date, platform, ship }, new Date());
     onClose();
   };
@@ -443,7 +447,8 @@ function ReserveSheet({ presetId, onClose }: { presetId?: string; onClose: () =>
   const fmt = useFmt();
   const today = dayKey(new Date());
   const [id, setId] = useState(presetId ?? '');
-  const it = allItems.find((i) => i.id === id && (i.status === 'stock' || i.status === 'kept'));
+  const [saved, setSaved] = useState(false);
+  const it = allItems.find((i) => i.id === id && (saved || i.status === 'stock' || i.status === 'kept'));
   const [deposit, setDeposit] = useState('');
   const [price, setPrice] = useState(it?.askSen ? String(it.askSen / 100) : '');
   const [due, setDue] = useState(addDays(today, 7));
@@ -455,6 +460,7 @@ function ReserveSheet({ presetId, onClose }: { presetId?: string; onClose: () =>
     if (!it) return setHint('Pick the piece being reserved.');
     if (!d) return setHint('Reservations need a deposit. Type how much they paid.');
     if (pr && pr < d) return setHint('The agreed price is less than the deposit.');
+    setSaved(true);
     act(reserveBizItem, it.id, { depositSen: d, dueOn: due, platform, note, priceSen: pr ?? undefined }, new Date());
     sfx.tink();
     onClose();

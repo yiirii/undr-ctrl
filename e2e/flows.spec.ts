@@ -156,6 +156,7 @@ test('business: buy two, sell one; Wealth follows the cash (−80 bought, +78 re
   await page.locator('.sheet input[inputmode="decimal"]').first().fill('40');
   await page.click('.sheet .seg-ctl button:has-text("+")');
   await page.click('button:has-text("Add to stock")');
+  await expect(page.locator('.modal')).toHaveCount(0);
   await expect(page.locator('.stock-card')).toContainText('×2');
   await page.locator('.stock-card button:has-text("Sell")').click();
   await page.locator('.sheet input[inputmode="decimal"]').nth(0).fill('85');
@@ -183,6 +184,7 @@ test('reservation: deposit, then balance paid becomes a sale; a big profit shows
   await page.fill('input[placeholder="Item name"]', 'Stitch #1045');
   await page.locator('.sheet input[inputmode="decimal"]').first().fill('42');
   await page.click('button:has-text("Add to stock")');
+  await expect(page.locator('.modal')).toHaveCount(0);
   await page.locator('.stock-card button[title="Reserve for a buyer"]').click();
   await page.locator('.sheet input[inputmode="decimal"]').nth(0).fill('20');
   await page.locator('.sheet input[inputmode="decimal"]').nth(1).fill('100');
@@ -211,4 +213,30 @@ test('steps: add steps in the detail panel, tick one, the row shows 1/2', async 
   await page.keyboard.press('Enter');
   await page.locator('.steps .step .check').first().click();
   await expect(page.locator('.task', { hasText: 'Lab report' }).locator('.steps-chip')).toContainText('1/2');
+});
+
+test('after recording a sale the app stays clickable (no invisible window left behind)', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=money');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+  await page.click('.money-tabs button:has-text("Business")');
+  for (const price of ['55', '60']) {
+    await page.locator('.stock-card button:has-text("Sell")').first().click();
+    await page.locator('.sheet input[inputmode="decimal"]').first().fill(price);
+    await page.click('button:has-text("Record sale")');
+    await expect(page.locator('.modal')).toHaveCount(0, { timeout: 3000 });
+  }
+  await page.locator('.nav-item:has-text("My Day")').click({ timeout: 3000 });
+  await expect(page.locator('h1')).toHaveText('My Day');
+});
+
+test('switching Money tabs never freezes navigation', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=money');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+  await page.click('.money-tabs button:has-text("Business")');
+  await page.click('.money-tabs button:has-text("Personal")');
+  await page.click('.money-tabs button:has-text("Business")');
+  await page.locator('.nav-item:has-text("Insights")').click();
+  await expect(page.locator('h1')).toHaveText('Insights');
+  await page.locator('.nav-item:has-text("My Day")').click();
+  await expect(page.locator('h1')).toHaveText('My Day');
 });

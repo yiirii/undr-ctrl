@@ -67,9 +67,8 @@ export function Money() {
         </div>
       </div>
 
-      {tab === 'business' ? <Business mk={mk} /> : (<>
       <AnimatePresence>
-        {showNudge && nd && (
+        {tab === 'personal' && showNudge && nd && (
           <motion.div className="nudge" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, marginBottom: 0, padding: 0 }}>
             <Icon name={nd.kind === 'warn' ? 'bell' : nd.kind === 'payday' ? 'coins' : 'clock'} size={18} />
             <div className="grow">{nd.text}</div>
@@ -79,6 +78,8 @@ export function Money() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {tab === 'business' ? <Business mk={mk} /> : (<>
 
       <div className="money-grid">
         {!m.hasBudget && !s.money.setupDone ? (
