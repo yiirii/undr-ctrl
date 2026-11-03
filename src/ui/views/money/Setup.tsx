@@ -10,10 +10,11 @@ import { useFmt } from '../../format';
 
 const round10 = (sen: number) => Math.max(0, Math.round(sen / 1000) * 1000);
 
-export function Setup({ onDone, onSkip, embedded }: { onDone: () => void; onSkip?: () => void; embedded?: boolean }) {
+export function Setup({ onDone, onSkip, embedded, startStep = 0 }: { onDone: () => void; onSkip?: () => void; embedded?: boolean; startStep?: number }) {
   const s = useStore((x) => x.s);
   const fmt = useFmt();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(startStep);
+  const [mode, setMode] = useState<'track' | 'manual'>(() => (s.money.categories.some((c) => c.limitSen > 0) ? 'manual' : 'track'));
   const [expected, setExpected] = useState<Record<string, string>>(() => Object.fromEntries(s.money.sources.map((x) => [x.id, x.expectedSen ? String(x.expectedSen / 100) : ''])));
   const [picked, setPicked] = useState<string[]>(() => s.money.categories.map((c) => c.id));
   const [limits, setLimits] = useState<Record<string, number>>(() => Object.fromEntries(s.money.categories.filter((c) => c.limitSen > 0).map((c) => [c.id, c.limitSen])));
@@ -23,7 +24,7 @@ export function Setup({ onDone, onSkip, embedded }: { onDone: () => void; onSkip
   const cats = s.money.categories.filter((c) => picked.includes(c.id));
 
   const enterSplit = () => {
-    if (!Object.keys(limits).length || Object.keys(limits).some((id) => !picked.includes(id))) {
+    if (income > 0 && (!Object.keys(limits).length || Object.keys(limits).some((id) => !picked.includes(id)))) {
       const sp = suggestSplit(income, cats);
       setLimits(sp.limits);
       setSavings(sp.savingsSen);
@@ -31,13 +32,14 @@ export function Setup({ onDone, onSkip, embedded }: { onDone: () => void; onSkip
     setStep(2);
   };
   const finish = () => {
-    const lim = Object.fromEntries(cats.map((c) => [c.id, limits[c.id] ?? 0]));
-    act(setBudget, { limits: lim, savingsSen: savings, expected: Object.fromEntries(Object.entries(expected).map(([k, v]) => [k, parseAmount(v) ?? 0])), categoryIds: picked }, new Date());
+    const tracking = income <= 0 && mode === 'track';
+    const lim = Object.fromEntries(cats.map((c) => [c.id, tracking ? 0 : limits[c.id] ?? 0]));
+    act(setBudget, { limits: lim, savingsSen: income <= 0 && mode === 'track' ? 0 : savings, expected: Object.fromEntries(Object.entries(expected).map(([k, v]) => [k, parseAmount(v) ?? 0])), categoryIds: picked }, new Date());
     const target = parseAmount(goal.target);
     if (goal.name.trim() && target) act(addGoal, { name: goal.name, targetSen: target, deadline: goal.date || undefined }, new Date());
     onDone();
   };
-  const titles = ['How much comes in each month?', 'What do you spend on?', 'Give every ringgit a job', 'Saving for something?'];
+  const titles = ['How much comes in each month?', 'What do you spend on?', income > 0 ? 'Give every ringgit a job' : 'How do you want to budget?', 'Saving for something?'];
 
   return (
     <div className={embedded ? '' : 'modal'}>
@@ -52,7 +54,7 @@ export function Setup({ onDone, onSkip, embedded }: { onDone: () => void; onSkip
           <motion.div key={step} initial={{ x: 24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -24, opacity: 0 }} transition={{ duration: 0.2 }} className="stack" style={{ flex: 1 }}>
             {step === 0 && (
               <>
-                <p className="dim" style={{ lineHeight: 1.5 }}>Add what you usually get in a month. If it changes, a typical amount is fine.</p>
+                <p className="dim" style={{ lineHeight: 1.5 }}>Add what you usually get in a month. If it changes, a typical amount is fine. <b style={{ color: 'var(--t1)' }}>No regular income? That's okay, skip this.</b> Log money from parents or sales whenever it comes in.</p>
                 {s.money.sources.map((src) => (
                   <div key={src.id} className="row" style={{ gap: 14 }}>
                     <CatIcon c={{ icon: src.icon, color: 'var(--in)' }} size={38} />
@@ -78,7 +80,8 @@ export function Setup({ onDone, onSkip, embedded }: { onDone: () => void; onSkip
                 </div>
               </>
             )}
-            {step === 2 && <Split income={income} cats={cats} limits={limits} setLimits={setLimits} savings={savings} setSavings={setSavings} />}
+            {step === 2 && income > 0 && <Split income={income} cats={cats} limits={limits} setLimits={setLimits} savings={savings} setSavings={setSavings} />}
+            {step === 2 && income <= 0 && <NoIncome mode={mode} setMode={setMode} cats={cats} limits={limits} setLimits={setLimits} savings={savings} setSavings={setSavings} />}
             {step === 3 && (
               <>
                 <p className="dim">Optional. Give it a name and a target. Undr Ctrl works out how much to put aside each month.</p>
@@ -95,7 +98,7 @@ export function Setup({ onDone, onSkip, embedded }: { onDone: () => void; onSkip
         <div className="row">
           {step > 0 && <button className="btn ghost" onClick={() => setStep(step - 1)}><Icon name="left" size={16} />Back</button>}
           <div className="grow" />
-          {step === 0 && <button className="btn primary lg" disabled={income <= 0} onClick={() => setStep(1)}>Next<Icon name="right" size={16} /></button>}
+          {step === 0 && <button className="btn primary lg" onClick={() => setStep(1)}>{income > 0 ? 'Next' : "Skip, my income isn't regular"}<Icon name="right" size={16} /></button>}
           {step === 1 && <button className="btn primary lg" disabled={!picked.length} onClick={enterSplit}>Next<Icon name="right" size={16} /></button>}
           {step === 2 && <button className="btn primary lg" onClick={() => setStep(3)}>Next<Icon name="right" size={16} /></button>}
           {step === 3 && <button className="btn primary lg" onClick={finish}><Icon name="check" size={16} stroke={2.4} />Done</button>}
@@ -174,6 +177,42 @@ function Split({ income, cats, limits, setLimits, savings, setSavings }: { incom
           <b style={{ textAlign: 'right', fontSize: '.88rem', color: 'var(--in)' }}>{fmt.rm(savings)}</b>
         </div>
       </div>
+    </>
+  );
+}
+
+function NoIncome({ mode, setMode, cats, limits, setLimits, savings, setSavings }: { mode: 'track' | 'manual'; setMode: (m: 'track' | 'manual') => void; cats: { id: string; name: string; icon: string; color: string }[]; limits: Record<string, number>; setLimits: (l: Record<string, number>) => void; savings: number; setSavings: (n: number) => void }) {
+  const fmt = useFmt();
+  const total = cats.reduce((n, c) => n + (limits[c.id] ?? 0), 0);
+  const opt = (m: 'track' | 'manual', title: string, text: string, icon: string) => (
+    <button className={`choice ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>
+      <Icon name={icon} size={22} />
+      <div><b>{title}</b><p>{text}</p></div>
+    </button>
+  );
+  return (
+    <>
+      <div className="row" style={{ gap: 12, alignItems: 'stretch' }}>
+        {opt('track', 'Track first (recommended)', 'Just log for a couple of weeks. Then Undr Ctrl suggests limits from what you really spend.', 'sparkle')}
+        {opt('manual', 'Set my own limits', 'Pick a monthly limit for each category now. You can change them any time.', 'sliders')}
+      </div>
+      {mode === 'manual' && (
+        <div className="stack" style={{ maxHeight: 260, overflowY: 'auto', paddingRight: 6 }}>
+          {cats.map((c) => (
+            <div key={c.id} className="slider-row">
+              <CatIcon c={c} size={28} /><span style={{ fontWeight: 600, fontSize: '.88rem' }}>{c.name}</span>
+              <input type="range" min={0} max={200000} step={1000} value={limits[c.id] ?? 0} onChange={(e) => setLimits({ ...limits, [c.id]: Number(e.target.value) })} />
+              <b style={{ textAlign: 'right', fontSize: '.88rem' }}>{fmt.rm(limits[c.id] ?? 0)}</b>
+            </div>
+          ))}
+          <div className="slider-row">
+            <CatIcon c={{ icon: 'coins', color: 'var(--in)' }} size={28} /><span style={{ fontWeight: 600, fontSize: '.88rem' }}>Savings target</span>
+            <input type="range" min={0} max={200000} step={1000} value={savings} onChange={(e) => setSavings(Number(e.target.value))} />
+            <b style={{ textAlign: 'right', fontSize: '.88rem', color: 'var(--in)' }}>{fmt.rm(savings)}</b>
+          </div>
+          <div className="card flat row"><span className="dim">Monthly spending budget</span><div className="grow" /><b>{fmt.rm(total)}</b></div>
+        </div>
+      )}
     </>
   );
 }

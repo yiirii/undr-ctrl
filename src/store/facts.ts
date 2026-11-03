@@ -4,6 +4,7 @@ import { deriveProgress } from '../core/ledger';
 import { STATS, type Stat, type Task } from '../core/types';
 import { isScheduled } from '../core/recurrence';
 import { monthSummary } from '../core/money';
+import { itemProfit } from '../core/business';
 import type { AppState } from './state';
 
 export const taskStat = (s: AppState, t: Task): Stat | null => (t.stat !== undefined ? t.stat : s.lists.find((l) => l.id === t.listId)?.stat ?? null);
@@ -69,6 +70,9 @@ export function buildFacts(s: AppState, now: Date): Facts {
   f.questsCompleted = s.questsCompleted;
   f.recapsDone = s.money.recapsSeen.length;
   f.listsCount = s.lists.length;
+  const sold = s.business.items.filter((i) => i.status === 'sold');
+  f.bizSales = sold.length;
+  f.bizProfitTotalSen = sold.reduce((n, i) => n + itemProfit(i), 0) - s.business.expenses.reduce((n, e) => n + e.sen, 0);
   return f;
 }
 

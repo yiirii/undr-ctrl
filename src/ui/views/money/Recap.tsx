@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useStore, act } from '../../../store/store';
 import { finishRecap } from '../../../store/logic';
 import { recap } from '../../../core/money';
+import { bizMonth } from '../../../core/business';
 import { addMonths, monthName, monthKey, dayKey } from '../../../core/dates';
 import { Icon } from '../../shapes/icons';
 import { Count, Liquid, SPRING } from '../../shapes/Progress';
@@ -19,6 +20,7 @@ export function Recap({ month, onClose }: { month: string; onClose: () => void }
   const prevName = monthName(addMonths(month, -1));
   const cat = (id: string) => s.money.categories.find((c) => c.id === id)!;
   const wealthDelta = s.ledger.filter((e) => e.stat === 'wea' && monthKey(dayKey(new Date(e.at))) === month).reduce((n, e) => n + e.amount, 0);
+  const biz = bizMonth(s.business.items, s.business.expenses, month);
   const cards = 7;
   const next = () => { if (i < cards - 1) setI(i + 1); };
   const prev = () => setI(Math.max(0, i - 1));
@@ -48,6 +50,7 @@ export function Recap({ month, onClose }: { month: string; onClose: () => void }
     <>
       <div className="recap-kicker">You kept</div>
       {big(r.keptSen, r.keptSen >= 0 ? 'var(--in)' : 'var(--bad)')}
+      {(biz.salesSen > 0 || biz.expensesSen > 0) && <div className="chip" style={{ fontSize: '.9rem', padding: '6px 12px' }}>Business: {biz.soldCount} sold · {biz.profitSen >= 0 ? '+' : ''}{fmt.rm(biz.profitSen)} profit</div>}
       <div className="recap-text">{r.deltaKeptSen === 0 ? `Same as ${prevName}.` : r.deltaKeptSen > 0 ? <>That's <b style={{ color: 'var(--in)' }}>{fmt.rm(r.deltaKeptSen)} more</b> than {prevName}.</> : <>That's {fmt.rm(-r.deltaKeptSen)} less than {prevName}. Next month is a fresh start.</>}</div>
     </>,
     <>

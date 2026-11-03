@@ -35,9 +35,9 @@ describe('quests', () => {
 });
 
 describe('achievements', () => {
-  test('35 achievements with unique ids', () => {
-    expect(ACHIEVEMENTS.length).toBe(35);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(35);
+  test('37 achievements with unique ids', () => {
+    expect(ACHIEVEMENTS.length).toBe(37);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(37);
   });
   test('centurion progress', () => {
     const c = ACHIEVEMENTS.find((a) => a.id === 'centurion')!;

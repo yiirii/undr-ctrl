@@ -541,3 +541,11 @@ The 3D town and any illustrated assets, coins and shops, sync, a mobile app, ban
 4. **Character:** stats, the radar, levels, titles, Profile and the everyday motion tier.
 5. **Quests, achievements & unlocks,** plus the moment tier (overlays, particles, sound).
 6. **Music, customisation & polish:** the music player, tray and startup behaviour, the Appearance settings with live preview (themes, accents, fonts, size, density, sidebar), onboarding, reduced motion, the installer and a full visual QA pass.
+
+## Update — no regular income, Funko side business, rounded icon (2026-11-03)
+
+**Track first, budget later.** Setup no longer needs income. On the income step, "Skip, my income isn't regular" is always available; with no income the budget step offers *Track first* (recommended) or *Set my own limits*. In tracking mode the Money hero shows what was spent this month and a "Days tracked" bar out of 14. After 14 days it suggests category limits from real spending (last ≤90 days, scaled to 30.4 days, rounded up to RM 10), with "Use this budget" or "Set my own". With no budget: spending does not lower Wealth, categories never show "over", and the in/out line is neutral rather than red. Money from parents is the "Parents / family" income source.
+
+**Business tab (item by item).** Money has Personal | Business tabs. Bought adds N pieces to stock with cost and an optional asking price. Sold records the price, fees and date for one piece, with a live profit preview. Other cost is for packaging, shipping supplies and similar. The tab shows profit this month (sales vs. item cost + fees + other costs), stock on hand (cost, asking, oldest piece, sell-through bar), profit over the last 6 months, stock cards grouped by name and cost with search, sold this month, and other costs. Business profit raises Wealth (RM 1 profit = +1), a loss lowers it, and other costs lower it. Business profit counts in "You kept" and on the recap. Achievements: First sale (bronze) and The Hustler (gold, RM 1,000 profit, title).
+
+**Icon.** The sword icon now has slightly rounded corners (radius 18%, transparent outside).

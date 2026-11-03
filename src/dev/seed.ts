@@ -12,6 +12,17 @@ export function seedDemo(kind: string): AppState {
   let s = initialState('Chloe');
   s.profile.onboarded = kind !== 'fresh';
   if (kind === 'fresh') return s;
+  if (kind === 'track') {
+    s = L.rollover(s, at(addDays(today, -9))).state;
+    s = L.setBudget(s, { limits: {}, savingsSen: 0, expected: {} }, at(addDays(today, -9))).state;
+    for (let i = 9; i >= 0; i--) {
+      const d = addDays(today, -i);
+      s = L.logMoney(s, { kind: 'out', sen: 1200 + i * 90, categoryId: 'food', note: 'Lunch', date: d }, at(d, 13)).state;
+      if (i % 3 === 0) s = L.logMoney(s, { kind: 'out', sen: 850, categoryId: 'transport', note: 'Grab', date: d }, at(d, 9)).state;
+    }
+    s = L.logMoney(s, { kind: 'in', sen: 30000, sourceId: 'allowance', note: 'From mum', date: addDays(today, -5) }, at(addDays(today, -5), 10)).state;
+    return L.rollover(s, now).state;
+  }
   const start = addDays(today, -34);
   s = L.rollover(s, at(start)).state;
   const income = 185000;
@@ -49,6 +60,18 @@ export function seedDemo(kind: string): AppState {
       s = L.completeTask(s, t, at(d, 15)).state;
     }
   }
+  // Funko side business
+  const funkos: [string, number, number, number | null, number][] = [
+    ['Funko Pop! Groot #49', 4000, 8500, 700, 30], ['Funko Pop! Pikachu #353', 3500, 6000, 500, 26], ['Funko Pop! Spider-Man #593', 4500, 3800, 0, 22],
+    ['Funko Pop! Baby Yoda #368', 5200, 9900, 900, 12], ['Funko Pop! Totoro #1095', 4800, 0, null, 9], ['Funko Pop! Totoro #1095', 4800, 0, null, 9],
+    ['Funko Pop! Hedwig #76', 3900, 0, null, 4], ['Funko Pop! Wednesday #1309', 6500, 11800, 800, 3],
+  ];
+  for (const [name, cost, sold, fee, ago] of funkos) {
+    const d = addDays(today, -ago);
+    s = L.addBizItems(s, { name, costSen: cost, qty: 1, boughtOn: d, askSen: sold ? undefined : Math.round(cost * 1.8 / 100) * 100 }, at(d, 11)).state;
+    if (sold) { const sd = addDays(d, Math.min(ago, 5)); s = L.sellBizItem(s, s.business.items[s.business.items.length - 1].id, { soldSen: sold, feesSen: fee ?? 0, soldOn: sd > today ? today : sd }, at(sd > today ? today : sd, 19)).state; }
+  }
+  s = L.addBizExpense(s, { sen: 1890, label: 'Pop protectors', date: addDays(today, -2) }, at(addDays(today, -2), 15)).state;
   // today
   s = L.rollover(s, now).state;
   add('Finish marketing report draft', 'assignments', { due: today, time: '17:00', size: 'big', myDay: true }, today);

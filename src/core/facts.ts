@@ -14,6 +14,7 @@ export interface Facts {
   statLevels: Record<Stat, number>; charLevel: number;
   nightOwlCount: number; earlyBirdCount: number;
   questsCompleted: number; recapsDone: number; listsCount: number;
+  bizSales: number; bizProfitTotalSen: number;
 }
 
 const zeroStats = () => Object.fromEntries(STATS.map((s) => [s, 0])) as Record<Stat, number>;
@@ -24,5 +25,5 @@ export const emptyFacts = (): Facts => ({
   focusMinutesToday: 0, focusMinutesWeek: 0, focusMinutesTotal: 0, focusSessionsTotal: 0,
   depositedWeekSen: 0, depositedTotalSen: 0, goalsCompleted: 0, weekDaysElapsed: 0, overBudgetThisWeek: false, monthsUnderBudget: 0,
   statLevels: Object.fromEntries(STATS.map((s) => [s, 1])) as Record<Stat, number>, charLevel: 1,
-  nightOwlCount: 0, earlyBirdCount: 0, questsCompleted: 0, recapsDone: 0, listsCount: 0,
+  nightOwlCount: 0, earlyBirdCount: 0, questsCompleted: 0, recapsDone: 0, listsCount: 0, bizSales: 0, bizProfitTotalSen: 0,
 });

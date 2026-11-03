@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { parseAmount, formatRM, monthSummary, suggestSplit, unassigned, fitToIncome, dripForDay, nudge, recap, defaultCategories, type MoneyState } from './money';
+import { statusOf, parseAmount, formatRM, monthSummary, suggestSplit, unassigned, fitToIncome, dripForDay, nudge, recap, defaultCategories, type MoneyState } from './money';
 import type { MoneyEntry } from './types';
 
 const cats = defaultCategories();
@@ -121,5 +121,12 @@ describe('recap', () => {
     const r = recap(base(), '2026-10');
     expect(r.outSen).toBe(0);
     expect(r.movers).toEqual([]);
+  });
+});
+
+describe('statusOf without a limit', () => {
+  test('a category with no limit is never "over" (track-first mode has no limits yet)', () => {
+    expect(statusOf(4720, 0).status).toBe('calm');
+    expect(statusOf(0, 0).status).toBe('calm');
   });
 });
