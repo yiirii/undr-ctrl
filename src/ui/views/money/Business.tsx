@@ -139,7 +139,7 @@ export function Business({ mk }: { mk: string }) {
           </div>
 
           <div className="mcard">
-            <div className="mcard-h"><h3>In stock</h3><div className="grow" /><input className="input" style={{ width: 250, height: 32 }} placeholder="Search stock & collection" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            <div className="mcard-h"><h3>In stock</h3><div className="grow" /><input className="input" style={{ width: 200, height: 32 }} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
             {stockGroups.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>{q ? 'Nothing matches.' : 'Everything is sold or reserved. Time to restock?'}</div>}
             <div className="stock">
               <AnimatePresence initial={false}>
@@ -328,7 +328,7 @@ function ItemPicker({ statuses, onPick }: { statuses: BizItem['status'][]; onPic
   const groups = useMemo(() => groupItems(allItems.filter((i) => statuses.includes(i.status) && i.name.toLowerCase().includes(q.toLowerCase()))).sort((a, c) => (a[0].status === 'kept' ? 1 : 0) - (c[0].status === 'kept' ? 1 : 0)), [allItems, q, statuses]);
   return (
     <>
-      <input className="input" autoFocus placeholder="Search your stock and collection" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && groups[0]) onPick(groups[0][0]); }} />
+      <input className="input" autoFocus placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && groups[0]) onPick(groups[0][0]); }} />
       <div className="tl-items" style={{ maxHeight: 320, overflowY: 'auto' }}>
         {groups.map((g) => { const i = g[0]; return (
           <div key={i.id} className="tl-item" onClick={() => onPick(i)}>
@@ -378,7 +378,7 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
         <button className={!kept ? 'on' : ''} onClick={() => setKept(false)}>To sell</button>
         <button className={kept ? 'on' : ''} onClick={() => setKept(true)}>For my collection</button>
       </div>
-      <label className="field"><span>Item</span><input className="input" autoFocus list="biz-names" placeholder="e.g. Funko Pop! Groot #49" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></label>
+      <label className="field"><span>Item</span><input className="input" autoFocus list="biz-names" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></label>
       <datalist id="biz-names">{names.map((n) => <option key={n} value={n} />)}</datalist>
       <div className="two">
         <MoneyField label="Cost per piece" value={cost} set={setCost} onEnter={save} />
@@ -471,7 +471,7 @@ function ReserveSheet({ presetId, onClose }: { presetId?: string; onClose: () =>
           <PlatformPick value={platform} set={setPlatform} />
           <div className="two">
             <label className="field"><span>Balance due by</span><input type="date" className="input" value={due} min={today} onChange={(e) => e.target.value && setDue(e.target.value)} /></label>
-            <label className="field"><span>Note (optional)</span><input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. meetup at Sunway" /></label>
+            <label className="field"><span>Note (optional)</span><input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note" /></label>
           </div>
           {d ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>
             The deposit is held, not profit yet.{pr ? <> Balance to collect: <b style={{ color: 'var(--t1)' }}>{fmt.rm(pr - d)}</b>.</> : ''} A “Collect balance” task is added for {fmt.day(due)}.
@@ -524,7 +524,7 @@ function CostSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Other business cost" onClose={onClose}>
       <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>{['Packaging', 'Shipping supplies', 'Protectors', 'Postage', 'Booth fee'].map((l) => <button key={l} className={`btn sm ${label === l ? '' : 'ghost'}`} onClick={() => setLabel(l)}>{l}</button>)}</div>
-      <label className="field"><span>What for</span><input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Bubble wrap" /></label>
+      <label className="field"><span>What for</span><input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="What for" /></label>
       <div className="two"><MoneyField label="Amount" value={amt} set={setAmt} autoFocus onEnter={save} /><label className="field"><span>Date</span><input type="date" className="input" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} /></label></div>
       <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save} disabled={!parseAmount(amt)}><Icon name="check" size={16} stroke={2.4} />Log cost</button></div>
     </Sheet>
@@ -547,7 +547,7 @@ function PlatformsSheet({ onClose }: { onClose: () => void }) {
           </div>
         ))}
       </div>
-      <div className="row" style={{ gap: 8 }}><input className="input grow" placeholder="Add a place, e.g. Shopee" value={add} onChange={(e) => setAdd(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && push()} /><button className="btn" onClick={push}>Add</button></div>
+      <div className="row" style={{ gap: 8 }}><input className="input grow" placeholder="Add a platform" value={add} onChange={(e) => setAdd(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && push()} /><button className="btn" onClick={push}>Add</button></div>
       <div className="row"><div className="grow" /><button className="btn primary" onClick={() => { act(setPlatforms, list); onClose(); }}>Save</button></div>
     </Sheet>
   );

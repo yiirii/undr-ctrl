@@ -90,7 +90,7 @@ export function LogSheet() {
           <div className="numpad">{['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map((k) => <button key={k} onClick={() => press(k)}>{k}</button>)}</div>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <input className="input grow" placeholder="Note (optional), e.g. “Nasi lemak”" value={note} onChange={(e) => setNote(e.target.value)} style={{ minWidth: 200 }} />
+          <input className="input grow" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} style={{ minWidth: 200 }} />
           <div className="seg-ctl">
             <button className={date === today ? 'on' : ''} onClick={() => setDate(today)}>Today</button>
             <button className={date === addDays(today, -1) ? 'on' : ''} onClick={() => setDate(addDays(today, -1))}>Yesterday</button>
