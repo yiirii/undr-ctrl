@@ -46,6 +46,7 @@ export interface Task {
   streak: number;
   myDay?: string; // day key it was added to My Day
   doneAt?: string; // ISO timestamp (non-habit)
+  spawnedId?: string; // next instance created when a recurring task was completed
   createdAt: string;
   order: number;
 }
