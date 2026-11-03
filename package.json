@@ -35,7 +35,8 @@
       "allowToChangeInstallationDirectory": true,
       "artifactName": "Lofi-Setup.exe",
       "shortcutName": "Lofi"
-    }
+    },
+    "publish": []
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.3.0",
