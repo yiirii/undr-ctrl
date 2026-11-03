@@ -1,7 +1,7 @@
 import type { Category, Deposit, FocusLogEntry, Goal, IncomeSource, LedgerEntry, List, MoneyEntry, Playlist, Quest, Task, Track } from '../core/types';
 import { STAT_META } from '../core/types';
 import type { FocusState } from '../core/focus';
-import type { BizItem, BizExpense } from '../core/business';
+import { DEFAULT_PLATFORMS, migrateToCashFlow, type BizItem, type BizExpense, type BizIncome } from '../core/business';
 import { DEFAULT_APPEARANCE, type Appearance } from '../core/appearance';
 import { defaultCategories, defaultSources } from '../core/money';
 
@@ -31,7 +31,8 @@ export interface AppState {
   lists: List[];
   tasks: Task[];
   money: { categories: Category[]; sources: IncomeSource[]; entries: MoneyEntry[]; goals: Goal[]; deposits: Deposit[]; savingsTargetSen: number; setupDone: boolean; dismissedNudges: string[]; recapsSeen: string[] };
-  business: { items: BizItem[]; expenses: BizExpense[]; name: string };
+  business: { items: BizItem[]; expenses: BizExpense[]; income: BizIncome[]; platforms: string[]; name: string };
+  bizVersion?: number; // 2 = cash-flow Wealth
   ledger: LedgerEntry[];
   quests: Quest[];
   questsCompleted: number;
@@ -67,7 +68,8 @@ export function initialState(name = ''): AppState {
     lists: defaultLists(),
     tasks: [],
     money: { categories: defaultCategories(), sources: defaultSources(), entries: [], goals: [], deposits: [], savingsTargetSen: 0, setupDone: false, dismissedNudges: [], recapsSeen: [] },
-    business: { items: [], expenses: [], name: 'Funko shop' },
+    business: { items: [], expenses: [], income: [], platforms: [...DEFAULT_PLATFORMS], name: 'Funko shop' },
+    bizVersion: 2,
     ledger: [],
     quests: [],
     questsCompleted: 0,
@@ -87,12 +89,17 @@ export function initialState(name = ''): AppState {
 export function migrate(raw: unknown): AppState {
   const base = initialState();
   const s = (raw ?? {}) as Partial<AppState>;
+  const business = { ...base.business, ...(s.business ?? {}) };
+  let ledger = s.ledger ?? base.ledger;
+  if (s.bizVersion !== 2 && s.business) ledger = migrateToCashFlow(business.items, ledger, new Date().toISOString());
   return {
     ...base,
     ...s,
+    ledger,
+    bizVersion: 2,
     profile: { ...base.profile, ...(s.profile ?? {}) },
     money: { ...base.money, ...(s.money ?? {}) },
-    business: { ...base.business, ...(s.business ?? {}) },
+    business,
     focusSettings: { ...base.focusSettings, ...(s.focusSettings ?? {}) },
     music: { ...base.music, ...(s.music ?? {}) },
     appearance: { ...base.appearance, ...(s.appearance ?? {}) },

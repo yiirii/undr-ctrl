@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { itemProfit, bizMonth, stockSummary, wealthForSale, wealthForBizExpense, bizSixMonths, type BizItem, type BizExpense } from './business';
+import { wealthForBuy, itemProfit, bizMonth, stockSummary, wealthForSale, wealthForBizExpense, bizSixMonths, type BizItem, type BizExpense } from './business';
 import { suggestFromHistory, defaultCategories, type MoneyState } from './money';
 import type { MoneyEntry } from './types';
 
@@ -36,11 +36,10 @@ describe('business', () => {
     expect(s.askSen).toBe(7000);
     expect(s.oldestDays).toBe(33);
   });
-  test('wealth: a sale moves wealth by its profit in RM; expenses subtract', () => {
-    expect(wealthForSale(item({ status: 'sold', soldSen: 8500, feesSen: 700 }), 'x')[0]).toMatchObject({ stat: 'wea', amount: 38, lifetime: false });
-    expect(wealthForSale(item({ status: 'sold', soldSen: 3000 }), 'x')[0].amount).toBe(-10);
+  test('wealth follows cash: buying costs, a sale adds what was received, expenses subtract', () => {
+    expect(wealthForBuy(item({ costSen: 4000 }), 'x')[0]).toMatchObject({ stat: 'wea', amount: -40, lifetime: false });
+    expect(wealthForSale(item({ status: 'sold', soldSen: 8500, feesSen: 700 }), 'x')[0]).toMatchObject({ stat: 'wea', amount: 78, lifetime: false });
     expect(wealthForBizExpense({ id: 'e', sen: 1250, label: '', date: '2026-11-01' }, 'x')[0].amount).toBe(-13);
-    expect(wealthForSale(item({ status: 'sold', soldSen: 4000 }), 'x')).toEqual([]);
   });
   test('six month profit series', () => {
     const s = bizSixMonths([item({ status: 'sold', soldSen: 9000, soldOn: '2026-10-20' })], [], '2026-11-03');
