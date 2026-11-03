@@ -66,7 +66,7 @@ The window has three columns. Each side panel can be collapsed.
   - Stat override.
   - Recurrence rule.
   - "In My Day" flag.
-- **My Day:** a daily focus list. It's empty each morning, and a "Suggestions" drawer offers tasks due today, overdue or starred. Any task can be added from anywhere.
+- **My Day:** a daily focus list. It's empty each morning, and a "Suggestions" drawer offers tasks that are due today, overdue, or Big tasks with no due date. Any task can be added from anywhere.
 - **Recurring tasks:** daily, weekdays, weekly on chosen days, every N days, or monthly on a given day. Completing one creates the next instance.
 - **Habits** are a recurring task with a **streak**.
   - The streak counts consecutive scheduled occurrences completed on their day.
