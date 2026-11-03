@@ -237,12 +237,12 @@ function MusicTab() {
   const [drag, setDrag] = useState(false);
   const setM = (p: Partial<typeof m>) => patch((x) => ({ ...x, music: { ...x.music, ...p } }));
   const addTracks = (tracks: Track[]) => { if (tracks.length) setM({ tracks: [...useStore.getState().s.music.tracks, ...tracks] }); };
-  const importNative = async () => { const b = bridge(); if (b) addTracks(await b.music.import()); else fileRef.current?.click(); };
+  const importNative = async () => { const b = bridge(); if (b) addTracks(await b.music.import(m.linkInsteadOfCopy)); else fileRef.current?.click(); };
   const fromFiles = (files: FileList | null) => {
     if (!files) return;
     const b = bridge();
     const paths = Array.from(files).map((f) => (f as File & { path?: string }).path).filter(Boolean) as string[];
-    if (b && paths.length) { b.music.importPaths(paths).then(addTracks); return; }
+    if (b && paths.length) { b.music.importPaths(paths, m.linkInsteadOfCopy).then(addTracks); return; }
     addTracks(Array.from(files).filter((f) => f.type.startsWith('audio') || /\.(mp3|m4a|aac|ogg|opus|wav|flac)$/i.test(f.name)).map((f) => ({ id: uid(), title: f.name.replace(/\.[^.]+$/, ''), artist: '', file: URL.createObjectURL(f), durationSec: 0 })));
   };
   const remove = (t: Track) => { bridge()?.music.remove(t.id, t.file); setM({ tracks: m.tracks.filter((x) => x.id !== t.id), playlists: m.playlists.map((p) => ({ ...p, trackIds: p.trackIds.filter((i) => i !== t.id) })) }); };

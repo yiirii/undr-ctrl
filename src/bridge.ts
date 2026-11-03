@@ -4,9 +4,8 @@ import type { Track } from './core/types';
 export interface Reminder { id: string; at: number; title: string; body: string }
 export interface LofiBridge {
   storage: { load(): Promise<{ data: unknown; recovered: boolean } | null>; save(json: string): Promise<boolean> };
-  music: { import(): Promise<Track[]>; importPaths(paths: string[]): Promise<Track[]>; remove(id: string, file: string): Promise<void>; exists(file: string): Promise<boolean> };
-  notify(title: string, body: string): void;
-  schedule(reminders: Reminder[]): void;
+  music: { import(link?: boolean): Promise<Track[]>; importPaths(paths: string[], link?: boolean): Promise<Track[]>; remove(id: string, file: string): Promise<void>; exists(file: string): Promise<boolean> };
+  notify(title: string, body: string, taskId?: string): void;
   setStartup(on: boolean): void;
   onWindowHidden(cb: () => void): () => void;
   onWindowShown(cb: () => void): () => void;

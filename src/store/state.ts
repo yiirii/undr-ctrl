@@ -42,6 +42,7 @@ export interface AppState {
   appearance: Appearance;
   settings: Settings;
   myDayCleared: string[];
+  reminded: string[];
   lastRollover?: string;
 }
 
@@ -75,6 +76,7 @@ export function initialState(name = ''): AppState {
     appearance: { ...DEFAULT_APPEARANCE },
     settings: { sound: 'soft', volume: 0.6, muted: false, reducedMotion: false, startWithWindows: true, startPage: 'myday', weekStartsMonday: true, dateFormat: 'short', time24: false, hiddenPages: [], navOrder: [...NAV_PAGES] },
     myDayCleared: [],
+    reminded: [],
   };
 }
 

@@ -12,6 +12,7 @@ import { Settings } from '../views/Settings';
 import { Focus, FocusTicker } from '../views/Focus';
 import { Onboarding } from '../views/Onboarding';
 import { Moments } from '../motion/Moments';
+import { Reminders } from './Reminders';
 import { Icon } from '../shapes/icons';
 import { bridge } from '../../bridge';
 import { act } from '../../store/store';
@@ -76,6 +77,7 @@ export function App() {
       {ui.quickAdd && <QuickAdd />}
       <MoneyOverlays />
       <FocusTicker />
+      <Reminders />
       <Moments />
     </div>
   );

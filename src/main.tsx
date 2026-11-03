@@ -9,7 +9,7 @@ async function boot() {
   const q = new URLSearchParams(location.search);
   if (q.get('reset')) localStorage.clear();
   const seed = q.get('seed');
-  if (seed) {
+  if (seed && import.meta.env.DEV) {
     const { seedDemo } = await import('./dev/seed');
     localStorage.setItem('lofi-data', JSON.stringify(seedDemo(seed)));
   }
