@@ -1,8 +1,8 @@
-# Lantern: design spec
+# Lofi: design spec
 
-*Working title. A personal, gamified to-do and budget app for Windows. Real-life progress levels you up like an RPG character, inside a calm, minimal 2D interface.*
+*A personal, gamified to-do and budget app for Windows. Real-life progress levels you up like an RPG character, inside a calm, minimal 2D interface.*
 
-Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-everywhere design language)
+Date: 2026-11-03 · Owner: Chloe · Status: **approved for build** (rev 6: name, student defaults, focus timer, own-music player, startup behaviour, first run)
 
 ---
 
@@ -10,7 +10,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-eve
 
 **Who:** one person (Chloe), on one Windows PC, for daily use.
 
-**Why:** ordinary to-do and budget apps don't make you *want* to come back. Lantern turns real-life progress (studying, working out, saving money) into visible character growth, wrapped in an interface calm enough to live in all day.
+**Why:** ordinary to-do and budget apps don't make you *want* to come back. Lofi turns real-life progress (studying, working out, saving money) into visible character growth, wrapped in an interface calm enough to live in all day.
 
 **Success looks like:**
 - Opening it every day is a habit.
@@ -23,7 +23,9 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-eve
 
 | Topic | Decision |
 |---|---|
-| Platform | Windows desktop app (.exe) |
+| Name | **Lofi** |
+| Platform | Windows desktop app (.exe). Starts with Windows into the system tray; closing the window hides it to the tray. |
+| Who | Student |
 | Data | Stored on this PC only. Export and import for backup. No sync. |
 | To-do | My Day + custom lists, due dates & reminders, recurring tasks & habits |
 | Money | Beginner-friendly. Tracks money in and money out (RM), with categories, monthly budgets set through a guided setup, savings goals, a live month page and a monthly recap story. **Never looks like a spreadsheet.** |
@@ -38,6 +40,11 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-eve
 | Layout | Two columns, like Microsoft To Do |
 | UI look | Minimal and zen. Dark Discord-style greys by default, monochrome accent by default (free accents available; special ones earned). |
 | Feel | **Calm by default, big on moments.** Everyday actions get soft springs and subtle sound; celebrations are saved for milestones. |
+| Focus | Pomodoro-style focus timer attached to a task; finished sessions give bonus XP |
+| Music | No bundled music. A player for **your own audio files**. Music **never plays while the window is minimised or hidden in the tray.** |
+| Budget month | Calendar month (1st → end) |
+| Wallets | None, kept simple |
+| First run | Short welcome, then an empty, clean app |
 
 ## 2. Experience overview
 
@@ -97,7 +104,7 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-eve
 ### 3.1 To-do
 
 - **Lists:** user-created, each with a name, icon (from a small geometric icon set), colour and **stat** (one of the six, or "None", which still earns character XP).
-  - Default lists on first run: Uni (Intelligence), Fitness (Strength), Work (Discipline), Personal (Discipline), Creative (Creativity), Social (Charisma).
+  - Default lists on first run (student): Uni (Intelligence), Assignments (Intelligence), Fitness (Strength), Personal (Discipline), Creative (Creativity), Social (Charisma).
 - **Task fields:**
   - Title and notes.
   - Due date and optional time, with an optional reminder (Windows toast notification).
@@ -105,7 +112,9 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-eve
   - Stat override.
   - Recurrence rule.
   - "In My Day" flag.
-- **My Day:** a daily focus list. It's empty each morning, and a "Suggestions" drawer offers tasks that are due today, overdue, or Big tasks with no due date.
+- **My Day:** a daily focus list.
+  - **Habits scheduled for today appear at the top automatically**, as a habits strip of diamonds you tick off.
+  - Below them, tasks you pick. This part is empty each morning, and a "Suggestions" drawer offers tasks that are due today, overdue, or Big tasks with no due date.
 - **Planned:** every task with a due date, grouped into Overdue, Today, Tomorrow, This week and Later.
 - **Recurring tasks:** daily, weekdays, weekly on chosen days, every N days, or monthly on a given day. Completing one creates the next instance.
 - **Habits** are a recurring task with a **streak**, shown as a row of diamonds for the last 14 occurrences.
@@ -125,10 +134,10 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-eve
 
 **Guided setup:** runs once, about a minute, and can be redone from Settings.
 1. **Money in:** "How much comes in each month?"
-   - Add one or more sources, each with an icon and an expected monthly amount: Allowance, Salary, Part-time, Scholarship/PTPTN, Other.
+   - Add one or more sources, each with an icon and an expected monthly amount: Allowance, PTPTN/Scholarship, Part-time, Other (student defaults).
    - "It changes every month" is allowed; in that case enter a typical amount.
 2. **Categories:** a loose cloud of friendly category bubbles (shape icon + name). Tap to select and long-press to rename. Suggested picks:
-   - Food, Transport, Shopping, Bills, Fun, Health, Education, Gifts, Subscriptions, Other.
+   - Food, Transport, Shopping, Bills, Fun, Health, Books & Uni, Gifts, Subscriptions, Other.
    - You can add your own with an icon, colour and emoji.
 3. **Split:** the app suggests a starting split from the 50/30/20 idea, explained in one sentence: needs, wants, savings.
    - It's shown as **one horizontal stacked bar** of your monthly income with draggable handles, plus per-category sliders below.
@@ -186,6 +195,57 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-eve
 - A month donut.
 - A 6-month in-versus-out bar pair.
 - A cumulative spending line against the budget pace line, shown on a category's detail page.
+
+### 3.2b Focus timer
+
+- **Starting a session:** every task has a ▶ **Focus** button, also on the detail panel and as `F` on a selected task.
+- **Sessions:** a Pomodoro-style focus session. Defaults are 25 minutes focus and 5 minutes break; you can set focus to 15, 25, 45, 50 or a custom length.
+- **Focus view:** a calm full-main-area view.
+  - A large ring drains smoothly as time passes, with the task name underneath.
+  - Pause and stop controls, plus "+5 min".
+  - A segmented progress bar of the sessions done today on this task.
+- **Mini timer:** when you navigate away mid-session, a small timer appears in the sidebar under the character card. Its ring keeps draining.
+- **Rewards:**
+  - A completed focus session gives **+10 XP** to the task's stat. Each additional session on the same task the same day gives +5, capped at 4 sessions per task per day.
+  - An abandoned session (stopped before 80%) gives nothing and has no penalty.
+- **End-of-session:** a soft chime and a Windows toast if the window isn't focused. Optionally starts the break automatically.
+- **Profile:** shows "Focus minutes this week" as a bar.
+- **Quests:** a template "Focus for 50 minutes today" joins the quest pool.
+
+### 3.2c Music (your own tracks)
+
+- **No bundled music or ambient sounds.** Lofi plays only audio you add yourself.
+- **Adding music:** Settings → Music → **Add tracks**, or drag files onto the app. Supported formats: mp3, m4a/aac, ogg, opus, wav and flac.
+  - Files are **copied** into `%APPDATA%/Lofi/music/`, so they keep working even if the originals move. A "link instead of copy" option is available for large libraries.
+  - Title and artist are read from the file's tags, falling back to the file name. Cover art is shown if embedded; otherwise a generated geometric cover.
+- **Playlists:** a default "All tracks" plus user playlists, with reorder by drag, shuffle, repeat (off, all, one) and volume.
+- **Mini player:** pinned at the bottom of the sidebar.
+  - Track title, play/pause and next.
+  - A thin **progress bar** you can scrub.
+  - It expands into a small panel with the queue.
+- **Focus link (optional setting):** music starts automatically when a focus session starts and pauses on breaks.
+- **Hard rule: music never plays while the window is minimised or hidden in the tray.**
+  - Minimising, closing to tray or hiding pauses playback immediately, and focus sessions keep their state.
+  - Restoring the window resumes only if it was playing before (setting "Resume when I come back", on by default).
+  - Starting with Windows never auto-plays.
+  - Media keys work only while the window is visible.
+
+### 3.2d Windows behaviour
+
+- **Start with Windows:** on by default, toggled in Settings → General. Lofi launches **hidden to the tray** at login.
+- **Closing the window** hides it to the tray (with a one-time tooltip explaining this). Quitting is done from the tray menu: Open, Quick add, Quit.
+- **Reminders and focus-session toasts** keep working from the tray.
+- **Keyboard:** Ctrl+Space opens quick-add (inside the app), and Ctrl+E opens the logging sheet.
+
+### 3.2e First run
+
+1. **Welcome:** "Hi, what should we call you?" A name field, with an ambient shape composition behind it.
+2. **How Lofi works:** 3 swipeable cards.
+   - Tasks feed your stats.
+   - Money moves Wealth.
+   - Level up to unlock themes and more.
+3. **Money setup** (§3.2). It can be skipped with "Set up later".
+4. **Done:** the app lands on an empty My Day with a gentle hint toward quick-add. Default lists and categories exist, but there are no sample tasks or entries.
 
 ### 3.3 Character & stats
 
@@ -393,6 +453,7 @@ src/
     unlocks.ts     earned themes, accents, sound packs, titles by level/achievement
     appearance.ts  settings schema, defaults, token sets per theme, validation
     budget.ts      month aggregation, in/out totals, safe-to-spend, category status, split suggestion, nudges, recap data, allowance drip
+    focus.ts       focus session state machine, rewards and caps
     clock.ts       injectable clock for midnight jobs and tests
   store/           Zustand store; actions call core, emit "moments", persist
   persistence/     adapter interface + electron-ipc and localStorage implementations
@@ -403,8 +464,9 @@ src/
     shapes/        radar, progress family (bar, segmented, ring, liquid), diamond streak, icon set
     motion/        spring presets, moment overlays, particle canvas
     sound/         WebAudio synth and packs
+    music/         audio-element player, playlists, mini player, visibility pause rule
 electron/
-  main.ts          window, IPC file storage, notification scheduler, tray
+  main.ts          window, IPC file storage, music import (copy + tag read), notification scheduler, tray, login item, minimise/hide → pause-music signal
   preload.ts       typed, narrow contextBridge API
 ```
 
@@ -413,16 +475,16 @@ electron/
 - The motion layer queues them, so several moments at once play in sequence instead of on top of each other.
 
 **Data and persistence:**
-- One JSON document, stored in `%APPDATA%/Lantern/data.json`.
+- One JSON document, stored in `%APPDATA%/Lofi/data.json`.
 - Writes are atomic (write to a temp file, then rename) and debounced by 500 ms.
 - Rolling daily backups keep 14 copies.
 - A schema `version` field, with migrations, protects existing data when the app updates.
-- Export and import are a single `.lantern.json` file.
+- Export and import are a single `.lofi.json` file.
 
 **Reminders:**
 - The main process keeps a timer per upcoming reminder and shows a native Windows toast. Clicking it focuses the task.
 - Missed reminders are shown once on the next launch.
-- The app can minimise to the tray so reminders keep firing.
+- Lofi lives in the tray (§3.2d), so reminders keep firing.
 
 **Midnight jobs:** an idempotent roll-over, keyed by local date. It runs on a timer and also catches up on launch, and it:
 1. Applies the allowance drip.
@@ -431,7 +493,7 @@ electron/
 4. Resets My Day.
 
 **Packaging:**
-- electron-builder targets an NSIS installer (`Lantern-Setup.exe`), with a portable `.exe` as a fallback.
+- electron-builder targets an NSIS installer (`Lofi-Setup.exe`), with a portable `.exe` as a fallback.
 - The app is unsigned, so Windows SmartScreen shows "More info → Run anyway" the first time.
 
 ## 6. Error handling
@@ -462,6 +524,8 @@ electron/
     - Deposit → Wealth gain.
     - Recap story.
     - Quest completion.
+    - Focus session → XP.
+    - Music pauses on minimise/hide and resumes on restore.
   - Screenshots of every view and every moment overlay at 1600×1000, reviewed by eye.
 - **Packaging:** build the NSIS installer and verify it.
 
@@ -472,8 +536,8 @@ The 3D town and any illustrated assets, coins and shops, sync, a mobile app, ban
 ## 9. Build phases (for the implementation plan)
 
 1. **Foundation:** the core rules engine, ledger, persistence and the Electron shell, with tests.
-2. **Shell & to-do:** the two-column layout, lists, My Day, Planned, task detail, recurring tasks, habits, reminders and quick-add.
+2. **Shell & to-do:** the two-column layout, lists, My Day (including the habits strip), Planned, task detail, recurring tasks, habits, reminders, quick-add, the focus timer and first run.
 3. **Money:** guided setup, logging sheet, money in and out, categories, the live month page, flow picture, nudges, savings goals, the monthly recap story and the Wealth rules.
 4. **Character:** stats, the radar, levels, titles, Profile and the everyday motion tier.
 5. **Quests, achievements & unlocks,** plus the moment tier (overlays, particles, sound).
-6. **Customisation & polish:** the Appearance settings with live preview (themes, accents, fonts, size, density, sidebar), onboarding, reduced motion, the installer and a full visual QA pass.
+6. **Music, customisation & polish:** the music player, tray and startup behaviour, the Appearance settings with live preview (themes, accents, fonts, size, density, sidebar), onboarding, reduced motion, the installer and a full visual QA pass.
