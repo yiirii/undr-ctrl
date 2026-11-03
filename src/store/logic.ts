@@ -12,6 +12,7 @@ import { rollQuests, rerollOne, questProgress } from '../core/quests';
 import { newlyUnlocked, TIER_XP, ACHIEVEMENTS } from '../core/achievements';
 import { unlocksAt, unlocksForAchievement, type Unlock } from '../core/unlocks';
 import * as F from '../core/focus';
+import { wealthForSale, wealthForBizExpense, type BizItem } from '../core/business';
 import { buildFacts, inMyDay, statUsage, taskStat } from './facts';
 
 export type Moment =
@@ -181,8 +182,10 @@ export function deleteList(s: AppState, id: string): Result {
 // ---------------- money ----------------
 export interface NewMoney { kind: 'in' | 'out'; sen: number; categoryId?: string; sourceId?: string; note: string; date: string; repeatMonthly?: boolean }
 
-function moneyLedger(e: MoneyEntry, now: Date) {
-  const out = wealthEntriesForMoney(e, iso(now));
+const hasBudget = (s: AppState) => s.money.categories.some((c) => c.limitSen > 0);
+
+function moneyLedger(s: AppState, e: MoneyEntry, now: Date) {
+  const out = hasBudget(s) ? wealthEntriesForMoney(e, iso(now)) : [];
   if (e.date === e.loggedOn && !e.autoFrom) out.push(entry('bookkeeping', null, BOOKKEEPING_XP, true, e.id, iso(now)));
   return out;
 }
@@ -191,7 +194,7 @@ export function logMoney(s: AppState, n: NewMoney, now: Date): Result {
   if (!(n.sen > 0) || !Number.isFinite(n.sen)) return done(s);
   const e: MoneyEntry = { id: uid(), kind: n.kind, sen: Math.round(n.sen), note: n.note.trim(), date: n.date, loggedOn: dayKey(now), repeatMonthly: n.repeatMonthly || undefined };
   if (n.kind === 'out') e.categoryId = n.categoryId ?? 'other'; else e.sourceId = n.sourceId ?? s.money.sources[0]?.id;
-  const next = { ...s, money: { ...s.money, entries: [...s.money.entries, e] }, ledger: [...s.ledger, ...moneyLedger(e, now)] };
+  const next = { ...s, money: { ...s.money, entries: [...s.money.entries, e] }, ledger: [...s.ledger, ...moneyLedger(s, e, now)] };
   return settle(s, next, now, []);
 }
 
@@ -201,7 +204,8 @@ export function editMoney(s: AppState, id: string, patch: Partial<NewMoney>, now
   if (patch.sen !== undefined && !(patch.sen > 0)) return done(s);
   const e: MoneyEntry = { ...old, ...patch, id };
   const ledger = reverse(s.ledger, id, iso(now));
-  const comp = wealthEntriesForMoney(e, iso(now));
+  const hadWealth = s.ledger.some((x) => x.ref === id && x.source === 'spend' && !x.reversed);
+  const comp = hadWealth ? wealthEntriesForMoney(e, iso(now)) : [];
   const hadBook = s.ledger.some((x) => x.ref === id && x.source === 'bookkeeping' && !x.reversed);
   if (hadBook) comp.push(entry('bookkeeping', null, BOOKKEEPING_XP, true, id, iso(now)));
   return settle(s, { ...s, money: { ...s.money, entries: s.money.entries.map((x) => (x.id === id ? e : x)) }, ledger: [...ledger, ...comp] }, now, []);
@@ -257,6 +261,56 @@ export function finishRecap(s: AppState, mk: string, now: Date): Result {
   if (s.money.recapsSeen.includes(mk)) return done(s);
   const next = { ...s, money: { ...s.money, recapsSeen: [...s.money.recapsSeen, mk] }, ledger: [...s.ledger, entry('recap', null, RECAP_XP, true, `recap:${mk}`, iso(now))] };
   return settle(s, next, now, [{ type: 'xp', amount: RECAP_XP, stat: null, label: 'Recap' }]);
+}
+
+// ---------------- business ----------------
+export function addBizItems(s: AppState, n: { name: string; costSen: number; qty: number; boughtOn: string; askSen?: number; note?: string }, now: Date): Result {
+  const name = n.name.trim();
+  const qty = Math.max(1, Math.min(200, Math.floor(n.qty || 1)));
+  if (!name || !(n.costSen > 0)) return done(s);
+  const items: BizItem[] = Array.from({ length: qty }, () => ({ id: uid(), name, costSen: Math.round(n.costSen), boughtOn: n.boughtOn, status: 'stock', askSen: n.askSen && n.askSen > 0 ? Math.round(n.askSen) : undefined, note: n.note }));
+  const book = n.boughtOn === dayKey(now) ? [entry('bookkeeping', null, BOOKKEEPING_XP, true, items[0].id, iso(now))] : [];
+  return settle(s, { ...s, business: { ...s.business, items: [...s.business.items, ...items] }, ledger: [...s.ledger, ...book] }, now, []);
+}
+
+export function sellBizItem(s: AppState, id: string, sale: { soldSen: number; feesSen?: number; soldOn: string }, now: Date): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it || it.status === 'sold' || !(sale.soldSen > 0)) return done(s);
+  const sold: BizItem = { ...it, status: 'sold', soldSen: Math.round(sale.soldSen), feesSen: sale.feesSen && sale.feesSen > 0 ? Math.round(sale.feesSen) : undefined, soldOn: sale.soldOn };
+  const book = sale.soldOn === dayKey(now) ? [entry('bookkeeping', null, BOOKKEEPING_XP, true, `sale:${id}`, iso(now))] : [];
+  const next = { ...s, business: { ...s.business, items: s.business.items.map((i) => (i.id === id ? sold : i)) }, ledger: [...s.ledger, ...wealthForSale(sold, iso(now)), ...book] };
+  return settle(s, next, now, []);
+}
+
+export function unsellBizItem(s: AppState, id: string, now: Date): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it || it.status !== 'sold') return done(s);
+  const back: BizItem = { ...it, status: 'stock', soldSen: undefined, feesSen: undefined, soldOn: undefined };
+  return done({ ...s, business: { ...s.business, items: s.business.items.map((i) => (i.id === id ? back : i)) }, ledger: reverse(reverse(s.ledger, id, iso(now)), `sale:${id}`, iso(now)) });
+}
+
+export function editBizItem(s: AppState, id: string, patch: Partial<BizItem>, now: Date): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it) return done(s);
+  if ((patch.costSen !== undefined && !(patch.costSen > 0)) || (patch.soldSen !== undefined && !(patch.soldSen > 0))) return done(s);
+  const nx: BizItem = { ...it, ...patch, id };
+  let ledger = s.ledger;
+  if (it.status === 'sold' || nx.status === 'sold') { ledger = reverse(ledger, id, iso(now)); if (nx.status === 'sold') ledger = [...ledger, ...wealthForSale(nx, iso(now))]; }
+  return done({ ...s, business: { ...s.business, items: s.business.items.map((i) => (i.id === id ? nx : i)) }, ledger });
+}
+
+export function deleteBizItem(s: AppState, id: string, now: Date): Result {
+  return done({ ...s, business: { ...s.business, items: s.business.items.filter((i) => i.id !== id) }, ledger: reverse(s.ledger, id, iso(now)) });
+}
+
+export function addBizExpense(s: AppState, n: { sen: number; label: string; date: string }, now: Date): Result {
+  if (!(n.sen > 0)) return done(s);
+  const e = { id: uid(), sen: Math.round(n.sen), label: n.label.trim() || 'Business cost', date: n.date };
+  return settle(s, { ...s, business: { ...s.business, expenses: [...s.business.expenses, e] }, ledger: [...s.ledger, ...wealthForBizExpense(e, iso(now))] }, now, []);
+}
+
+export function deleteBizExpense(s: AppState, id: string, now: Date): Result {
+  return done({ ...s, business: { ...s.business, expenses: s.business.expenses.filter((e) => e.id !== id) }, ledger: reverse(s.ledger, id, iso(now)) });
 }
 
 // ---------------- quests ----------------
@@ -332,7 +386,7 @@ export function rollover(s: AppState, now: Date): Result {
     }
   }
   if (added.length) {
-    st = { ...st, money: { ...st.money, entries: [...st.money.entries, ...added] }, ledger: [...st.ledger, ...added.flatMap((e) => wealthEntriesForMoney(e, `${e.date}T12:00:00.000Z`))] };
+    st = { ...st, money: { ...st.money, entries: [...st.money.entries, ...added] }, ledger: [...st.ledger, ...(hasBudget(st) ? added.flatMap((e) => wealthEntriesForMoney(e, `${e.date}T12:00:00.000Z`)) : [])] };
   }
   if (st === s) return done(s);
   return settle(s, st, now, []);

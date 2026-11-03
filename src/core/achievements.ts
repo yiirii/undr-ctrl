@@ -43,6 +43,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   a('legend', 'Legend', 'Complete 100 quests', 'gold', 100, (f) => f.questsCompleted),
   a('clear-skies', 'Clear Skies', 'Clear My Day 10 times', 'silver', 10, (f) => f.myDayClearedCount),
   a('reflective', 'Reflective', 'Finish a monthly recap', 'bronze', 1, (f) => f.recapsDone),
+  a('first-sale', 'First Sale', 'Sell your first business item', 'bronze', 1, (f) => f.bizSales),
+  a('hustler', 'Hustler', 'Make RM 1,000 total business profit', 'gold', 100000, (f) => f.bizProfitTotalSen, 'The Hustler'),
 ];
 
 export const achievementProgress = (x: Achievement, f: Facts) => ({ value: Math.min(x.target, Math.max(0, x.metric(f))), target: x.target });

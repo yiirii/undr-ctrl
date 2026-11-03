@@ -2,7 +2,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useStore, act } from '../../store/store';
 import { deposit, dismissNudge, addGoal, deleteGoal, upsertCategory } from '../../store/logic';
-import { monthSummary, nudge as getNudge, goalPlan, parseAmount, inMonth } from '../../core/money';
+import { monthSummary, nudge as getNudge, goalPlan, parseAmount, inMonth, suggestFromHistory } from '../../core/money';
+import { bizMonth } from '../../core/business';
+import { setBudget } from '../../store/logic';
+import { Business } from './money/Business';
 import { addMonths, dayKey, daysInMonth, monthKey, monthName, dayOfMonth, monthStart, addDays, MONTHS } from '../../core/dates';
 import { Icon } from '../shapes/icons';
 import { Bar, Liquid, Ring, Count, SPRING } from '../shapes/Progress';
@@ -21,7 +24,8 @@ export function Money() {
   const fmt = useFmt();
   const today = dayKey(new Date());
   const [mk, setMk] = useState(monthKey(today));
-  const [setup, setSetup] = useState(false);
+  const [setup, setSetup] = useState<false | number>(false);
+  const [tab, setTab] = useState<'personal' | 'business'>('personal');
   const [catId, setCatId] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState(false);
   const [addingCat, setAddingCat] = useState(false);
@@ -44,11 +48,14 @@ export function Money() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const used = m.budgetSen > 0 ? m.outSen / m.budgetSen : 0;
+  const biz = bizMonth(s.business.items, s.business.expenses, mk);
+  const kept = m.keptSen + biz.profitSen;
   return (
     <div className="page page-wide">
-      <div className="ph">
+      <div className="ph ph-money">
         <div><h1>Money</h1><div className="sub">What comes in, what goes out, and what you keep</div></div>
         <div className="ph-actions" style={{ alignItems: 'center' }}>
+          <div className="seg-ctl money-tabs"><button className={tab === 'personal' ? 'on' : ''} onClick={() => setTab('personal')}>Personal</button><button className={tab === 'business' ? 'on' : ''} onClick={() => setTab('business')}>Business</button></div>
           <div className="month-nav">
             <button className="icon-btn" disabled={mk <= monthKey(earliest)} onClick={() => setMk(addMonths(mk, -1))}><Icon name="left" size={16} /></button>
             <b>{monthName(mk)} {mk.slice(0, 4)}</b>
@@ -56,10 +63,11 @@ export function Money() {
           </div>
           {!isCurrent && <button className="btn" onClick={() => setUI({ recapMonth: mk })}><Icon name="sparkle" size={16} />Recap</button>}
           {isCurrent && prevHas && <button className="btn ghost" onClick={() => setUI({ recapMonth: prevMk })}><Icon name="sparkle" size={16} />{monthName(prevMk)} recap</button>}
-          <button className="btn primary" onClick={() => setUI({ logSheet: { kind: 'out' } })}><Icon name="plus" size={16} stroke={2.4} />Log <span className="kbd" style={{ background: 'transparent', color: 'inherit', opacity: 0.7 }}>Ctrl E</span></button>
+          {tab === 'personal' && <button className="btn primary" onClick={() => setUI({ logSheet: { kind: 'out' } })}><Icon name="plus" size={16} stroke={2.4} />Log <span className="kbd" style={{ background: 'transparent', color: 'inherit', opacity: 0.7 }}>Ctrl E</span></button>}
         </div>
       </div>
 
+      {tab === 'business' ? <Business mk={mk} /> : (<>
       <AnimatePresence>
         {showNudge && nd && (
           <motion.div className="nudge" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, marginBottom: 0, padding: 0 }}>
@@ -73,13 +81,15 @@ export function Money() {
       </AnimatePresence>
 
       <div className="money-grid">
-        {!m.hasBudget ? (
+        {!m.hasBudget && !s.money.setupDone ? (
           <div className="money-hero" style={{ justifyContent: 'center', textAlign: 'center', flexDirection: 'column', gap: 12, padding: 36 }}>
             <Ambient size={160} />
-            <h2>Set up your budget</h2>
-            <p className="dim" style={{ maxWidth: 420, lineHeight: 1.5 }}>One minute: tell Undr Ctrl what comes in, pick your categories, and it suggests a simple split you can adjust.</p>
-            <button className="btn primary lg" onClick={() => setSetup(true)}>Start money setup</button>
+            <h2>Set up your money</h2>
+            <p className="dim" style={{ maxWidth: 440, lineHeight: 1.5 }}>One minute. No regular income? That's fine: you can just track for a while and Undr Ctrl will suggest a budget from your real spending.</p>
+            <button className="btn primary lg" onClick={() => setSetup(0)}>Start money setup</button>
           </div>
+        ) : !m.hasBudget ? (
+          <TrackingHero mk={mk} isCurrent={isCurrent} onAdjust={() => setSetup(2)} />
         ) : (
           <div className="money-hero">
             <Ring value={m.outSen} max={m.budgetSen} size={210} stroke={16} color={used > 1 ? 'var(--bad)' : used > m.monthElapsed + 0.1 ? 'var(--warn)' : 'var(--in)'} track="var(--bg0)" marker={isCurrent ? m.monthElapsed : undefined}>
@@ -98,7 +108,7 @@ export function Money() {
               <Bar value={Math.round(m.monthElapsed * daysInMonth(`${mk}-01`))} max={daysInMonth(`${mk}-01`)} label="Month so far" showNumbers format={(v) => `Day ${Math.round(v)}`} color="var(--t2)" height={6} />
               <Bar value={m.outSen} max={m.budgetSen} label="Budget used" showNumbers format={(v) => fmt.rm(v)} color={used > 1 ? 'var(--bad)' : 'var(--accent-fill)'} height={6} />
               <div className="row" style={{ gap: 8 }}>
-                <button className="btn sm ghost" onClick={() => setSetup(true)}><Icon name="sliders" size={14} />Adjust budget</button>
+                <button className="btn sm ghost" onClick={() => setSetup(0)}><Icon name="sliders" size={14} />Adjust budget</button>
                 {s.money.savingsTargetSen > 0 && <span className="chip ok">Savings target {fmt.rm(s.money.savingsTargetSen)}/mo</span>}
               </div>
             </div>
@@ -107,8 +117,8 @@ export function Money() {
 
         <div className="mcard">
           <div className="mcard-h"><h3>In & out</h3><span className="muted">{monthName(mk)}</span></div>
-          <InOut inSen={m.inSen} expectedSen={isCurrent ? m.expectedInSen : 0} outSen={m.outSen} />
-          <div className="kept-line">{m.keptSen >= 0 ? <>You've kept <b>{fmt.rm(m.keptSen)}</b> so far.</> : <>You've spent <b style={{ color: 'var(--bad)' }}>{fmt.rm(-m.keptSen)}</b> more than came in.</>}</div>
+          <InOut inSen={m.inSen} expectedSen={isCurrent ? m.expectedInSen : 0} outSen={m.outSen} bizSen={biz.salesSen || biz.expensesSen || biz.cogsSen ? biz.profitSen : undefined} />
+          <div className="kept-line">{kept >= 0 ? <>You've kept <b>{fmt.rm(kept)}</b> so far{biz.profitSen ? <> (including <b style={{ color: biz.profitSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{fmt.rm(biz.profitSen)}</b> business profit)</> : ''}.</> : m.hasBudget ? <>You've spent <b style={{ color: 'var(--bad)' }}>{fmt.rm(-kept)}</b> more than came in.</> : <>That's <b style={{ color: 'var(--t1)' }}>{fmt.rm(-kept)}</b> more out than in. Fine while you're tracking; it shows where money goes.</>}</div>
         </div>
 
         <div className="mcard">
@@ -184,8 +194,49 @@ export function Money() {
         </div>
       </div>
 
+      </>)}
       {catId && <CategoryDetail id={catId} mk={mk} onClose={() => setCatId(null)} />}
-      {setup && <Setup onDone={() => setSetup(false)} onSkip={() => setSetup(false)} />}
+      {setup !== false && <Setup startStep={setup} onDone={() => setSetup(false)} onSkip={() => setSetup(false)} />}
+    </div>
+  );
+}
+
+function TrackingHero({ mk, isCurrent, onAdjust }: { mk: string; isCurrent: boolean; onAdjust: () => void }) {
+  const s = useStore((x) => x.s);
+  const fmt = useFmt();
+  const today = dayKey(new Date());
+  const m = monthSummary(s.money, mk, today);
+  const sug = isCurrent ? suggestFromHistory(s.money, today) : null;
+  const outs = s.money.entries.filter((e) => e.kind === 'out');
+  const first = outs.reduce((a, e) => (e.date < a ? e.date : a), today);
+  const tracked = outs.length ? Math.min(14, Math.round((new Date(today).getTime() - new Date(first).getTime()) / 86400000)) : 0;
+  const top = sug ? Object.entries(sug.limits).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]) : [];
+  const total = top.reduce((n, [, v]) => n + v, 0);
+  return (
+    <div className="money-hero" style={{ alignItems: 'stretch' }}>
+      <div style={{ minWidth: 240 }}>
+        <div className="hero-label">Spent in {monthName(mk)}</div>
+        <div className="hero-num" style={{ fontSize: '2.4rem' }}><Count value={m.outSen / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></div>
+        <div className="hero-of">{fmt.rm(m.inSen)} came in · tracking mode</div>
+      </div>
+      <div className="hero-side">
+        {!sug ? (
+          <>
+            <div className="hero-safe" style={{ fontSize: '.95rem' }}>Keep logging what you spend. After about two weeks, Undr Ctrl suggests a budget based on your real spending.</div>
+            <Bar value={tracked} max={14} label="Days tracked" showNumbers format={(v) => `${Math.round(v)} days`} height={8} color="var(--accent-fill)" />
+            <div className="row"><button className="btn sm ghost" onClick={onAdjust}><Icon name="sliders" size={14} />Set limits myself</button></div>
+          </>
+        ) : (
+          <>
+            <div className="hero-safe" style={{ fontSize: '.95rem' }}>Based on your last <b style={{ fontSize: '1rem' }}>{sug.days} days</b>, here's a monthly budget that fits how you actually spend: <b style={{ fontSize: '1rem' }}>{fmt.rm(total)}</b>.</div>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>{top.slice(0, 6).map(([id, v]) => { const c = s.money.categories.find((x) => x.id === id)!; return <span key={id} className="chip"><span className="sdot" style={{ background: c.color }} />{c.name} {fmt.rm(v)}</span>; })}</div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn primary" onClick={() => act(setBudget, { limits: sug.limits, savingsSen: 0, expected: {} }, new Date())}><Icon name="check" size={15} stroke={2.4} />Use this budget</button>
+              <button className="btn ghost" onClick={onAdjust}><Icon name="sliders" size={14} />Set my own</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

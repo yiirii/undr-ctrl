@@ -28,7 +28,7 @@ export function defaultCategories(): Category[] {
 
 export function defaultSources(): IncomeSource[] {
   return [
-    { id: 'allowance', name: 'Allowance', icon: 'home', expectedSen: 0 },
+    { id: 'allowance', name: 'Parents / family', icon: 'home', expectedSen: 0 },
     { id: 'ptptn', name: 'PTPTN / Scholarship', icon: 'cap', expectedSen: 0 },
     { id: 'parttime', name: 'Part-time', icon: 'clock', expectedSen: 0 },
     { id: 'other-in', name: 'Other', icon: 'dots', expectedSen: 0 },
@@ -67,7 +67,7 @@ export interface MonthSummary {
 export const inMonth = (e: { date: string }, mk: string) => monthKey(e.date) === mk;
 
 export function statusOf(spent: number, limit: number): { ratio: number; status: CatStatus } {
-  if (limit <= 0) return { ratio: spent > 0 ? 1.5 : 0, status: spent > 0 ? 'over' : 'calm' };
+  if (limit <= 0) return { ratio: 0, status: 'calm' };
   const ratio = spent / limit;
   return { ratio, status: ratio > 1 ? 'over' : ratio >= 0.8 ? 'warn' : 'calm' };
 }
@@ -210,6 +210,22 @@ export function goalPlan(g: Goal, today: string): string {
   const per = Math.ceil(left / months / 100) * 100;
   const when = new Date(`${g.deadline}T00:00:00`).toLocaleString('en-US', { month: 'long', year: 'numeric' });
   return `${formatRM(per)} a month gets you there by ${when}`;
+}
+
+/** Track first, budget later: suggest monthly limits from real spending once there are 14+ days of history. */
+export function suggestFromHistory(s: MoneyState, today: string): { days: number; limits: Record<string, number> } | null {
+  const outs = s.entries.filter((e) => e.kind === 'out' && e.date <= today);
+  if (!outs.length) return null;
+  const first = outs.reduce((m, e) => (e.date < m ? e.date : m), today);
+  const days = Math.min(90, diffDays(first, today));
+  if (days < 14) return null;
+  const since = addDays(today, -days);
+  const limits: Record<string, number> = {};
+  for (const c of s.categories) {
+    const spent = outs.filter((e) => e.categoryId === c.id && e.date >= since).reduce((n, e) => n + e.sen, 0);
+    limits[c.id] = spent > 0 ? Math.ceil(((spent / days) * 30.4) / 1000) * 1000 : 0;
+  }
+  return { days, limits };
 }
 
 export { addDays };

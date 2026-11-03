@@ -49,7 +49,7 @@ test('money: guided setup, log out and in, hero and bars update, empty recap doe
   await expect(hero).toContainText('RM 1,187.50');
   await page.keyboard.press('Control+e');
   await page.click('.inout-toggle button:has-text("Money in")');
-  await page.click('.cat-pick:has-text("Allowance")');
+  await page.click('.cat-pick:has-text("Parents")');
   for (const k of ['5', '0', '0']) await page.keyboard.press(k);
   await page.keyboard.press('Enter');
   await expect(page.locator('.io-row').first()).toContainText('RM 500');
@@ -110,6 +110,9 @@ test('quest completion claims XP and shows a toast', async ({ page }) => {
     await page.keyboard.type(`quick task ${i}`);
     await page.keyboard.press('Enter');
     await page.locator('.task', { hasText: `quick task ${i}` }).locator('.check').click();
+    // a big moment (level-up) may cover the screen; tap it away like a person would
+    const lu = page.locator('.levelup');
+    if (await lu.isVisible().catch(() => false)) { await lu.click(); await expect(lu).toBeHidden(); }
   }
   await expect(page.locator('.toast', { hasText: 'Quest complete' })).toBeVisible();
 });
@@ -121,4 +124,46 @@ test('add a money category inline (no browser prompt)', async ({ page }) => {
   await page.locator('.new-cat input').fill('Coffee');
   await page.keyboard.press('Enter');
   await expect(page.locator('.bubble', { hasText: 'Coffee' })).toBeVisible();
+});
+
+test('money setup works with no income: skip, track first, then tracking hero', async ({ page }) => {
+  await open(page, 'reset=1&seed=fresh');
+  await page.fill('.onb-name', 'Chloe');
+  await page.keyboard.press('Enter');
+  for (let i = 0; i < 3; i++) await page.click('button:has-text("Next"), button:has-text("Set up money")');
+  await page.click("button:has-text(\"Skip, my income isn't regular\")");
+  await page.click('button:has-text("Next")');
+  await expect(page.locator('.choice.on')).toContainText('Track first');
+  await page.click('button:has-text("Next")');
+  await page.click('button:has-text("Done")');
+  await page.click('.nav-item:has-text("Money")');
+  await expect(page.locator('.money-hero')).toContainText('Spent in');
+  await expect(page.locator('.money-hero')).toContainText('Days tracked');
+  await page.keyboard.press('Control+e');
+  await page.click('.cat-pick:has-text("Food")');
+  for (const k of ['9', '.', '5', '0']) await page.keyboard.press(k);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.money-hero .hero-num')).toContainText('RM 9.50');
+});
+
+test('business: buy two, sell one, see profit and Wealth go up', async ({ page }) => {
+  await open(page, 'reset=1&seed=fresh');
+  await page.evaluate(() => (window as any).__lofi.getState().patch((s: any) => ({ ...s, profile: { ...s.profile, name: 'C', onboarded: true } })));
+  await page.click('.nav-item:has-text("Money")');
+  await page.click('.money-tabs button:has-text("Business")');
+  await page.click('button:has-text("Log your first purchase")');
+  await page.fill('input[placeholder^="e.g. Funko"]', 'Funko Pop! Groot #49');
+  await page.locator('.sheet input[inputmode="decimal"]').first().fill('40');
+  await page.click('.sheet .seg-ctl button:has-text("+")');
+  await page.click('button:has-text("Add to stock")');
+  await expect(page.locator('.stock-card')).toContainText('×2');
+  await page.locator('.stock-card button:has-text("Sell")').click();
+  await page.locator('.sheet input[inputmode="decimal"]').nth(0).fill('85');
+  await page.locator('.sheet input[inputmode="decimal"]').nth(1).fill('7');
+  await expect(page.locator('.sheet')).toContainText('+RM 38');
+  await page.click('button:has-text("Record sale")');
+  await expect(page.locator('.money-hero')).toContainText('RM 38');
+  await expect(page.locator('.stock-card')).not.toContainText('×2');
+  const wea = await page.evaluate(() => (window as any).__lofi.getState().s.ledger.filter((e: any) => e.stat === 'wea').reduce((n: number, e: any) => n + e.amount, 0));
+  expect(wea).toBe(38);
 });

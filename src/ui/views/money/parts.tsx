@@ -14,9 +14,9 @@ export function CatIcon({ c, size = 36 }: { c: Pick<Category, 'icon' | 'color' |
   );
 }
 
-export function InOut({ inSen, expectedSen, outSen }: { inSen: number; expectedSen: number; outSen: number }) {
+export function InOut({ inSen, expectedSen, outSen, bizSen }: { inSen: number; expectedSen: number; outSen: number; bizSen?: number }) {
   const fmt = useFmt();
-  const scale = Math.max(inSen, expectedSen, outSen, 1);
+  const scale = Math.max(inSen, expectedSen, outSen, Math.abs(bizSen ?? 0), 1);
   const row = (label: string, color: string, v: number, ghost?: number) => (
     <div className="io-row">
       <div className="io-lbl">{label}</div>
@@ -31,6 +31,7 @@ export function InOut({ inSen, expectedSen, outSen }: { inSen: number; expectedS
     <div className="io">
       {row('Money in', 'var(--in)', inSen, expectedSen)}
       {row('Money out', 'var(--warn)', outSen)}
+      {bizSen !== undefined && row(bizSen >= 0 ? 'Business profit' : 'Business loss', bizSen >= 0 ? 'var(--wea)' : 'var(--bad)', Math.abs(bizSen))}
     </div>
   );
 }

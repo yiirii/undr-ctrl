@@ -390,3 +390,20 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .onb-card h1 { font-size: 2.2rem; letter-spacing: -1px; }
 .onb-card p { color: var(--t2); line-height: 1.55; max-width: 420px; }
 .onb-name { font-size: 1.4rem; text-align: center; height: 56px; border-radius: 16px; max-width: 360px; }
+
+/* ---------- business ---------- */
+.biz-name { font-family: var(--font-head); font-size: 1.15rem; font-weight: 800; background: none; border: 0; outline: none; color: var(--t1); padding: 4px 6px; border-radius: 8px; min-width: 0; width: 260px; }
+.biz-name:hover, .biz-name:focus { background: var(--bg3); }
+.stock { display: flex; flex-wrap: wrap; gap: 10px; }
+.stock-card { flex: 1 1 220px; max-width: 300px; padding: 14px; border-radius: calc(var(--radius) + 4px); background: color-mix(in srgb, var(--bg0) 45%, var(--bg3)); cursor: pointer; transition: background .15s; }
+.stock-card:hover { background: var(--bg4); }
+.stock-name { font-weight: 700; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.choice { flex: 1; display: flex; gap: 12px; text-align: left; padding: 16px; border-radius: calc(var(--radius) + 4px); background: var(--bg2); border: 2px solid transparent; color: var(--t2); }
+.choice.on { border-color: var(--accent); color: var(--t1); }
+.choice b { display: block; font-size: .95rem; color: var(--t1); }
+.choice p { font-size: .8rem; color: var(--t3); margin-top: 4px; line-height: 1.45; }
+
+/* Money header: keep controls on one line, let the subtitle wrap under the title */
+.ph-money { flex-wrap: wrap; row-gap: 12px; }
+.ph-money .ph-actions { flex-wrap: nowrap; white-space: nowrap; }
+.ph-money .sub { white-space: nowrap; }
