@@ -2,7 +2,7 @@
 
 *Working title. A personal, gamified to-do and budget app for Windows. Real-life progress levels you up like an RPG character, inside a calm, minimal 2D interface.*
 
-Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 4: beginner-friendly money tracker with income)
+Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 5: progress-everywhere design language)
 
 ---
 
@@ -59,6 +59,32 @@ Date: 2026-11-03 · Owner: Chloe · Status: awaiting review (rev 4: beginner-fri
   - Rounded squares are money.
   - Diamonds are habits and streaks.
 - **Empty states:** slow, ambient shape compositions (a few drifting forms), never clip-art.
+
+**Progress everywhere:** Chloe loves progress bars, so progress visualisation is a core part of the design language. Anything with a goal shows how close you are.
+
+**Where progress appears:**
+
+| Where | Progress shown |
+|---|---|
+| Sidebar | Character XP bar; a slim "today" bar (tasks done ÷ tasks in My Day) |
+| My Day header | A wide day-progress bar that fills segment by segment, one segment per task |
+| Each list in the sidebar | A tiny completion ring next to the open-task count |
+| Lists | A header bar showing the share of tasks done this week |
+| Habits | A weekly bar per habit (for example 3 of 5) plus the streak diamonds |
+| Planned | A "this week" bar across all tasks due this week |
+| Profile | A bar per stat toward its next level |
+| Quests | A bar per quest; daily and weekly overall bars |
+| Achievements | Locked badges show a progress arc (for example Centurion 64/100) |
+| Money | Hero ring (budget used against month elapsed), category fills, in/out bars, goal fills, a month-elapsed bar |
+| Unlocks | "Next unlock" bar in Settings → Appearance (for example "Dusk theme: Lv 9 → 12") |
+
+**Rules:**
+- **One shared progress component family** used everywhere: bar, segmented bar, ring and liquid fill. Same thickness, radius and motion, so the app feels like one system.
+- **Fills animate with a spring** when they change, never jumping. A bar that reaches 100% plays a soft shimmer sweep, and in the moment tier a brief glow.
+- **Segmented bars** for countable things (tasks, habit days, quests). **Smooth bars** for continuous things (XP, money).
+- **Overflow:** bars past 100% (an over-budget category) show the extra as a darker striped tail, never a broken layout.
+- **Colour:** each bar uses the colour of what it measures: the stat's hue, the category's colour, or the accent for general progress.
+- **Numbers:** every bar can show its numbers on hover; key bars always show them.
 
 **Quick-add (Ctrl+Space, available everywhere):** one input that understands both tasks and expenses.
 - `essay due fri 5pm #uni` creates a task in the Uni list, due Friday at 17:00.
@@ -374,7 +400,7 @@ src/
     shell/         two-column layout, sidebar, quick-add, detail panel
     theme/         design tokens, theme provider, font loading (bundled woff2)
     views/         MyDay, Planned, List, Habits, Money (+ setup, logging sheet, recap), Quests, Profile, Settings
-    shapes/        radar, progress ring, liquid fill, diamond streak, icon set
+    shapes/        radar, progress family (bar, segmented, ring, liquid), diamond streak, icon set
     motion/        spring presets, moment overlays, particle canvas
     sound/         WebAudio synth and packs
 electron/
