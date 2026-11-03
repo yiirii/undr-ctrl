@@ -13,6 +13,49 @@ import { Icon } from '../shapes/icons';
 import { HexBadge } from '../views/Badges';
 
 type Toast = { id: number; m: Moment };
+const rm = (sen: number) => `${sen < 0 ? '−' : ''}RM ${(Math.abs(sen) / 100).toLocaleString('en-MY', { minimumFractionDigits: Math.abs(sen) % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
+/** Sale tier: 0 small (< RM 10), 1 good (RM 10–49), 2 big (RM 50+ or a monthly record). */
+export const saleTier = (profitSen: number, record: boolean) => (record || profitSen >= 5000 ? 2 : profitSen >= 1000 ? 1 : 0);
+
+function CoinStack({ color = 'var(--in)', size = 38 }: { color?: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 38 38">
+      {[0, 1, 2].map((i) => <motion.rect key={i} x={7} y={22 - i * 7} width={24} height={9} rx={4.5} fill={color} opacity={1 - i * 0.22} initial={{ y: -14, opacity: 0 }} animate={{ y: 0, opacity: 1 - i * 0.22 }} transition={{ type: 'spring', stiffness: 420, damping: 16, delay: i * 0.07 }} />)}
+    </svg>
+  );
+}
+
+/** Full-screen moment for big sales, profit records and 30/100-day streaks. */
+type Big = { kind: 'sale'; profitSen: number; record: boolean } | { kind: 'streak'; streak: number; title: string };
+function BigMoment({ b, onDone }: { b: Big; onDone: () => void }) {
+  useEffect(() => {
+    const colors = b.kind === 'sale' ? [cssVar('--in'), cssVar('--xp'), cssVar('--wea'), cssVar('--t1')] : [cssVar('--accent'), cssVar('--xp'), cssVar('--int'), cssVar('--cre')];
+    if (b.kind === 'sale') sfx.sale(2); else sfx.streak(b.streak);
+    const t1 = setTimeout(() => burst(window.innerWidth / 2, window.innerHeight / 2 - 40, colors, 70, 12, true), 380);
+    const t2 = setTimeout(() => burst(window.innerWidth / 2, window.innerHeight / 2 - 40, colors, 36, 7), 700);
+    const key = (e: KeyboardEvent) => { e.preventDefault(); onDone(); };
+    const k = setTimeout(() => window.addEventListener('keydown', key), 400);
+    const auto = setTimeout(onDone, 6000);
+    return () => { [t1, t2, k, auto].forEach(clearTimeout); window.removeEventListener('keydown', key); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <motion.div className="levelup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onDone} style={{ pointerEvents: 'auto' }}>
+      <div className="levelup-inner">
+        {b.kind === 'sale' ? (
+          <div className="coin-tower">{Array.from({ length: 6 }, (_, i) => <motion.div key={i} className="coin" initial={{ y: -260, opacity: 0, rotate: (i % 2 ? 1 : -1) * 18 }} animate={{ y: 0, opacity: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 15, delay: 0.06 * i }} />)}</div>
+        ) : (
+          <div className="diamonds big">{Array.from({ length: 7 }, (_, i) => <motion.span key={i} className="d on" initial={{ scale: 0, rotate: 45 }} animate={{ scale: 1, rotate: 45 }} transition={{ type: 'spring', stiffness: 420, damping: 12, delay: 0.08 * i }} />)}</div>
+        )}
+        <div className="lv-kicker">{b.kind === 'sale' ? (b.record ? 'New monthly record' : 'Big sale') : `${b.streak}-day streak`}</div>
+        <motion.div className="lv-num" style={{ color: b.kind === 'sale' ? 'var(--in)' : undefined, fontSize: b.kind === 'sale' ? '4rem' : undefined }} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.45 }}>
+          {b.kind === 'sale' ? <Count value={b.profitSen / 100} format={(v) => `+${rm(Math.round(v * 100))}`} /> : <Count value={b.streak} />}
+        </motion.div>
+        <div className="lv-title">{b.kind === 'sale' ? (b.record ? 'Your best month of profit yet.' : 'profit on one piece. Nice flip.') : b.title}</div>
+        <div className="skip">Press any key to continue</div>
+      </div>
+    </motion.div>
+  );
+}
 let tid = 0;
 
 export function applyUnlock(u: Unlock) {
@@ -86,6 +129,10 @@ function ToastView({ m }: { m: Moment }) {
   }
   if (m.type === 'streakMilestone') return <><div className="glow" style={{ background: 'var(--accent)' }} /><div className="diamonds" style={{ gap: 4 }}>{Array.from({ length: 5 }, (_, i) => <motion.span key={i} className="d on" initial={{ scale: 0 }} animate={{ scale: 1.2 }} transition={{ delay: i * 0.08, type: 'spring', stiffness: 400, damping: 12 }} />)}</div><div><b>{m.streak}-day streak</b><p>Consistency is a superpower.</p></div></>;
   if (m.type === 'focusDone') return <><div className="glow" style={{ background: 'var(--ok)' }} /><HexBadge color="var(--ok)" icon="target" size={38} /><div><b>{m.completed ? 'Focus session done' : 'Session stopped'}</b><p>{m.completed ? (m.xp ? `+${m.xp} XP` : 'Daily focus XP maxed for this task') : 'No worries. Try again when ready.'}</p></div></>;
+  if (m.type === 'sale') {
+    const c = m.profitSen > 0 ? 'var(--in)' : 'var(--t3)';
+    return <><div className="glow" style={{ background: c }} /><CoinStack color={c} /><div><b>{m.profitSen > 0 ? 'Sold!' : 'Sold'}</b><p>{m.profitSen >= 0 ? `+${rm(m.profitSen)} profit` : `${rm(m.profitSen)} on this one. Still counts as moving stock.`}</p></div></>;
+  }
   if (m.type === 'xp') return <><div className="glow" style={{ background: 'var(--xp)' }} /><HexBadge color="var(--xp)" label={`+${m.amount}`} size={38} /><div><b>{m.label}</b><p>+{m.amount} XP{m.stat ? ` · ${STAT_META[m.stat].name}` : ''}</p></div></>;
   return null;
 }
@@ -93,11 +140,35 @@ function ToastView({ m }: { m: Moment }) {
 export function Moments() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [levels, setLevels] = useState<{ level: number; unlocks: Unlock[] }[]>([]);
+  const [bigs, setBigs] = useState<Big[]>([]);
+  const [floatRM, setFloatRM] = useState<{ sen: number; id: number } | null>(null);
+  const [combo, setCombo] = useState<{ count: number; bonus: number; id: number } | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => { attachCanvas(canvas.current); }, []);
   useEffect(() => moments.on((m) => {
     if (m.type === 'taskCompleted') return;
     if (m.type === 'levelUp') { setLevels((l) => [...l, { level: m.level, unlocks: m.unlocks }]); return; }
+    if (m.type === 'combo') {
+      const id = ++tid;
+      setCombo({ count: m.count, bonus: m.bonus, id });
+      sfx.combo(m.count);
+      setTimeout(() => setCombo((c) => (c && c.id === id ? null : c)), 2600);
+      return;
+    }
+    if (m.type === 'sale') {
+      const tier = saleTier(m.profitSen, m.record);
+      if (tier === 2 && m.profitSen > 0) { setBigs((b) => [...b, { kind: 'sale', profitSen: m.profitSen, record: m.record }]); return; }
+      if (m.profitSen > 0) {
+        sfx.sale(tier);
+        burst(window.innerWidth - 200, window.innerHeight - 70, [cssVar('--in'), cssVar('--xp'), cssVar('--wea')], tier ? 44 : 18, tier ? 9 : 5);
+        if (tier === 1) setFloatRM({ sen: m.profitSen, id: ++tid });
+      } else sfx.click();
+    }
+    if (m.type === 'streakMilestone' && m.streak >= 30) {
+      const task = useStore.getState().s.tasks.find((x) => x.id === m.taskId);
+      setBigs((b) => [...b, { kind: 'streak', streak: m.streak, title: `${task?.title ?? 'Your habit'}, ${m.streak} days without a miss.` }]);
+      return;
+    }
     const id = ++tid;
     setToasts((t) => [...t.slice(-3), { id, m }]);
     if (m.type === 'questCompleted' || m.type === 'achievementUnlocked') { sfx.chime2(); burst(window.innerWidth - 200, window.innerHeight - 70, [cssVar('--xp'), cssVar('--t1'), cssVar('--accent')], 26, 6); }
@@ -117,6 +188,22 @@ export function Moments() {
           ))}
         </AnimatePresence>
       </div>
+      <AnimatePresence>
+        {combo && (
+          <motion.div key={combo.id} className="combo-chip" initial={{ y: -30, opacity: 0, scale: 0.8 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: -20, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 20 }}>
+            <motion.b key={combo.count} initial={{ scale: 1.6 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 14 }}>×{combo.count}</motion.b>
+            <span>Combo</span><span className="combo-xp">+{combo.bonus} XP</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {floatRM && (
+          <motion.div key={floatRM.id} className="float-rm" initial={{ y: 30, opacity: 0, scale: 0.7 }} animate={{ y: -10, opacity: 1, scale: 1 }} exit={{ y: -60, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 18 }} onAnimationComplete={() => setTimeout(() => setFloatRM((f) => (f && f.id === floatRM.id ? null : f)), 900)}>
+            +{rm(floatRM.sen)}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>{bigs[0] && !levels[0] && <BigMoment key={JSON.stringify(bigs[0])} b={bigs[0]} onDone={() => setBigs((b) => b.slice(1))} />}</AnimatePresence>
       <AnimatePresence>{levels[0] && <LevelUp key={levels[0].level} {...levels[0]} onDone={() => setLevels((l) => l.slice(1))} />}</AnimatePresence>
     </>
   );

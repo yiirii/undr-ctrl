@@ -146,7 +146,7 @@ test('money setup works with no income: skip, track first, then tracking hero', 
   await expect(page.locator('.money-hero .hero-num')).toContainText('RM 9.50');
 });
 
-test('business: buy two, sell one, see profit and Wealth go up', async ({ page }) => {
+test('business: buy two, sell one; Wealth follows the cash (−80 bought, +78 received)', async ({ page }) => {
   await open(page, 'reset=1&seed=fresh');
   await page.evaluate(() => (window as any).__lofi.getState().patch((s: any) => ({ ...s, profile: { ...s.profile, name: 'C', onboarded: true } })));
   await page.click('.nav-item:has-text("Money")');
@@ -164,6 +164,51 @@ test('business: buy two, sell one, see profit and Wealth go up', async ({ page }
   await page.click('button:has-text("Record sale")');
   await expect(page.locator('.money-hero')).toContainText('RM 38');
   await expect(page.locator('.stock-card')).not.toContainText('×2');
-  const wea = await page.evaluate(() => (window as any).__lofi.getState().s.ledger.filter((e: any) => e.stat === 'wea').reduce((n: number, e: any) => n + e.amount, 0));
-  expect(wea).toBe(38);
+  const wea = await page.evaluate(() => (window as any).__lofi.getState().s.ledger.filter((e: any) => e.stat === 'wea' && !e.reversed && e.source !== 'reverse').reduce((n: number, e: any) => n + e.amount, 0));
+  expect(wea).toBe(-2);
+  // the Ship task was created in the Business list
+  await expect(page.locator('.nav-item:has-text("Business")')).toBeVisible();
+});
+
+const fresh = async (page: any) => {
+  await open(page, 'reset=1&seed=fresh');
+  await page.evaluate(() => (window as any).__lofi.getState().patch((s: any) => ({ ...s, profile: { ...s.profile, name: 'C', onboarded: true } })));
+};
+
+test('reservation: deposit, then balance paid becomes a sale; a big profit shows the moment', async ({ page }) => {
+  await fresh(page);
+  await page.click('.nav-item:has-text("Money")');
+  await page.click('.money-tabs button:has-text("Business")');
+  await page.click('button:has-text("Log your first purchase")');
+  await page.fill('input[placeholder^="e.g. Funko"]', 'Stitch #1045');
+  await page.locator('.sheet input[inputmode="decimal"]').first().fill('42');
+  await page.click('button:has-text("Add to stock")');
+  await page.locator('.stock-card button[title="Reserve for a buyer"]').click();
+  await page.locator('.sheet input[inputmode="decimal"]').nth(0).fill('20');
+  await page.locator('.sheet input[inputmode="decimal"]').nth(1).fill('100');
+  await page.click('.sheet button:has-text("WhatsApp")');
+  await page.click('.sheet button:has-text("Reserve"):not(:has-text("for"))');
+  await expect(page.locator('.mcard', { has: page.locator('h3', { hasText: /^Reserved$/ }) })).toContainText('Deposit RM 20 of RM 100');
+  await expect(page.locator('.money-hero')).toContainText('RM 0');
+  await page.locator('.mcard', { has: page.locator('h3', { hasText: /^Reserved$/ }) }).locator('button:has-text("Paid")').click();
+  await expect(page.locator('.sheet input[inputmode="decimal"]').first()).toHaveValue('80');
+  await expect(page.locator('.sheet')).toContainText('+RM 58');
+  await page.click('button:has-text("Complete sale")');
+  await expect(page.locator('.levelup')).toContainText('+RM 58');
+  await page.keyboard.press('Space');
+  await expect(page.locator('.money-hero')).toContainText('RM 58');
+});
+
+test('steps: add steps in the detail panel, tick one, the row shows 1/2', async ({ page }) => {
+  await fresh(page);
+  await page.keyboard.press('Control+Space');
+  await page.keyboard.type('Lab report #uni');
+  await page.keyboard.press('Enter');
+  await page.locator('.task', { hasText: 'Lab report' }).click();
+  await page.fill('.step.add input', 'Collect data');
+  await page.keyboard.press('Enter');
+  await page.fill('.step.add input', 'Write discussion');
+  await page.keyboard.press('Enter');
+  await page.locator('.steps .step .check').first().click();
+  await expect(page.locator('.task', { hasText: 'Lab report' }).locator('.steps-chip')).toContainText('1/2');
 });

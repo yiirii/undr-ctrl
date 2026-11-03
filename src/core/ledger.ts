@@ -19,6 +19,8 @@ export function deriveProgress(ledger: LedgerEntry[]): Progress {
   let lifetime = 0;
   const ordered = [...ledger].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
   for (const e of ordered) {
+    // An undone entry and its compensation cancel out exactly, so skip both (keeps undo exact at the 0 floor).
+    if (e.reversed || e.source === 'reverse') continue;
     if (e.stat) statXp[e.stat] = Math.max(0, statXp[e.stat] + e.amount);
     if (e.lifetime) lifetime = Math.max(0, lifetime + e.amount);
   }

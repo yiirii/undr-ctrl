@@ -1,0 +1,32 @@
+// Electron check: choose a backup folder (dialog stubbed), confirm, file appears; second write replaces it.
+const { _electron } = require('playwright');
+const fs = require('fs'), path = require('path'), os = require('os');
+(async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'lofi-home-'));
+  const drive = fs.mkdtempSync(path.join(os.tmpdir(), 'MyDrive-'));
+  const app = await _electron.launch({ args: ['--no-sandbox', 'dist-electron/main.js'], env: { ...process.env, HOME: home, XDG_CONFIG_HOME: path.join(home, '.config') } });
+  const win = await app.firstWindow();
+  await win.waitForSelector('.onb', { timeout: 20000 });
+  await win.fill('.onb-name', 'Chloe');
+  await win.keyboard.press('Enter');
+  for (let i = 0; i < 3; i++) await win.click('button:has-text("Next"), button:has-text("Set up money")');
+  await win.click('button:has-text("Set up later")');
+  await win.waitForSelector('.app');
+  await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] }); }, drive);
+  await win.click('.nav-item:has-text("Settings"), button:has-text("Settings")');
+  await win.click('text=Data');
+  await win.click('button:has-text("Choose folder")');
+  await win.waitForSelector('text=Back up into');
+  console.log('confirm shown before writing:', fs.readdirSync(drive).length === 0);
+  await win.click('button:has-text("Yes, back up here")');
+  await win.waitForTimeout(800);
+  const f = path.join(drive, 'Undr Ctrl backup.json');
+  const first = JSON.parse(fs.readFileSync(f, 'utf8'));
+  console.log('backup written:', fs.existsSync(f), 'name:', first.profile.name);
+  await win.screenshot({ path: 'shots/electron-backup.png' });
+  await win.click('button:has-text("Back up now")');
+  await win.waitForTimeout(800);
+  console.log('files in folder:', fs.readdirSync(drive));
+  await app.evaluate(({ app }) => app.quit());
+  console.log('BACKUP OK');
+})().catch((e) => { console.error('BACKUP FAIL', e.message); process.exit(1); });

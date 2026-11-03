@@ -6,6 +6,7 @@ import { UNLOCKS, isUnlocked, nextUnlock, lockedValue } from '../../core/unlocks
 import { upsertCategory, addSource } from '../../store/logic';
 import { Icon } from '../shapes/icons';
 import { Bar, SegBar, Ring } from '../shapes/Progress';
+import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
 import { sfx } from '../sound/synth';
 import { getPlayer, useMusic, fmtSec } from '../music/service';
@@ -327,9 +328,55 @@ function DataTab() {
         <input ref={fileRef} type="file" accept=".json" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) load(await f.text()); }} />
         {msg && <div className="chip ok" style={{ alignSelf: 'flex-start' }}>{msg}</div>}
       </div>
+      <CloudBackup />
       <div className="mcard dim" style={{ fontSize: '.86rem', lineHeight: 1.6 }}>
-        Your data lives only on this PC in <code>%APPDATA%\Undr Ctrl</code>. {s.tasks.length} tasks · {s.money.entries.length} money entries · {s.ledger.length} XP events.
+        Your data lives on this PC in <code>%APPDATA%\Undr Ctrl</code>. {s.tasks.length} tasks · {s.money.entries.length} money entries · {s.ledger.length} XP events.
       </div>
+    </div>
+  );
+}
+
+function CloudBackup() {
+  const st = useStore((x) => x.s.settings);
+  const patch = useStore((x) => x.patch);
+  const [pending, setPending] = useState<string | null>(null);
+  const [msg, setMsg] = useState('');
+  const b = bridge();
+  const set = (o: Partial<typeof st>) => patch((s) => ({ ...s, settings: { ...s.settings, ...o } }));
+  const choose = async () => { if (!b) return; const f = await b.backup.chooseFolder(); if (f) setPending(f); };
+  const confirmFolder = async () => { set({ backupFolder: pending!, lastCloudBackup: undefined, cloudBackupFailed: false }); setPending(null); const ok = await cloudBackup(true); setMsg(ok ? 'Backed up. Google Drive will upload it.' : "Couldn't write there. Is Google Drive running?"); };
+  const now = async () => { const ok = await cloudBackup(true); setMsg(ok ? 'Backed up just now.' : "Couldn't write there. Is Google Drive running?"); };
+  const last = st.lastCloudBackup ? new Date(st.lastCloudBackup) : null;
+  return (
+    <div className="mcard stack cloud-card">
+      <div className="row" style={{ gap: 12 }}>
+        <div className="cloud-ico"><Icon name="upload" size={18} /></div>
+        <div className="grow"><div style={{ fontWeight: 700 }}>Daily backup to Google Drive</div><div className="muted" style={{ fontSize: '.84rem', lineHeight: 1.5 }}>Once a day Undr Ctrl writes one file, <b>Undr Ctrl backup.json</b>, into a folder you choose and replaces yesterday's, so it never piles up. The Google Drive app uploads it.</div></div>
+      </div>
+      {!b && <div className="muted" style={{ fontSize: '.84rem' }}>Available in the desktop app.</div>}
+      {b && pending && (
+        <div className="confirm-box stack">
+          <div style={{ fontSize: '.9rem' }}>Back up into <code>{pending}</code>?</div>
+          <div className="muted" style={{ fontSize: '.8rem', lineHeight: 1.5 }}>Check this is inside your Google Drive (usually <code>G:\My Drive\…</code>) and that the Drive app is signed in to the account you want: click the Drive icon in the tray, then the gear, then Preferences.</div>
+          <div className="row" style={{ gap: 8 }}><button className="btn primary" onClick={confirmFolder}>Yes, back up here</button><button className="btn ghost" onClick={() => setPending(null)}>Cancel</button></div>
+        </div>
+      )}
+      {b && !pending && (st.backupFolder ? (
+        <>
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <span className={`chip ${st.cloudBackupFailed ? 'bad' : 'ok'}`}>{st.cloudBackupFailed ? 'Last try failed' : 'On'}</span>
+            <code className="grow" style={{ fontSize: '.82rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{st.backupFolder}</code>
+          </div>
+          <div className="muted" style={{ fontSize: '.84rem' }}>{last ? `Last backup ${last.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}, ${last.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : 'No backup yet'}{st.cloudBackupFailed ? '. Undr Ctrl will keep trying every minute; make sure Google Drive is running.' : ''}</div>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn" onClick={now}>Back up now</button>
+            <button className="btn ghost" onClick={() => b.backup.open(st.backupFolder!)}>Open folder</button>
+            <button className="btn ghost" onClick={choose}>Change folder</button>
+            <button className="btn ghost" onClick={() => set({ backupFolder: undefined, lastCloudBackup: undefined, cloudBackupFailed: false })}>Turn off</button>
+          </div>
+        </>
+      ) : <div><button className="btn primary" onClick={choose}><Icon name="upload" size={16} />Choose folder</button></div>)}
+      {msg && <div className="chip ok" style={{ alignSelf: 'flex-start' }}>{msg}</div>}
     </div>
   );
 }

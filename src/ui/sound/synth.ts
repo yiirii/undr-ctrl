@@ -61,6 +61,10 @@ export const sfx = {
   arpeggio: () => play([[1, 0], [1.25, 0.09], [1.5, 0.18], [2, 0.27], [2.5, 0.4]], 2.2),
   pop: () => play([[1.5, 0]], 0.6),
   streak: (n: number) => play(Array.from({ length: Math.min(6, 2 + Math.floor(n / 7)) }, (_, i) => [1 + i * 0.25, i * 0.07] as [number, number]), 1.4),
+  /** Rising pitch with each combo step. */
+  combo: (n: number) => play([[1 + Math.min(8, n) * 0.125, 0], [1.5 + Math.min(8, n) * 0.125, 0.05]], 0.9),
+  /** Coin-like "cha-ching": brighter and longer with bigger profit tier (0 small, 1 good, 2 big). */
+  sale: (tier: number) => play(tier === 0 ? [[2, 0], [2.5, 0.07]] : tier === 1 ? [[1.5, 0], [2, 0.06], [2.5, 0.12], [3, 0.2]] : [[1, 0], [1.5, 0.07], [2, 0.14], [2.5, 0.21], [3, 0.3], [4, 0.42]], tier === 2 ? 2.4 : 1.2),
   focusEnd: () => play([[1, 0], [1.5, 0.2], [2, 0.4]], 3),
   preview: (pack: Pack) => {
     const prev = useStore.getState().s.settings.sound;

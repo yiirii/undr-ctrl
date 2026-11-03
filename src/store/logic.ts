@@ -12,7 +12,7 @@ import { rollQuests, rerollOne, questProgress } from '../core/quests';
 import { newlyUnlocked, TIER_XP, ACHIEVEMENTS } from '../core/achievements';
 import { unlocksAt, unlocksForAchievement, type Unlock } from '../core/unlocks';
 import * as F from '../core/focus';
-import { wealthForSale, wealthForBizExpense, type BizItem } from '../core/business';
+import { wealthForSale, wealthForBizExpense, wealthForBuy, wealthForDeposit, wealthForBizIncome, itemProfit, bizMonth, type BizItem } from '../core/business';
 import { buildFacts, inMyDay, statUsage, taskStat } from './facts';
 
 export type Moment =
@@ -23,7 +23,9 @@ export type Moment =
   | { type: 'achievementUnlocked'; id: string; name: string; tier: string; xp: number; unlocks: Unlock[] }
   | { type: 'streakMilestone'; taskId: string; streak: number }
   | { type: 'focusDone'; taskId: string; xp: number; completed: boolean }
-  | { type: 'xp'; amount: number; stat: Stat | null; label: string };
+  | { type: 'xp'; amount: number; stat: Stat | null; label: string }
+  | { type: 'sale'; profitSen: number; itemId: string; record: boolean }
+  | { type: 'combo'; count: number; bonus: number };
 
 export interface Result { state: AppState; moments: Moment[] }
 const iso = (d: Date) => d.toISOString();
@@ -142,6 +144,7 @@ export function completeTask(s: AppState, id: string, now: Date): Result {
     next = { ...s, tasks, ledger: [...s.ledger, entry('task', stat, xp, true, `task:${id}`, iso(now))] };
     moments.push({ type: 'taskCompleted', xp, stat, taskId: id });
   }
+  next = applyCombo(next, t.habit && t.recurrence ? `habit:${id}:${today}` : `task:${id}`, now, moments);
   return settle(s, next, now, moments);
 }
 
@@ -153,7 +156,7 @@ export function uncompleteTask(s: AppState, id: string, now: Date): Result {
     if (!t.completions.includes(today)) return done(s);
     const completions = t.completions.filter((d) => d !== today);
     const streak = streakAfter(new Set(completions), t.recurrence, t.anchor ?? today, today);
-    return done({ ...s, tasks: s.tasks.map((x) => (x.id === id ? { ...x, completions, streak } : x)), ledger: reverse(s.ledger, `habit:${id}:${today}`, iso(now)) });
+    return done({ ...s, tasks: s.tasks.map((x) => (x.id === id ? { ...x, completions, streak } : x)), ledger: reverse(reverse(s.ledger, `habit:${id}:${today}`, iso(now)), `combo:habit:${id}:${today}`, iso(now)) });
   }
   if (!t.doneAt) return done(s);
   let tasks = s.tasks.map((x) => (x.id === id ? { ...x, doneAt: undefined, spawnedId: undefined } : x));
@@ -161,7 +164,59 @@ export function uncompleteTask(s: AppState, id: string, now: Date): Result {
     const sp = tasks.find((x) => x.id === t.spawnedId);
     if (sp && !sp.doneAt) tasks = tasks.filter((x) => x.id !== t.spawnedId);
   }
-  return done({ ...s, tasks, ledger: reverse(s.ledger, `task:${id}`, iso(now)) });
+  return done({ ...s, tasks, ledger: reverse(reverse(s.ledger, `task:${id}`, iso(now)), `combo:task:${id}`, iso(now)) });
+}
+
+// ---------------- combo ----------------
+export const COMBO_WINDOW_MS = 90_000;
+/** Completions within 90 s of each other build a combo: +2 character XP per step, capped at +10. */
+function applyCombo(s: AppState, ref: string, now: Date, moments: Moment[]): AppState {
+  const t = now.getTime();
+  const prev = s.combo;
+  const count = prev && t - prev.lastMs <= COMBO_WINDOW_MS && t >= prev.lastMs ? prev.count + 1 : 1;
+  const next = { ...s, combo: { count, lastMs: t } };
+  if (count < 2) return next;
+  const bonus = Math.min(10, 2 * (count - 1));
+  moments.push({ type: 'combo', count, bonus });
+  return { ...next, ledger: [...next.ledger, entry('combo', null, bonus, true, `combo:${ref}`, iso(now))] };
+}
+
+// ---------------- steps ----------------
+const mapTask = (s: AppState, id: string, f: (t: Task) => Task): AppState => ({ ...s, tasks: s.tasks.map((t) => (t.id === id ? f(t) : t)) });
+export const STEP_XP = 2;
+export function addStep(s: AppState, taskId: string, title: string): Result {
+  const x = title.trim();
+  if (!x || !s.tasks.some((t) => t.id === taskId)) return done(s);
+  return done(mapTask(s, taskId, (t) => ({ ...t, steps: [...(t.steps ?? []), { id: uid(), title: x, done: false }] })));
+}
+export function renameStep(s: AppState, taskId: string, stepId: string, title: string): Result {
+  const x = title.trim();
+  if (!x) return done(s);
+  return done(mapTask(s, taskId, (t) => ({ ...t, steps: (t.steps ?? []).map((st) => (st.id === stepId ? { ...st, title: x } : st)) })));
+}
+export function toggleStep(s: AppState, taskId: string, stepId: string, now: Date): Result {
+  const t = s.tasks.find((x) => x.id === taskId);
+  const st = t?.steps?.find((x) => x.id === stepId);
+  if (!t || !st) return done(s);
+  const ref = `step:${taskId}:${stepId}`;
+  const next = mapTask(s, taskId, (x) => ({ ...x, steps: x.steps!.map((y) => (y.id === stepId ? { ...y, done: !y.done } : y)) }));
+  if (st.done) return done({ ...next, ledger: reverse(s.ledger, ref, iso(now)) });
+  const stat = taskStat(s, t);
+  return settle(s, { ...next, ledger: [...s.ledger, entry('step', stat, STEP_XP, true, ref, iso(now))] }, now, []);
+}
+export function deleteStep(s: AppState, taskId: string, stepId: string, now: Date): Result {
+  const next = mapTask(s, taskId, (t) => ({ ...t, steps: (t.steps ?? []).filter((y) => y.id !== stepId) }));
+  return done({ ...next, ledger: reverse(s.ledger, `step:${taskId}:${stepId}`, iso(now)) });
+}
+export function moveStep(s: AppState, taskId: string, stepId: string, toIndex: number): Result {
+  return done(mapTask(s, taskId, (t) => {
+    const steps = [...(t.steps ?? [])];
+    const from = steps.findIndex((y) => y.id === stepId);
+    if (from < 0) return t;
+    const [it] = steps.splice(from, 1);
+    steps.splice(Math.max(0, Math.min(steps.length, toIndex)), 0, it);
+    return { ...t, steps };
+  }));
 }
 
 // ---------------- lists ----------------
@@ -264,43 +319,143 @@ export function finishRecap(s: AppState, mk: string, now: Date): Result {
 }
 
 // ---------------- business ----------------
-export function addBizItems(s: AppState, n: { name: string; costSen: number; qty: number; boughtOn: string; askSen?: number; note?: string }, now: Date): Result {
+// Wealth follows cash (see core/business): buy = -cost, money received = +. Refs: buy:<id>, rev:<id>, dep:<id>.
+const BIZ_LIST = 'business';
+function withBizList(s: AppState): AppState {
+  if (s.lists.some((l) => l.id === BIZ_LIST)) return s;
+  return { ...s, lists: [...s.lists, { id: BIZ_LIST, name: 'Business', icon: 'bag', stat: 'wea', color: '#9fd36a' }] };
+}
+function addLinkedTask(s: AppState, title: string, due: string, link: NonNullable<Task['link']>, now: Date): AppState {
+  const s2 = withBizList(s);
+  const t: Task = { id: uid(), title, notes: '', listId: BIZ_LIST, size: 'quick', due, completions: [], streak: 0, createdAt: iso(now), order: s2.tasks.length ? Math.max(...s2.tasks.map((x) => x.order)) + 1 : 0, link };
+  return { ...s2, tasks: [...s2.tasks, t] };
+}
+/** Remove open (not done) linked tasks for an item, optionally only of one kind. */
+function dropLinkedTasks(s: AppState, itemId: string, kind?: NonNullable<Task['link']>['kind']): AppState {
+  return { ...s, tasks: s.tasks.filter((t) => !(t.link?.itemId === itemId && !t.doneAt && (!kind || t.link.kind === kind))) };
+}
+const setItem = (s: AppState, it: BizItem): AppState => ({ ...s, business: { ...s.business, items: s.business.items.map((i) => (i.id === it.id ? it : i)) } });
+const posSen = (n?: number) => (n && n > 0 ? Math.round(n) : undefined);
+
+export function addBizItems(s: AppState, n: { name: string; costSen: number; qty: number; boughtOn: string; askSen?: number; note?: string; kept?: boolean }, now: Date): Result {
   const name = n.name.trim();
   const qty = Math.max(1, Math.min(200, Math.floor(n.qty || 1)));
   if (!name || !(n.costSen > 0)) return done(s);
-  const items: BizItem[] = Array.from({ length: qty }, () => ({ id: uid(), name, costSen: Math.round(n.costSen), boughtOn: n.boughtOn, status: 'stock', askSen: n.askSen && n.askSen > 0 ? Math.round(n.askSen) : undefined, note: n.note }));
-  const book = n.boughtOn === dayKey(now) ? [entry('bookkeeping', null, BOOKKEEPING_XP, true, items[0].id, iso(now))] : [];
-  return settle(s, { ...s, business: { ...s.business, items: [...s.business.items, ...items] }, ledger: [...s.ledger, ...book] }, now, []);
+  const items: BizItem[] = Array.from({ length: qty }, () => ({ id: uid(), name, costSen: Math.round(n.costSen), boughtOn: n.boughtOn, status: n.kept ? 'kept' : 'stock', askSen: n.kept ? undefined : posSen(n.askSen), note: n.note }));
+  const book = n.boughtOn === dayKey(now) ? [entry('bookkeeping', null, BOOKKEEPING_XP, true, `bought:${items[0].id}`, iso(now))] : [];
+  const cost = items.flatMap((i) => wealthForBuy(i, iso(now)));
+  return settle(s, { ...s, business: { ...s.business, items: [...s.business.items, ...items] }, ledger: [...s.ledger, ...cost, ...book] }, now, []);
 }
 
-export function sellBizItem(s: AppState, id: string, sale: { soldSen: number; feesSen?: number; soldOn: string }, now: Date): Result {
+export function sellBizItem(s: AppState, id: string, sale: { soldSen: number; feesSen?: number; soldOn: string; platform?: string; ship?: boolean }, now: Date): Result {
   const it = s.business.items.find((i) => i.id === id);
-  if (!it || it.status === 'sold' || !(sale.soldSen > 0)) return done(s);
-  const sold: BizItem = { ...it, status: 'sold', soldSen: Math.round(sale.soldSen), feesSen: sale.feesSen && sale.feesSen > 0 ? Math.round(sale.feesSen) : undefined, soldOn: sale.soldOn };
+  if (!it || !(it.status === 'stock' || it.status === 'kept') || !(sale.soldSen > 0)) return done(s);
+  const sold: BizItem = { ...it, status: 'sold', soldSen: Math.round(sale.soldSen), feesSen: posSen(sale.feesSen), soldOn: sale.soldOn, platform: sale.platform || undefined };
   const book = sale.soldOn === dayKey(now) ? [entry('bookkeeping', null, BOOKKEEPING_XP, true, `sale:${id}`, iso(now))] : [];
-  const next = { ...s, business: { ...s.business, items: s.business.items.map((i) => (i.id === id ? sold : i)) }, ledger: [...s.ledger, ...wealthForSale(sold, iso(now)), ...book] };
-  return settle(s, next, now, []);
+  let next = { ...setItem(s, sold), ledger: [...s.ledger, ...wealthForSale(sold, iso(now)), ...book] };
+  if (sale.ship) next = addLinkedTask(next, `Ship ${it.name}`, addDays(dayKey(now), 1), { kind: 'biz-ship', itemId: id }, now);
+  return settle(s, next, now, [{ type: 'sale', profitSen: itemProfit(sold), itemId: id, record: isProfitRecord(s, next, sale.soldOn) }]);
 }
 
+/** Undo a sale. A piece that came from a reservation goes back to reserved (deposit held again). */
 export function unsellBizItem(s: AppState, id: string, now: Date): Result {
   const it = s.business.items.find((i) => i.id === id);
   if (!it || it.status !== 'sold') return done(s);
-  const back: BizItem = { ...it, status: 'stock', soldSen: undefined, feesSen: undefined, soldOn: undefined };
-  return done({ ...s, business: { ...s.business, items: s.business.items.map((i) => (i.id === id ? back : i)) }, ledger: reverse(reverse(s.ledger, id, iso(now)), `sale:${id}`, iso(now)) });
+  const back: BizItem = { ...it, status: it.reservation ? 'reserved' : 'stock', soldSen: undefined, feesSen: undefined, soldOn: undefined, platform: it.reservation ? it.platform : undefined };
+  let ledger = reverse(reverse(s.ledger, `rev:${id}`, iso(now)), `sale:${id}`, iso(now));
+  if (it.reservation) ledger = [...ledger, ...wealthForDeposit(back, iso(now))];
+  let next = dropLinkedTasks({ ...setItem(s, back), ledger }, id, 'biz-ship');
+  if (it.reservation) next = { ...next, tasks: next.tasks.map((t) => (t.link?.itemId === id && t.link.kind === 'biz-collect' ? { ...t, doneAt: undefined } : t)), ledger: reverse(next.ledger, `task:${next.tasks.find((t) => t.link?.itemId === id && t.link.kind === 'biz-collect')?.id}`, iso(now)) };
+  return done(next);
 }
 
-export function editBizItem(s: AppState, id: string, patch: Partial<BizItem>, now: Date): Result {
+export function editBizItem(s: AppState, id: string, patch: Partial<Pick<BizItem, 'name' | 'costSen' | 'askSen' | 'note' | 'soldSen' | 'feesSen' | 'soldOn' | 'platform' | 'boughtOn' | 'valueSen'>>, now: Date): Result {
   const it = s.business.items.find((i) => i.id === id);
   if (!it) return done(s);
   if ((patch.costSen !== undefined && !(patch.costSen > 0)) || (patch.soldSen !== undefined && !(patch.soldSen > 0))) return done(s);
-  const nx: BizItem = { ...it, ...patch, id };
+  const nx: BizItem = { ...it, ...patch, id, status: it.status };
   let ledger = s.ledger;
-  if (it.status === 'sold' || nx.status === 'sold') { ledger = reverse(ledger, id, iso(now)); if (nx.status === 'sold') ledger = [...ledger, ...wealthForSale(nx, iso(now))]; }
-  return done({ ...s, business: { ...s.business, items: s.business.items.map((i) => (i.id === id ? nx : i)) }, ledger });
+  if (nx.costSen !== it.costSen) ledger = [...reverse(ledger, `buy:${id}`, iso(now)), ...wealthForBuy(nx, iso(now))];
+  if (it.status === 'sold' && (nx.soldSen !== it.soldSen || nx.feesSen !== it.feesSen)) ledger = [...reverse(ledger, `rev:${id}`, iso(now)), ...wealthForSale(nx, iso(now))];
+  return done({ ...setItem(s, nx), ledger });
 }
 
 export function deleteBizItem(s: AppState, id: string, now: Date): Result {
-  return done({ ...s, business: { ...s.business, items: s.business.items.filter((i) => i.id !== id) }, ledger: reverse(s.ledger, id, iso(now)) });
+  let ledger = s.ledger;
+  for (const r of [`buy:${id}`, `rev:${id}`, `dep:${id}`, `sale:${id}`, id]) ledger = reverse(ledger, r, iso(now));
+  const next = dropLinkedTasks({ ...s, business: { ...s.business, items: s.business.items.filter((i) => i.id !== id) }, ledger }, id);
+  return done(next);
+}
+
+export function keepBizItem(s: AppState, id: string): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it || it.status !== 'stock') return done(s);
+  return done(setItem(s, { ...it, status: 'kept' }));
+}
+export function unkeepBizItem(s: AppState, id: string): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it || it.status !== 'kept') return done(s);
+  return done(setItem(s, { ...it, status: 'stock' }));
+}
+export function setBizValue(s: AppState, id: string, valueSen: number | undefined, now: Date): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it) return done(s);
+  return done(setItem(s, { ...it, valueSen: posSen(valueSen), valueOn: posSen(valueSen) ? dayKey(now) : undefined }));
+}
+
+export function reserveBizItem(s: AppState, id: string, r: { depositSen: number; dueOn: string; platform?: string; note?: string; priceSen?: number }, now: Date): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it || !(it.status === 'stock' || it.status === 'kept') || !(r.depositSen > 0) || !r.dueOn) return done(s);
+  const res: BizItem = { ...it, status: 'reserved', platform: r.platform || undefined, reservation: { depositSen: Math.round(r.depositSen), dueOn: r.dueOn, on: dayKey(now), note: r.note?.trim() || undefined, priceSen: posSen(r.priceSen) } };
+  let next: AppState = { ...setItem(s, res), ledger: [...s.ledger, ...wealthForDeposit(res, iso(now))] };
+  next = addLinkedTask(next, `Collect balance: ${it.name}`, r.dueOn, { kind: 'biz-collect', itemId: id }, now);
+  return settle(s, next, now, []);
+}
+
+export function completeReservation(s: AppState, id: string, p: { balanceSen: number; feesSen?: number; soldOn: string; ship?: boolean }, now: Date): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it || it.status !== 'reserved' || !it.reservation || !(p.balanceSen >= 0)) return done(s);
+  const sold: BizItem = { ...it, status: 'sold', soldSen: it.reservation.depositSen + Math.round(p.balanceSen), feesSen: posSen(p.feesSen), soldOn: p.soldOn };
+  const book = p.soldOn === dayKey(now) ? [entry('bookkeeping', null, BOOKKEEPING_XP, true, `sale:${id}`, iso(now))] : [];
+  let next: AppState = { ...setItem(s, sold), ledger: [...reverse(s.ledger, `dep:${id}`, iso(now)), ...wealthForSale(sold, iso(now)), ...book] };
+  if (p.ship) next = addLinkedTask(next, `Ship ${it.name}`, addDays(dayKey(now), 1), { kind: 'biz-ship', itemId: id }, now);
+  const moments: Moment[] = [{ type: 'sale', profitSen: itemProfit(sold), itemId: id, record: isProfitRecord(s, next, p.soldOn) }];
+  const collect = next.tasks.find((t) => t.link?.itemId === id && t.link.kind === 'biz-collect' && !t.doneAt);
+  if (collect) { const r = completeTask(next, collect.id, now); next = r.state; moments.push(...r.moments); }
+  return settle(s, next, now, moments);
+}
+
+export function cancelReservation(s: AppState, id: string, o: { keepDeposit: boolean }, now: Date): Result {
+  const it = s.business.items.find((i) => i.id === id);
+  if (!it || it.status !== 'reserved' || !it.reservation) return done(s);
+  const back: BizItem = { ...it, status: 'stock', reservation: undefined, platform: undefined };
+  let next: AppState = { ...setItem(s, back), ledger: reverse(s.ledger, `dep:${id}`, iso(now)) };
+  if (o.keepDeposit) {
+    const inc = { id: uid(), sen: it.reservation.depositSen, label: `Kept deposit: ${it.name}`, date: dayKey(now) };
+    next = { ...next, business: { ...next.business, income: [...next.business.income, inc] }, ledger: [...next.ledger, ...wealthForBizIncome(inc, iso(now))] };
+  }
+  return done(dropLinkedTasks(next, id));
+}
+
+export function deleteBizIncome(s: AppState, id: string, now: Date): Result {
+  return done({ ...s, business: { ...s.business, income: s.business.income.filter((e) => e.id !== id) }, ledger: reverse(s.ledger, id, iso(now)) });
+}
+
+export function setPlatforms(s: AppState, platforms: string[]): Result {
+  const clean = [...new Set(platforms.map((p) => p.trim()).filter(Boolean))].slice(0, 12);
+  return done({ ...s, business: { ...s.business, platforms: clean } });
+}
+
+/** A new best month: this month's profit beats every earlier month and is positive. */
+function isProfitRecord(before: AppState, after: AppState, soldOn: string): boolean {
+  const mk = monthKey(soldOn);
+  const p = (st: AppState, k: string) => bizMonth(st.business.items, st.business.expenses, k, st.business.income).profitSen;
+  const now = p(after, mk);
+  if (now <= 0 || now <= p(before, mk)) return false;
+  const months = new Set(after.business.items.filter((i) => i.soldOn).map((i) => monthKey(i.soldOn!)));
+  months.delete(mk);
+  if (months.size === 0) return false; // first month is not a "record"
+  return [...months].every((k) => p(after, k) < now) && p(before, mk) <= Math.max(...[...months].map((k) => p(after, k)));
 }
 
 export function addBizExpense(s: AppState, n: { sen: number; label: string; date: string }, now: Date): Result {

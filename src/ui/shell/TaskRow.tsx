@@ -11,7 +11,8 @@ import { describeRecurrence } from '../../core/recurrence';
 import { Icon } from '../shapes/icons';
 import { useFmt } from '../format';
 import { sfx } from '../sound/synth';
-import { SPRING } from '../shapes/Progress';
+import { SPRING, Ring } from '../shapes/Progress';
+import { deadline } from '../../core/deadline';
 
 export function CheckCircle({ done, color, onToggle, size = 22 }: { done: boolean; color: string; onToggle: () => void; size?: number }) {
   return (
@@ -40,6 +41,10 @@ export function TaskRow({ task, showList = false, focusable = true }: { task: Ta
   const overdue = !done && task.due && task.due < today;
   const preview = taskXp(task.size, { onTime: !!task.due && today <= task.due, streak: task.habit ? task.streak + 1 : 0 });
   const focusMin = s.focusLog.filter((f) => f.taskId === task.id).reduce((n, f) => n + f.minutes, 0);
+  const dl = !done && !task.habit ? deadline(task, today) : null;
+  const steps = task.steps ?? [];
+  const stepsDone = steps.filter((x) => x.done).length;
+  const drain = dl && !dl.late && task.size !== 'quick' && !task.recurrence;
 
   const toggle = () => {
     if (done) { act(uncompleteTask, task.id, new Date()); sfx.click(); return; }
@@ -62,7 +67,8 @@ export function TaskRow({ task, showList = false, focusable = true }: { task: Ta
         <div className="task-title">{task.title}</div>
         <div className="task-meta">
           {showList && list && <span className="chip"><span className="sdot" style={{ background: list.color }} />{list.name}</span>}
-          {task.due && <span className={`chip ${overdue ? 'bad' : ''}`}><Icon name="calendar" size={12} stroke={2.2} />{overdue ? `Overdue · ${fmt.day(task.due)}` : fmt.day(task.due)}{task.time ? ` ${fmt.time(task.time)}` : ''}</span>}
+          {task.due && <span className={`chip ${overdue ? 'bad' : dl && dl.daysLeft <= 1 ? 'warn' : ''}`}><Icon name="calendar" size={12} stroke={2.2} />{overdue ? `${dl?.label ?? 'Overdue'} · ${fmt.day(task.due)}` : dl && dl.daysLeft <= 1 ? dl.label : fmt.day(task.due)}{task.time ? ` ${fmt.time(task.time)}` : ''}{dl && dl.daysLeft >= 2 ? <span className="dl-left"> · {dl.label}</span> : null}</span>}
+          {steps.length > 0 && <span className="chip steps-chip"><Ring value={stepsDone} max={steps.length} size={13} stroke={2.5} color={color} />{stepsDone}/{steps.length}</span>}
           {!task.due && task.time && <span className="chip"><Icon name="clock" size={12} stroke={2.2} />{fmt.time(task.time)}</span>}
           {task.recurrence && <span className="chip"><Icon name="repeat" size={12} stroke={2.2} />{describeRecurrence(task.recurrence)}</span>}
           {task.habit && task.streak > 0 && <span className="chip"><span className="diamonds"><span className="d on" style={{ ['--c' as string]: color }} /></span>{task.streak}</span>}
@@ -70,6 +76,11 @@ export function TaskRow({ task, showList = false, focusable = true }: { task: Ta
           {focusMin > 0 && <span className="chip"><Icon name="target" size={12} stroke={2.2} />{focusMin}m</span>}
           {task.notes && <span className="chip"><Icon name="list" size={12} stroke={2.2} /></span>}
         </div>
+        {drain && (
+          <div className="dl-bar" title={`${dl!.label}: the bar empties as the due date gets closer`}>
+            <motion.div style={{ background: dl!.remaining < 0.25 ? 'var(--warn)' : color }} initial={false} animate={{ width: `${Math.max(3, dl!.remaining * 100)}%` }} transition={SPRING} />
+          </div>
+        )}
       </div>
       <div className="task-right">
         {!done && <span className="xp-tag">+{preview} XP</span>}

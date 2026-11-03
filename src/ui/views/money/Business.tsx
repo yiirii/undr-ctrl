@@ -1,18 +1,35 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useStore, act } from '../../../store/store';
-import { addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense } from '../../../store/logic';
-import { bizMonth, bizSixMonths, itemProfit, stockSummary, type BizItem } from '../../../core/business';
+import {
+  addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense, deleteBizIncome,
+  keepBizItem, unkeepBizItem, setBizValue, reserveBizItem, completeReservation, cancelReservation, setPlatforms,
+} from '../../../store/logic';
+import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, type BizItem } from '../../../core/business';
 import { parseAmount } from '../../../core/money';
-import { dayKey, diffDays, monthName, MONTHS, monthKey } from '../../../core/dates';
+import { addDays, dayKey, diffDays, monthName, MONTHS, monthKey } from '../../../core/dates';
 import { Icon } from '../../shapes/icons';
 import { Bar, Count, SPRING } from '../../shapes/Progress';
 import { useFmt } from '../../format';
 import { sfx } from '../../sound/synth';
 
-type Sheet = null | { kind: 'buy' } | { kind: 'sell'; id?: string } | { kind: 'cost' } | { kind: 'item'; id: string };
+type Sheet =
+  | null
+  | { kind: 'buy'; kept?: boolean }
+  | { kind: 'sell'; id?: string }
+  | { kind: 'reserve'; id?: string }
+  | { kind: 'paid'; id: string }
+  | { kind: 'cost' }
+  | { kind: 'platforms' }
+  | { kind: 'item'; id: string };
 
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
+const groupKey = (i: BizItem) => `${i.name}|${i.costSen}`;
+function groupItems(items: BizItem[]) {
+  const g = new Map<string, BizItem[]>();
+  for (const i of items) g.set(groupKey(i), [...(g.get(groupKey(i)) ?? []), i]);
+  return [...g.values()].sort((a, c) => a[0].boughtOn.localeCompare(c[0].boughtOn));
+}
 
 export function Business({ mk }: { mk: string }) {
   const s = useStore((x) => x.s);
@@ -22,40 +39,43 @@ export function Business({ mk }: { mk: string }) {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [q, setQ] = useState('');
   const b = s.business;
-  const m = bizMonth(b.items, b.expenses, mk);
+  const m = bizMonth(b.items, b.expenses, mk, b.income);
   const st = stockSummary(b.items, today);
-  const six = bizSixMonths(b.items, b.expenses, `${mk}-15`);
+  const six = bizSixMonths(b.items, b.expenses, `${mk}-15`, b.income);
+  const plats = platformMonth(b.items, mk);
+  const col = collectionSummary(b.items);
+  const res = reservationsDue(b.items, today);
   const costs = m.cogsSen + m.feesSen + m.expensesSen;
-  const scale = Math.max(m.salesSen, costs, 1);
-  // group identical stock (same name + cost) so multiples show as one card
-  const groups = useMemo(() => {
-    const g = new Map<string, BizItem[]>();
-    for (const i of b.items.filter((x) => x.status === 'stock' && x.name.toLowerCase().includes(q.toLowerCase()))) {
-      const k = `${i.name}|${i.costSen}`;
-      g.set(k, [...(g.get(k) ?? []), i]);
-    }
-    return [...g.values()].sort((a, c) => a[0].boughtOn.localeCompare(c[0].boughtOn));
-  }, [b.items, q]);
+  const scale = Math.max(m.salesSen + m.otherIncomeSen, costs, 1);
+  const match = (i: BizItem) => i.name.toLowerCase().includes(q.toLowerCase());
+  const stockGroups = useMemo(() => groupItems(b.items.filter((x) => x.status === 'stock' && match(x))), [b.items, q]); // eslint-disable-line react-hooks/exhaustive-deps
+  const kept = useMemo(() => groupItems(b.items.filter((x) => x.status === 'kept' && match(x))), [b.items, q]); // eslint-disable-line react-hooks/exhaustive-deps
   const soldThisMonth = b.items.filter((i) => i.status === 'sold' && i.soldOn && monthKey(i.soldOn) === mk).sort((a, c) => c.soldOn!.localeCompare(a.soldOn!));
   const costsThisMonth = b.expenses.filter((e) => monthKey(e.date) === mk).sort((a, c) => c.date.localeCompare(a.date));
+  const incomeThisMonth = b.income.filter((e) => monthKey(e.date) === mk);
   const empty = b.items.length === 0 && b.expenses.length === 0;
+  const sellable = st.count + col.count;
 
   return (
     <div className="money-grid">
-      <div className="row" style={{ gap: 10 }}>
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
         <input className="biz-name" value={b.name} onChange={(e) => patch((x) => ({ ...x, business: { ...x.business, name: e.target.value } }))} aria-label="Business name" />
         <div className="grow" />
         <button className="btn" onClick={() => setSheet({ kind: 'buy' })}><Icon name="plus" size={16} stroke={2.4} />Bought</button>
-        <button className="btn primary" onClick={() => setSheet({ kind: 'sell' })} disabled={!st.count}><Icon name="coins" size={16} />Sold</button>
+        <button className="btn" onClick={() => setSheet({ kind: 'reserve' })} disabled={!sellable}><Icon name="lock" size={16} />Reserve</button>
+        <button className="btn primary" onClick={() => setSheet({ kind: 'sell' })} disabled={!sellable}><Icon name="coins" size={16} />Sold</button>
         <button className="btn ghost" onClick={() => setSheet({ kind: 'cost' })}><Icon name="bag" size={16} />Other cost</button>
       </div>
 
       {empty ? (
         <div className="money-hero" style={{ flexDirection: 'column', textAlign: 'center', gap: 12, padding: 36 }}>
           <svg width="120" height="90" viewBox="0 0 120 90"><rect x="18" y="20" width="44" height="54" rx="12" fill="var(--wea)" opacity=".85" /><rect x="58" y="12" width="44" height="62" rx="12" fill="var(--cha)" opacity=".85" /><circle cx="94" cy="20" r="8" fill="var(--xp)" /></svg>
-          <h2>Track your business item by item</h2>
-          <p className="dim" style={{ maxWidth: 460, lineHeight: 1.55 }}>Log each piece you buy and what it cost. When it sells, enter the price and any fees to see the profit on that item. Profit grows your Wealth. Buying stock doesn't lower it.</p>
-          <button className="btn primary lg" onClick={() => setSheet({ kind: 'buy' })}><Icon name="plus" size={16} stroke={2.4} />Log your first purchase</button>
+          <h2>Track your Funkos piece by piece</h2>
+          <p className="dim" style={{ maxWidth: 480, lineHeight: 1.55 }}>Log each piece you buy, for stock or for your own collection. Buying lowers your Wealth; when a piece sells, what you receive raises it again, so Wealth moves by the real profit.</p>
+          <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
+            <button className="btn primary lg" onClick={() => setSheet({ kind: 'buy' })}><Icon name="plus" size={16} stroke={2.4} />Log your first purchase</button>
+            <button className="btn lg" onClick={() => setSheet({ kind: 'buy', kept: true })}><Icon name="heart" size={16} />Add to my collection</button>
+          </div>
         </div>
       ) : (
         <>
@@ -67,22 +87,27 @@ export function Business({ mk }: { mk: string }) {
             </div>
             <div className="hero-side">
               <div className="io">
-                <div className="io-row"><div className="io-lbl">Sales</div><div className="io-track"><motion.div className="io-fill" style={{ background: 'var(--in)' }} initial={false} animate={{ width: `${(m.salesSen / scale) * 100}%` }} transition={SPRING} /></div><div className="io-val">{fmt.rm(m.salesSen)}</div></div>
+                <div className="io-row"><div className="io-lbl">Sales</div><div className="io-track"><motion.div className="io-fill" style={{ background: 'var(--in)' }} initial={false} animate={{ width: `${((m.salesSen + m.otherIncomeSen) / scale) * 100}%` }} transition={SPRING} /></div><div className="io-val">{fmt.rm(m.salesSen + m.otherIncomeSen)}</div></div>
                 <div className="io-row"><div className="io-lbl">Costs</div><div className="io-track"><motion.div className="io-fill" style={{ background: 'var(--warn)' }} initial={false} animate={{ width: `${(costs / scale) * 100}%` }} transition={SPRING} /></div><div className="io-val">{fmt.rm(costs)}</div></div>
               </div>
-              <div className="muted" style={{ fontSize: '.78rem', lineHeight: 1.5 }}>Costs = what the sold items cost you ({fmt.rm(m.cogsSen)}) + fees ({fmt.rm(m.feesSen)}) + other costs ({fmt.rm(m.expensesSen)}).{m.boughtCount > 0 && <> You spent {fmt.rm(m.boughtSen)} on {m.boughtCount} new piece{m.boughtCount === 1 ? '' : 's'} this month.</>}</div>
+              <div className="muted" style={{ fontSize: '.78rem', lineHeight: 1.5 }}>
+                Costs = what the sold pieces cost you ({fmt.rm(m.cogsSen)}) + fees ({fmt.rm(m.feesSen)}) + other costs ({fmt.rm(m.expensesSen)}).
+                {m.otherIncomeSen > 0 && <> Sales include {fmt.rm(m.otherIncomeSen)} in kept deposits.</>}
+                {m.boughtCount > 0 && <> You spent {fmt.rm(m.boughtSen)} on {m.boughtCount} new piece{m.boughtCount === 1 ? '' : 's'} this month.</>}
+              </div>
             </div>
           </div>
 
           <div className="two">
             <div className="mcard">
               <div className="mcard-h"><h3>Stock on hand</h3><span className="muted">{st.count} piece{st.count === 1 ? '' : 's'}</span></div>
-              <div className="row" style={{ gap: 26, marginBottom: 16 }}>
-                <div><div className="hero-label">Cost</div><div style={{ fontWeight: 800, fontSize: '1.3rem' }}>{fmt.rm(st.costSen)}</div></div>
-                {st.askSen > 0 && <div><div className="hero-label">Asking</div><div style={{ fontWeight: 800, fontSize: '1.3rem', color: 'var(--in)' }}>{fmt.rm(st.askSen)}</div></div>}
-                {st.count > 0 && <div><div className="hero-label">Oldest</div><div style={{ fontWeight: 800, fontSize: '1.3rem' }}>{st.oldestDays}d</div></div>}
+              <div className="row" style={{ gap: 26, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div><div className="hero-label">Cost</div><div className="stat-num">{fmt.rm(st.costSen)}</div></div>
+                {st.askSen > 0 && <div><div className="hero-label">Asking</div><div className="stat-num" style={{ color: 'var(--in)' }}>{fmt.rm(st.askSen)}</div></div>}
+                {st.count > 0 && <div><div className="hero-label">Oldest</div><div className="stat-num">{st.oldestDays}d</div></div>}
+                {st.reservedCount > 0 && <div><div className="hero-label">Deposits held</div><div className="stat-num" style={{ color: 'var(--xp)' }}>{fmt.rm(st.depositsHeldSen)}</div></div>}
               </div>
-              <Bar value={m.soldCount} max={Math.max(1, m.soldCount + st.count)} label={`Sold through in ${monthName(mk)}`} showNumbers color="var(--in)" height={8} />
+              <Bar value={m.soldCount} max={Math.max(1, m.soldCount + st.count + st.reservedCount)} label={`Sold through in ${monthName(mk)}`} showNumbers color="var(--in)" height={8} />
             </div>
             <div className="mcard">
               <div className="mcard-h"><h3>Profit, last 6 months</h3></div>
@@ -90,12 +115,35 @@ export function Business({ mk }: { mk: string }) {
             </div>
           </div>
 
+          <div className="two">
+            <div className="mcard">
+              <div className="mcard-h"><h3>By platform</h3><span className="muted">{monthName(mk)}</span><div className="grow" /><button className="btn sm ghost" onClick={() => setSheet({ kind: 'platforms' })}>Edit</button></div>
+              <PlatformBars rows={plats} />
+            </div>
+            <div className="mcard">
+              <div className="mcard-h"><h3>Reserved</h3><span className="muted">{res.length}</span></div>
+              <div className="tl-items">
+                {res.map(({ item: i, overdue, daysLeft }) => (
+                  <div key={i.id} className="tl-item" onClick={() => setSheet({ kind: 'item', id: i.id })}>
+                    <div className="grow" style={{ minWidth: 0 }}>
+                      <div className="tl-note">{i.name}</div>
+                      <div className="tl-sub">Deposit {fmt.rm(i.reservation!.depositSen)}{i.reservation!.priceSen ? ` of ${fmt.rm(i.reservation!.priceSen)}` : ''}{i.platform ? ` · ${i.platform}` : ''}</div>
+                    </div>
+                    <span className={`chip ${overdue ? 'warn' : ''}`}>{overdue ? `${-daysLeft}d overdue` : daysLeft === 0 ? 'Balance due today' : `Due in ${daysLeft}d`}</span>
+                    <button className="btn sm primary" onClick={(e) => { e.stopPropagation(); setSheet({ kind: 'paid', id: i.id }); }}>Paid</button>
+                  </div>
+                ))}
+                {!res.length && <div className="muted" style={{ fontSize: '.86rem' }}>No reservations. Use Reserve when a buyer pays a deposit.</div>}
+              </div>
+            </div>
+          </div>
+
           <div className="mcard">
-            <div className="mcard-h"><h3>In stock</h3><div className="grow" /><input className="input" style={{ width: 200, height: 32 }} placeholder="Search stock" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-            {groups.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>{q ? 'Nothing matches.' : 'Everything is sold. Time to restock?'}</div>}
+            <div className="mcard-h"><h3>In stock</h3><div className="grow" /><input className="input" style={{ width: 250, height: 32 }} placeholder="Search stock & collection" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            {stockGroups.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>{q ? 'Nothing matches.' : 'Everything is sold or reserved. Time to restock?'}</div>}
             <div className="stock">
               <AnimatePresence initial={false}>
-                {groups.map((g) => {
+                {stockGroups.map((g) => {
                   const i = g[0];
                   const days = diffDays(i.boughtOn, today);
                   return (
@@ -104,9 +152,10 @@ export function Business({ mk }: { mk: string }) {
                         <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}{i.askSen ? ` · asking ${fmt.rm(i.askSen)}` : ''}</div></div>
                         {g.length > 1 && <span className="chip">×{g.length}</span>}
                       </div>
-                      <div className="row" style={{ marginTop: 12 }}>
+                      <div className="row" style={{ marginTop: 12, gap: 6 }}>
                         <span className={`chip ${days > 60 ? 'warn' : ''}`}>{days === 0 ? 'Bought today' : `${days}d in stock`}</span>
                         <div className="grow" />
+                        <button className="btn sm ghost" title="Reserve for a buyer" onClick={(e) => { e.stopPropagation(); setSheet({ kind: 'reserve', id: i.id }); }}><Icon name="lock" size={14} /></button>
                         <button className="btn sm primary" onClick={(e) => { e.stopPropagation(); setSheet({ kind: 'sell', id: i.id }); }}>Sell</button>
                       </div>
                     </motion.div>
@@ -116,13 +165,42 @@ export function Business({ mk }: { mk: string }) {
             </div>
           </div>
 
+          <div className="mcard">
+            <div className="mcard-h"><h3>My collection</h3><span className="muted">{col.count} piece{col.count === 1 ? '' : 's'}</span><div className="grow" /><button className="btn sm ghost" onClick={() => setSheet({ kind: 'buy', kept: true })}><Icon name="plus" size={14} />Add</button></div>
+            {col.count > 0 && (
+              <div className="row" style={{ gap: 26, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div><div className="hero-label">Paid</div><div className="stat-num">{fmt.rm(col.costSen)}</div></div>
+                <div><div className="hero-label">Worth (your estimate)</div><div className="stat-num">{fmt.rm(col.valueSen)}</div></div>
+                <div><div className="hero-label">{col.gainSen >= 0 ? 'Up' : 'Down'}</div><div className="stat-num" style={{ color: col.gainSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{col.gainSen >= 0 ? '+' : '−'}{fmt.rm(Math.abs(col.gainSen))}</div></div>
+              </div>
+            )}
+            {col.count === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>Pieces you keep for yourself. They still cost Wealth when you buy them, and you can sell one any time.</div>}
+            <div className="stock">
+              {kept.map((g) => {
+                const i = g[0];
+                const gain = (i.valueSen ?? i.costSen) - i.costSen;
+                return (
+                  <motion.div key={i.id} layout className="stock-card kept" onClick={() => setSheet({ kind: 'item', id: i.id })} whileHover={{ y: -2 }}>
+                    <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+                      <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">Paid {fmt.rm(i.costSen)}{i.valueSen ? ` · worth ${fmt.rm(i.valueSen)}` : ''}</div></div>
+                      {g.length > 1 && <span className="chip">×{g.length}</span>}
+                    </div>
+                    <div className="row" style={{ marginTop: 12 }}>
+                      {i.valueSen ? <span className={`chip ${gain >= 0 ? 'ok' : 'bad'}`}>{gain >= 0 ? '+' : '−'}{fmt.rm(Math.abs(gain))}</span> : <span className="chip">No value yet</span>}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="two">
             <div className="mcard">
               <div className="mcard-h"><h3>Sold in {monthName(mk)}</h3><span className="muted">{soldThisMonth.length}</span></div>
               <div className="tl-items">
                 {soldThisMonth.map((i) => { const p = itemProfit(i); return (
                   <div key={i.id} className="tl-item" onClick={() => setSheet({ kind: 'item', id: i.id })}>
-                    <div className="grow" style={{ minWidth: 0 }}><div className="tl-note">{i.name}</div><div className="tl-sub">{fmt.day(i.soldOn!)} · sold {fmt.rm(i.soldSen!)}{i.feesSen ? ` · fees ${fmt.rm(i.feesSen)}` : ''}</div></div>
+                    <div className="grow" style={{ minWidth: 0 }}><div className="tl-note">{i.name}</div><div className="tl-sub">{fmt.day(i.soldOn!)} · sold {fmt.rm(i.soldSen!)}{i.feesSen ? ` · fees ${fmt.rm(i.feesSen)}` : ''}{i.platform ? ` · ${i.platform}` : ''}</div></div>
                     <span className={`chip ${p >= 0 ? 'ok' : 'bad'}`}>{p >= 0 ? '+' : ''}{fmt.rm(p)}</span>
                   </div>
                 ); })}
@@ -130,8 +208,15 @@ export function Business({ mk }: { mk: string }) {
               </div>
             </div>
             <div className="mcard">
-              <div className="mcard-h"><h3>Other costs</h3><span className="muted">{fmt.rm(m.expensesSen)}</span></div>
+              <div className="mcard-h"><h3>Other costs & income</h3><span className="muted">{fmt.rm(m.expensesSen)}</span></div>
               <div className="tl-items">
+                {incomeThisMonth.map((e) => (
+                  <div key={e.id} className="tl-item" style={{ cursor: 'default' }}>
+                    <div className="grow"><div className="tl-note">{e.label}</div><div className="tl-sub">{fmt.day(e.date)}</div></div>
+                    <div className="tl-amt" style={{ color: 'var(--in)' }}>+{fmt.rm(e.sen)}</div>
+                    <button className="icon-btn" title="Delete" onClick={() => act(deleteBizIncome, e.id, new Date())}><Icon name="trash" size={14} /></button>
+                  </div>
+                ))}
                 {costsThisMonth.map((e) => (
                   <div key={e.id} className="tl-item" style={{ cursor: 'default' }}>
                     <div className="grow"><div className="tl-note">{e.label}</div><div className="tl-sub">{fmt.day(e.date)}</div></div>
@@ -139,7 +224,7 @@ export function Business({ mk }: { mk: string }) {
                     <button className="icon-btn" title="Delete" onClick={() => act(deleteBizExpense, e.id, new Date())}><Icon name="trash" size={14} /></button>
                   </div>
                 ))}
-                {!costsThisMonth.length && <div className="muted" style={{ fontSize: '.86rem' }}>Packaging, shipping supplies, booth fees… log them with “Other cost”.</div>}
+                {!costsThisMonth.length && !incomeThisMonth.length && <div className="muted" style={{ fontSize: '.86rem' }}>Packaging, shipping supplies, booth fees… log them with “Other cost”.</div>}
               </div>
             </div>
           </div>
@@ -147,10 +232,13 @@ export function Business({ mk }: { mk: string }) {
       )}
 
       <AnimatePresence>
-        {sheet?.kind === 'buy' && <BuySheet onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'buy' && <BuySheet kept={sheet.kept} onClose={() => setSheet(null)} />}
         {sheet?.kind === 'sell' && <SellSheet presetId={sheet.id} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'reserve' && <ReserveSheet presetId={sheet.id} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'paid' && <PaidSheet id={sheet.id} onClose={() => setSheet(null)} />}
         {sheet?.kind === 'cost' && <CostSheet onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'item' && <ItemSheet id={sheet.id} onClose={() => setSheet(null)} onSell={() => setSheet({ kind: 'sell', id: sheet.id })} />}
+        {sheet?.kind === 'platforms' && <PlatformsSheet onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'item' && <ItemSheet id={sheet.id} onClose={() => setSheet(null)} go={setSheet} />}
       </AnimatePresence>
     </div>
   );
@@ -171,10 +259,36 @@ function ProfitBars({ data }: { data: { mk: string; profitSen: number }[] }) {
   );
 }
 
+const PLATFORM_HUES = ['var(--int)', 'var(--cha)', 'var(--cre)', 'var(--wea)', 'var(--dis)', 'var(--str)'];
+function PlatformBars({ rows }: { rows: { platform: string; count: number; salesSen: number; profitSen: number }[] }) {
+  const fmt = useFmt();
+  const platforms = useStore((x) => x.s.business.platforms);
+  const max = Math.max(1, ...rows.map((r) => r.salesSen));
+  if (!rows.length) return <div className="muted" style={{ fontSize: '.86rem' }}>Sales show here by where they sold: {platforms.join(', ')}.</div>;
+  return (
+    <div className="stack" style={{ gap: 14 }}>
+      {rows.map((r) => {
+        const idx = platforms.indexOf(r.platform);
+        const hue = PLATFORM_HUES[(idx < 0 ? platforms.length : idx) % PLATFORM_HUES.length];
+        return (
+          <div key={r.platform}>
+            <div className="row" style={{ marginBottom: 6, fontSize: '.86rem' }}>
+              <b>{r.platform}</b><span className="muted" style={{ marginLeft: 8 }}>{r.count} sold</span><div className="grow" />
+              <span className="muted" style={{ marginRight: 10 }}>{fmt.rm(r.salesSen)}</span>
+              <b style={{ color: r.profitSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{r.profitSen >= 0 ? '+' : ''}{fmt.rm(r.profitSen)}</b>
+            </div>
+            <div className="io-track"><motion.div className="io-fill" style={{ background: hue }} initial={{ width: 0 }} animate={{ width: `${(r.salesSen / max) * 100}%` }} transition={SPRING} /></div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <motion.div className="modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div className="sheet" initial={{ y: 24, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={SPRING}>
+      <motion.div className="sheet" initial={{ y: 24, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={SPRING} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
         <div className="sheet-h"><h2>{title}</h2><div className="grow" /><button className="icon-btn" onClick={onClose}><Icon name="x" /></button></div>
         {children}
       </motion.div>
@@ -182,99 +296,221 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-function MoneyField({ label, value, set, autoFocus, placeholder }: { label: string; value: string; set: (v: string) => void; autoFocus?: boolean; placeholder?: string }) {
-  return <label className="field"><span>{label}</span><div className="row" style={{ gap: 8 }}><span className="muted" style={{ fontWeight: 700 }}>RM</span><input className="input" inputMode="decimal" autoFocus={autoFocus} placeholder={placeholder ?? '0.00'} value={value} onChange={(e) => set(e.target.value)} style={{ fontWeight: 700, fontSize: '1.05rem' }} /></div></label>;
+function MoneyField({ label, value, set, autoFocus, placeholder, onEnter }: { label: string; value: string; set: (v: string) => void; autoFocus?: boolean; placeholder?: string; onEnter?: () => void }) {
+  return <label className="field"><span>{label}</span><div className="row" style={{ gap: 8 }}><span className="muted" style={{ fontWeight: 700 }}>RM</span><input className="input" inputMode="decimal" autoFocus={autoFocus} placeholder={placeholder ?? '0.00'} value={value} onChange={(e) => set(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onEnter?.()} style={{ fontWeight: 700, fontSize: '1.05rem' }} /></div></label>;
 }
 
-function BuySheet({ onClose }: { onClose: () => void }) {
+function PlatformPick({ value, set }: { value: string; set: (v: string) => void }) {
+  const platforms = useStore((x) => x.s.business.platforms);
+  return (
+    <div className="field"><span>Where</span>
+      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+        {platforms.map((p) => <button key={p} type="button" className={`btn sm ${value === p ? 'primary' : ''}`} onClick={() => set(value === p ? '' : p)}>{p}</button>)}
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ on, set, label, hint }: { on: boolean; set: (v: boolean) => void; label: string; hint?: string }) {
+  return (
+    <button type="button" className="toggle-row" onClick={() => set(!on)}>
+      <span className={`switch ${on ? 'on' : ''}`}><motion.span layout transition={SPRING} /></span>
+      <span className="grow" style={{ textAlign: 'left' }}><b>{label}</b>{hint && <span className="muted"> · {hint}</span>}</span>
+    </button>
+  );
+}
+
+/** Search-and-pick list of sellable pieces (stock + collection), grouped. */
+function ItemPicker({ statuses, onPick }: { statuses: BizItem['status'][]; onPick: (i: BizItem) => void }) {
   const allItems = useStore((x) => x.s.business.items);
-  const names = useMemo(() => [...new Set(allItems.map((i) => i.name))].slice(-30), [allItems]);
+  const fmt = useFmt();
+  const [q, setQ] = useState('');
+  const groups = useMemo(() => groupItems(allItems.filter((i) => statuses.includes(i.status) && i.name.toLowerCase().includes(q.toLowerCase()))).sort((a, c) => (a[0].status === 'kept' ? 1 : 0) - (c[0].status === 'kept' ? 1 : 0)), [allItems, q, statuses]);
+  return (
+    <>
+      <input className="input" autoFocus placeholder="Search your stock and collection" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && groups[0]) onPick(groups[0][0]); }} />
+      <div className="tl-items" style={{ maxHeight: 320, overflowY: 'auto' }}>
+        {groups.map((g) => { const i = g[0]; return (
+          <div key={i.id} className="tl-item" onClick={() => onPick(i)}>
+            <div className="grow"><div className="tl-note">{i.name}{g.length > 1 && <span className="muted"> ×{g.length}</span>}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}{i.status === 'kept' ? ' · from my collection' : ''}</div></div>
+            <Icon name="right" size={16} />
+          </div>
+        ); })}
+        {!groups.length && <div className="muted">Nothing matches.</div>}
+      </div>
+    </>
+  );
+}
+
+function ProfitPreview({ profit, of }: { profit: number; of: number }) {
+  const fmt = useFmt();
+  return (
+    <motion.div className="card flat row" initial={false} animate={{ backgroundColor: profit >= 0 ? 'rgba(61,220,151,.10)' : 'rgba(242,84,107,.10)' }}>
+      <div className="grow"><div className="hero-label">Profit on this one</div><div style={{ fontWeight: 900, fontSize: '1.6rem', color: profit >= 0 ? 'var(--in)' : 'var(--bad)' }}>{profit >= 0 ? '+' : ''}{fmt.rm(profit)}</div></div>
+      <span className="chip">{pct(profit, of)}% margin</span>
+    </motion.div>
+  );
+}
+
+function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => void }) {
+  const allItems = useStore((x) => x.s.business.items);
+  const names = useMemo(() => [...new Set(allItems.map((i) => i.name))].slice(-40), [allItems]);
   const today = dayKey(new Date());
   const [name, setName] = useState('');
   const [cost, setCost] = useState('');
   const [ask, setAsk] = useState('');
   const [qty, setQty] = useState(1);
   const [date, setDate] = useState(today);
+  const [kept, setKept] = useState(!!keptInit);
   const [hint, setHint] = useState('');
   const fmt = useFmt();
   const c = parseAmount(cost);
   const save = () => {
     if (!name.trim()) return setHint('Give it a name.');
     if (!c) return setHint('Type what it cost you, above RM 0.');
-    act(addBizItems, { name, costSen: c, qty, boughtOn: date, askSen: parseAmount(ask) ?? undefined }, new Date());
+    act(addBizItems, { name, costSen: c, qty, boughtOn: date, askSen: parseAmount(ask) ?? undefined, kept }, new Date());
     sfx.tink();
     onClose();
   };
   return (
-    <Sheet title="Bought stock" onClose={onClose}>
+    <Sheet title={kept ? 'Added to my collection' : 'Bought stock'} onClose={onClose}>
+      <div className="seg-ctl" style={{ alignSelf: 'flex-start' }}>
+        <button className={!kept ? 'on' : ''} onClick={() => setKept(false)}>To sell</button>
+        <button className={kept ? 'on' : ''} onClick={() => setKept(true)}>For my collection</button>
+      </div>
       <label className="field"><span>Item</span><input className="input" autoFocus list="biz-names" placeholder="e.g. Funko Pop! Groot #49" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></label>
       <datalist id="biz-names">{names.map((n) => <option key={n} value={n} />)}</datalist>
       <div className="two">
-        <MoneyField label="Cost per piece" value={cost} set={setCost} />
-        <MoneyField label="Asking price (optional)" value={ask} set={setAsk} placeholder="—" />
+        <MoneyField label="Cost per piece" value={cost} set={setCost} onEnter={save} />
+        {!kept && <MoneyField label="Asking price (optional)" value={ask} set={setAsk} placeholder="—" onEnter={save} />}
       </div>
       <div className="row" style={{ gap: 14 }}>
         <div className="field"><span>Quantity</span><div className="seg-ctl"><button onClick={() => setQty(Math.max(1, qty - 1))}>−</button><button className="on" style={{ minWidth: 44 }}>{qty}</button><button onClick={() => setQty(Math.min(200, qty + 1))}>+</button></div></div>
         <label className="field grow"><span>Bought on</span><input type="date" className="input" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} /></label>
       </div>
-      {c ? <div className="card flat dim" style={{ fontSize: '.86rem' }}>Total spent: <b style={{ color: 'var(--t1)' }}>{fmt.rm(c * qty)}</b>. It's counted against profit only when a piece sells, so buying stock doesn't lower your Wealth.</div> : null}
+      {c ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>Total spent: <b style={{ color: 'var(--t1)' }}>{fmt.rm(c * qty)}</b>. Your Wealth drops by this now{kept ? '.' : ' and goes back up by what you receive when each piece sells.'}</div> : null}
       {hint && <div className="chip warn" style={{ alignSelf: 'flex-start' }}>{hint}</div>}
-      <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save}><Icon name="check" size={16} stroke={2.4} />Add to stock</button></div>
+      <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save}><Icon name="check" size={16} stroke={2.4} />{kept ? 'Add to collection' : 'Add to stock'}</button></div>
     </Sheet>
   );
 }
 
 function SellSheet({ presetId, onClose }: { presetId?: string; onClose: () => void }) {
   const allItems = useStore((x) => x.s.business.items);
-  const items = useMemo(() => allItems.filter((i) => i.status === 'stock'), [allItems]);
   const fmt = useFmt();
   const today = dayKey(new Date());
   const [id, setId] = useState(presetId ?? '');
-  const [q, setQ] = useState('');
-  const [price, setPrice] = useState('');
+  const it = allItems.find((i) => i.id === id && (i.status === 'stock' || i.status === 'kept'));
+  const [price, setPrice] = useState(it?.askSen ? String(it.askSen / 100) : '');
   const [fees, setFees] = useState('');
   const [date, setDate] = useState(today);
+  const [platform, setPlatform] = useState('');
+  const [ship, setShip] = useState(true);
   const [hint, setHint] = useState('');
-  const it = items.find((i) => i.id === id);
   const p = parseAmount(price), f = parseAmount(fees) ?? 0;
   const profit = it && p ? p - it.costSen - f : null;
-  const seen = new Set<string>();
-  const pick = items.filter((i) => i.name.toLowerCase().includes(q.toLowerCase())).filter((i) => { const k = `${i.name}|${i.costSen}`; if (seen.has(k)) return false; seen.add(k); return true; });
   const save = () => {
     if (!it) return setHint('Pick what you sold.');
     if (!p) return setHint('Type the sale price.');
-    act(sellBizItem, it.id, { soldSen: p, feesSen: f, soldOn: date }, new Date());
-    sfx.chime2();
+    act(sellBizItem, it.id, { soldSen: p, feesSen: f, soldOn: date, platform, ship }, new Date());
     onClose();
   };
   return (
     <Sheet title="Sold" onClose={onClose}>
-      {!it ? (
+      {!it ? <ItemPicker statuses={['stock', 'kept']} onPick={(i) => { setId(i.id); if (i.askSen) setPrice(String(i.askSen / 100)); }} /> : (
         <>
-          <input className="input" autoFocus placeholder="Search your stock" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="tl-items" style={{ maxHeight: 300, overflowY: 'auto' }}>
-            {pick.map((i) => <div key={i.id} className="tl-item" onClick={() => { setId(i.id); if (i.askSen) setPrice(String(i.askSen / 100)); }}><div className="grow"><div className="tl-note">{i.name}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}</div></div><Icon name="right" size={16} /></div>)}
-            {!pick.length && <div className="muted">Nothing in stock matches.</div>}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Cost {fmt.rm(it.costSen)} · bought {fmt.day(it.boughtOn)}</div></div>{!presetId && <button className="btn sm ghost" onClick={() => setId('')}>Change</button>}</div>
+          <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Cost {fmt.rm(it.costSen)} · bought {fmt.day(it.boughtOn)}{it.status === 'kept' ? ' · from my collection' : ''}</div></div>{!presetId && <button className="btn sm ghost" onClick={() => setId('')}>Change</button>}</div>
           <div className="two">
-            <MoneyField label="Sold for" value={price} set={setPrice} autoFocus />
-            <MoneyField label="Fees (shipping, platform)" value={fees} set={setFees} placeholder="0" />
+            <MoneyField label="Sold for" value={price} set={setPrice} autoFocus onEnter={save} />
+            <MoneyField label="Fees (shipping, platform)" value={fees} set={setFees} placeholder="0" onEnter={save} />
           </div>
-          <label className="field"><span>Sold on</span><input type="date" className="input" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} /></label>
-          {profit !== null && (
-            <motion.div className="card flat row" initial={false} animate={{ backgroundColor: profit >= 0 ? 'rgba(61,220,151,.10)' : 'rgba(242,84,107,.10)' }}>
-              <div className="grow"><div className="hero-label">Profit on this one</div><div style={{ fontWeight: 900, fontSize: '1.6rem', color: profit >= 0 ? 'var(--in)' : 'var(--bad)' }}>{profit >= 0 ? '+' : ''}{fmt.rm(profit)}</div></div>
-              <span className="chip">{pct(profit, p!)}% margin</span>
-            </motion.div>
-          )}
+          <PlatformPick value={platform} set={setPlatform} />
+          <div className="row" style={{ gap: 14, alignItems: 'flex-end' }}>
+            <label className="field"><span>Sold on</span><input type="date" className="input" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} /></label>
+            <div className="grow"><Toggle on={ship} set={setShip} label="Needs shipping" hint="adds a Ship task" /></div>
+          </div>
+          {profit !== null && <ProfitPreview profit={profit} of={p!} />}
         </>
       )}
       {hint && <div className="chip warn" style={{ alignSelf: 'flex-start' }}>{hint}</div>}
       <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save} disabled={!it}><Icon name="coins" size={16} />Record sale</button></div>
+    </Sheet>
+  );
+}
+
+function ReserveSheet({ presetId, onClose }: { presetId?: string; onClose: () => void }) {
+  const allItems = useStore((x) => x.s.business.items);
+  const fmt = useFmt();
+  const today = dayKey(new Date());
+  const [id, setId] = useState(presetId ?? '');
+  const it = allItems.find((i) => i.id === id && (i.status === 'stock' || i.status === 'kept'));
+  const [deposit, setDeposit] = useState('');
+  const [price, setPrice] = useState(it?.askSen ? String(it.askSen / 100) : '');
+  const [due, setDue] = useState(addDays(today, 7));
+  const [platform, setPlatform] = useState('');
+  const [note, setNote] = useState('');
+  const [hint, setHint] = useState('');
+  const d = parseAmount(deposit), pr = parseAmount(price);
+  const save = () => {
+    if (!it) return setHint('Pick the piece being reserved.');
+    if (!d) return setHint('Reservations need a deposit. Type how much they paid.');
+    if (pr && pr < d) return setHint('The agreed price is less than the deposit.');
+    act(reserveBizItem, it.id, { depositSen: d, dueOn: due, platform, note, priceSen: pr ?? undefined }, new Date());
+    sfx.tink();
+    onClose();
+  };
+  return (
+    <Sheet title="Reserve for a buyer" onClose={onClose}>
+      {!it ? <ItemPicker statuses={['stock', 'kept']} onPick={(i) => { setId(i.id); if (i.askSen) setPrice(String(i.askSen / 100)); }} /> : (
+        <>
+          <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Cost {fmt.rm(it.costSen)}</div></div>{!presetId && <button className="btn sm ghost" onClick={() => setId('')}>Change</button>}</div>
+          <div className="two">
+            <MoneyField label="Deposit paid" value={deposit} set={setDeposit} autoFocus onEnter={save} />
+            <MoneyField label="Agreed price (optional)" value={price} set={setPrice} placeholder="—" onEnter={save} />
+          </div>
+          <PlatformPick value={platform} set={setPlatform} />
+          <div className="two">
+            <label className="field"><span>Balance due by</span><input type="date" className="input" value={due} min={today} onChange={(e) => e.target.value && setDue(e.target.value)} /></label>
+            <label className="field"><span>Note (optional)</span><input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. meetup at Sunway" /></label>
+          </div>
+          {d ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>
+            The deposit is held, not profit yet.{pr ? <> Balance to collect: <b style={{ color: 'var(--t1)' }}>{fmt.rm(pr - d)}</b>.</> : ''} A “Collect balance” task is added for {fmt.day(due)}.
+          </div> : null}
+        </>
+      )}
+      {hint && <div className="chip warn" style={{ alignSelf: 'flex-start' }}>{hint}</div>}
+      <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save} disabled={!it}><Icon name="lock" size={16} />Reserve</button></div>
+    </Sheet>
+  );
+}
+
+function PaidSheet({ id, onClose }: { id: string; onClose: () => void }) {
+  const it = useStore((x) => x.s.business.items.find((i) => i.id === id));
+  const fmt = useFmt();
+  const today = dayKey(new Date());
+  const r = it?.reservation;
+  const [bal, setBal] = useState(r?.priceSen ? String((r.priceSen - r.depositSen) / 100) : '');
+  const [fees, setFees] = useState('');
+  const [date, setDate] = useState(today);
+  const [ship, setShip] = useState(true);
+  if (!it || !r) return null;
+  const bl = bal.trim() === '' ? null : parseAmount(bal) ?? (Number(bal) === 0 ? 0 : null);
+  const total = r.depositSen + (bl ?? 0);
+  const profit = total - it.costSen - (parseAmount(fees) ?? 0);
+  const save = () => { if (bl === null) return; act(completeReservation, id, { balanceSen: bl, feesSen: parseAmount(fees) ?? 0, soldOn: date, ship }, new Date()); onClose(); };
+  return (
+    <Sheet title="Balance paid" onClose={onClose}>
+      <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Deposit {fmt.rm(r.depositSen)}{it.platform ? ` · ${it.platform}` : ''} · cost {fmt.rm(it.costSen)}</div></div></div>
+      <div className="two">
+        <MoneyField label="Balance received" value={bal} set={setBal} autoFocus onEnter={save} />
+        <MoneyField label="Fees (shipping, platform)" value={fees} set={setFees} placeholder="0" onEnter={save} />
+      </div>
+      <div className="row" style={{ gap: 14, alignItems: 'flex-end' }}>
+        <label className="field"><span>Paid on</span><input type="date" className="input" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} /></label>
+        <div className="grow"><Toggle on={ship} set={setShip} label="Needs shipping" hint="adds a Ship task" /></div>
+      </div>
+      {bl !== null && <><div className="muted" style={{ fontSize: '.84rem' }}>Sold for {fmt.rm(total)} in total (deposit + balance).</div><ProfitPreview profit={profit} of={total} /></>}
+      <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save} disabled={bl === null}><Icon name="coins" size={16} />Complete sale</button></div>
     </Sheet>
   );
 }
@@ -287,40 +523,96 @@ function CostSheet({ onClose }: { onClose: () => void }) {
   const save = () => { const sen = parseAmount(amt); if (!sen) return; act(addBizExpense, { sen, label, date }, new Date()); sfx.tink(); onClose(); };
   return (
     <Sheet title="Other business cost" onClose={onClose}>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>{['Packaging', 'Shipping supplies', 'Booth fee', 'Platform fee', 'Protectors'].map((l) => <button key={l} className={`btn sm ${label === l ? '' : 'ghost'}`} onClick={() => setLabel(l)}>{l}</button>)}</div>
+      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>{['Packaging', 'Shipping supplies', 'Protectors', 'Postage', 'Booth fee'].map((l) => <button key={l} className={`btn sm ${label === l ? '' : 'ghost'}`} onClick={() => setLabel(l)}>{l}</button>)}</div>
       <label className="field"><span>What for</span><input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Bubble wrap" /></label>
-      <div className="two"><MoneyField label="Amount" value={amt} set={setAmt} autoFocus /><label className="field"><span>Date</span><input type="date" className="input" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} /></label></div>
+      <div className="two"><MoneyField label="Amount" value={amt} set={setAmt} autoFocus onEnter={save} /><label className="field"><span>Date</span><input type="date" className="input" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} /></label></div>
       <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save} disabled={!parseAmount(amt)}><Icon name="check" size={16} stroke={2.4} />Log cost</button></div>
     </Sheet>
   );
 }
 
-function ItemSheet({ id, onClose, onSell }: { id: string; onClose: () => void; onSell: () => void }) {
+function PlatformsSheet({ onClose }: { onClose: () => void }) {
+  const platforms = useStore((x) => x.s.business.platforms);
+  const [list, setList] = useState(platforms);
+  const [add, setAdd] = useState('');
+  const push = () => { if (add.trim()) { setList([...list, add.trim()]); setAdd(''); } };
+  return (
+    <Sheet title="Where you sell" onClose={onClose}>
+      <div className="tl-items">
+        {list.map((p, i) => (
+          <div key={p + i} className="tl-item" style={{ cursor: 'default' }}>
+            <div className="grow tl-note">{p}</div>
+            <button className="icon-btn" disabled={i === 0} onClick={() => { const a = [...list]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; setList(a); }}><Icon name="up" size={14} /></button>
+            <button className="icon-btn" onClick={() => setList(list.filter((_, j) => j !== i))}><Icon name="trash" size={14} /></button>
+          </div>
+        ))}
+      </div>
+      <div className="row" style={{ gap: 8 }}><input className="input grow" placeholder="Add a place, e.g. Shopee" value={add} onChange={(e) => setAdd(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && push()} /><button className="btn" onClick={push}>Add</button></div>
+      <div className="row"><div className="grow" /><button className="btn primary" onClick={() => { act(setPlatforms, list); onClose(); }}>Save</button></div>
+    </Sheet>
+  );
+}
+
+function ItemSheet({ id, onClose, go }: { id: string; onClose: () => void; go: (s: Sheet) => void }) {
   const it = useStore((x) => x.s.business.items.find((i) => i.id === id));
   const fmt = useFmt();
   const [name, setName] = useState(it?.name ?? '');
   const [cost, setCost] = useState(it ? String(it.costSen / 100) : '');
   const [ask, setAsk] = useState(it?.askSen ? String(it.askSen / 100) : '');
+  const [value, setValue] = useState(it?.valueSen ? String(it.valueSen / 100) : '');
   const [sold, setSold] = useState(it?.soldSen ? String(it.soldSen / 100) : '');
   const [fees, setFees] = useState(it?.feesSen ? String(it.feesSen / 100) : '');
+  const [cancel, setCancel] = useState(false);
   if (!it) return null;
   const save = () => {
-    const patch: Partial<BizItem> = { name: name.trim() || it.name, costSen: parseAmount(cost) ?? it.costSen, askSen: parseAmount(ask) ?? undefined };
+    const patch: Parameters<typeof editBizItem>[2] = { name: name.trim() || it.name, costSen: parseAmount(cost) ?? it.costSen };
+    if (it.status === 'stock') patch.askSen = parseAmount(ask) ?? undefined;
     if (it.status === 'sold') { patch.soldSen = parseAmount(sold) ?? it.soldSen; patch.feesSen = parseAmount(fees) ?? undefined; }
     act(editBizItem, id, patch, new Date());
+    if (it.status === 'kept' && (parseAmount(value) ?? undefined) !== it.valueSen) act(setBizValue, id, parseAmount(value) ?? undefined, new Date());
     onClose();
   };
+  const title = { stock: 'In stock', kept: 'In my collection', reserved: 'Reserved', sold: 'Sold' }[it.status];
+  const r = it.reservation;
   return (
-    <Sheet title={it.status === 'sold' ? 'Sold item' : 'In stock'} onClose={onClose}>
+    <Sheet title={title} onClose={onClose}>
       <label className="field"><span>Item</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
-      <div className="two"><MoneyField label="Cost" value={cost} set={setCost} />{it.status === 'stock' ? <MoneyField label="Asking price" value={ask} set={setAsk} placeholder="—" /> : <MoneyField label="Sold for" value={sold} set={setSold} />}</div>
+      <div className="two">
+        <MoneyField label={it.status === 'kept' ? 'Paid' : 'Cost'} value={cost} set={setCost} />
+        {it.status === 'stock' && <MoneyField label="Asking price" value={ask} set={setAsk} placeholder="—" />}
+        {it.status === 'kept' && <MoneyField label="Worth now (your estimate)" value={value} set={setValue} placeholder="—" />}
+        {it.status === 'sold' && <MoneyField label="Sold for" value={sold} set={setSold} />}
+      </div>
       {it.status === 'sold' && <MoneyField label="Fees" value={fees} set={setFees} placeholder="0" />}
-      <div className="muted" style={{ fontSize: '.82rem' }}>Bought {fmt.day(it.boughtOn)}{it.soldOn ? ` · sold ${fmt.day(it.soldOn)} · profit ${fmt.rm(itemProfit(it))}` : ''}</div>
-      <div className="row">
+      {it.status === 'reserved' && r && (
+        <div className="card flat" style={{ fontSize: '.88rem', lineHeight: 1.6 }}>
+          Deposit <b>{fmt.rm(r.depositSen)}</b>{r.priceSen ? <> of <b>{fmt.rm(r.priceSen)}</b></> : ''}{it.platform ? ` · ${it.platform}` : ''} · balance due <b>{fmt.day(r.dueOn)}</b>{r.note ? <><br /><span className="muted">{r.note}</span></> : ''}
+        </div>
+      )}
+      <div className="muted" style={{ fontSize: '.82rem' }}>
+        Bought {fmt.day(it.boughtOn)}{it.soldOn ? ` · sold ${fmt.day(it.soldOn)}${it.platform ? ` on ${it.platform}` : ''} · profit ${fmt.rm(itemProfit(it))}` : ''}
+        {it.status === 'kept' && it.valueOn ? ` · value updated ${fmt.day(it.valueOn)}` : ''}
+      </div>
+      {cancel && it.status === 'reserved' && (
+        <div className="confirm-box stack">
+          <div style={{ fontSize: '.9rem' }}>Cancel this reservation? The piece goes back to stock.</div>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn" onClick={() => { act(cancelReservation, id, { keepDeposit: true }, new Date()); onClose(); }}>I kept the deposit</button>
+            <button className="btn" onClick={() => { act(cancelReservation, id, { keepDeposit: false }, new Date()); onClose(); }}>I refunded it</button>
+            <button className="btn ghost" onClick={() => setCancel(false)}>Never mind</button>
+          </div>
+        </div>
+      )}
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         <button className="btn ghost danger" onClick={() => { act(deleteBizItem, id, new Date()); onClose(); }}><Icon name="trash" size={16} />Delete</button>
-        {it.status === 'sold' && <button className="btn ghost" onClick={() => { act(unsellBizItem, id, new Date()); onClose(); }}><Icon name="undo" size={16} />Back to stock</button>}
+        {it.status === 'sold' && <button className="btn ghost" onClick={() => { act(unsellBizItem, id, new Date()); onClose(); }}><Icon name="undo" size={16} />Undo sale</button>}
+        {it.status === 'stock' && <button className="btn ghost" onClick={() => { act(keepBizItem, id); onClose(); }}><Icon name="heart" size={16} />Keep it</button>}
+        {it.status === 'kept' && <button className="btn ghost" onClick={() => { act(unkeepBizItem, id); onClose(); }}><Icon name="bag" size={16} />Move to stock</button>}
+        {it.status === 'reserved' && !cancel && <button className="btn ghost" onClick={() => setCancel(true)}><Icon name="x" size={16} />Cancel reservation</button>}
         <div className="grow" />
-        {it.status === 'stock' && <button className="btn" onClick={onSell}><Icon name="coins" size={16} />Sell</button>}
+        {(it.status === 'stock' || it.status === 'kept') && <button className="btn" onClick={() => go({ kind: 'reserve', id })}><Icon name="lock" size={16} />Reserve</button>}
+        {(it.status === 'stock' || it.status === 'kept') && <button className="btn" onClick={() => go({ kind: 'sell', id })}><Icon name="coins" size={16} />Sell</button>}
+        {it.status === 'reserved' && <button className="btn" onClick={() => go({ kind: 'paid', id })}><Icon name="coins" size={16} />Balance paid</button>}
         <button className="btn primary" onClick={save}>Save</button>
       </div>
     </Sheet>

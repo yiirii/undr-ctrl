@@ -49,7 +49,10 @@ export interface Task {
   spawnedId?: string; // next instance created when a recurring task was completed
   createdAt: string;
   order: number;
+  steps?: Step[];
+  link?: { kind: 'biz-collect' | 'biz-ship'; itemId: string }; // auto-created by the business
 }
+export interface Step { id: string; title: string; done: boolean }
 
 export interface Category {
   id: string;

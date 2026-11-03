@@ -13,6 +13,7 @@ export interface LofiBridge {
   onFocusTask(cb: (taskId: string) => void): () => void;
   exportData(json: string): Promise<boolean>;
   importData(): Promise<string | null>;
+  backup: { chooseFolder(): Promise<string | null>; write(folder: string, json: string): Promise<boolean>; open(folder: string): Promise<string> };
   musicUrl(file: string): string;
   isWindowVisible(): boolean;
   platform: string;

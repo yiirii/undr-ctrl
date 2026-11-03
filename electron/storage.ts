@@ -48,3 +48,18 @@ export function pruneBackups(dir: string, keep: number): void {
   const files = fs.readdirSync(bdir).filter((f) => f.startsWith('data-')).sort();
   for (const f of files.slice(0, Math.max(0, files.length - keep))) fs.rmSync(path.join(bdir, f));
 }
+
+export const CLOUD_FILE = 'Undr Ctrl backup.json';
+/** Write the single cloud-folder backup, replacing yesterday's. Atomic: temp file then rename. */
+export function writeCloudBackup(folder: string, json: string): boolean {
+  try {
+    if (!folder || !fs.existsSync(folder) || !fs.statSync(folder).isDirectory() || !isValid(json)) return false;
+    const file = path.join(folder, CLOUD_FILE);
+    const tmp = path.join(folder, `.${CLOUD_FILE}.tmp`);
+    fs.writeFileSync(tmp, json);
+    fs.renameSync(tmp, file);
+    return true;
+  } catch {
+    return false;
+  }
+}

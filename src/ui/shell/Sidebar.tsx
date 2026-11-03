@@ -16,6 +16,7 @@ const PAGE_META: Record<string, { label: string; icon: string }> = {
   planned: { label: 'Planned', icon: 'calendar' },
   habits: { label: 'Habits', icon: 'diamond' },
   money: { label: 'Money', icon: 'wallet' },
+  insights: { label: 'Insights', icon: 'chart' },
   quests: { label: 'Quests', icon: 'flag' },
   profile: { label: 'Profile', icon: 'hex' },
 };

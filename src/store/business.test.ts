@@ -8,17 +8,16 @@ const fresh = () => L.rollover(initialState('Chloe'), NOW).state;
 const wea = (s: ReturnType<typeof fresh>) => deriveProgress(s.ledger).statXp.wea;
 
 describe('business actions', () => {
-  test('buying items adds stock (qty) without touching Wealth', () => {
+  test('buying items adds stock (qty)', () => {
     const s = L.addBizItems(fresh(), { name: 'Groot #49', costSen: 4000, qty: 3, boughtOn: '2026-11-03' }, NOW).state;
     expect(s.business.items.filter((i) => i.status === 'stock').length).toBe(3);
-    expect(wea(s)).toBe(0);
   });
   test('selling raises Wealth by the profit and can be undone', () => {
     let s = L.addBizItems(fresh(), { name: 'Groot #49', costSen: 4000, qty: 1, boughtOn: '2026-11-01' }, NOW).state;
     const id = s.business.items[0].id;
     s = L.sellBizItem(s, id, { soldSen: 8500, feesSen: 700, soldOn: '2026-11-03' }, NOW).state;
     expect(s.business.items[0].status).toBe('sold');
-    expect(wea(s)).toBe(38);
+    expect(wea(s)).toBe(78); // Wealth floor is 0, so the -40 purchase is absorbed here; the full rule is in business2.test
     s = L.unsellBizItem(s, id, NOW).state;
     expect(s.business.items[0].status).toBe('stock');
     expect(wea(s)).toBe(0);
@@ -28,7 +27,7 @@ describe('business actions', () => {
     const id = s.business.items[0].id;
     s = L.sellBizItem(s, id, { soldSen: 6000, soldOn: '2026-11-03' }, NOW).state;
     s = L.editBizItem(s, id, { soldSen: 7000 }, NOW).state;
-    expect(wea(s)).toBe(40);
+    expect(wea(s)).toBe(70);
   });
   test('business expenses subtract Wealth; deleting reverses', () => {
     let s = fresh();

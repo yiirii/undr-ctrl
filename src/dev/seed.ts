@@ -66,11 +66,19 @@ export function seedDemo(kind: string): AppState {
     ['Funko Pop! Baby Yoda #368', 5200, 9900, 900, 12], ['Funko Pop! Totoro #1095', 4800, 0, null, 9], ['Funko Pop! Totoro #1095', 4800, 0, null, 9],
     ['Funko Pop! Hedwig #76', 3900, 0, null, 4], ['Funko Pop! Wednesday #1309', 6500, 11800, 800, 3],
   ];
-  for (const [name, cost, sold, fee, ago] of funkos) {
+  const plats = ['Carousell', 'Threads', 'Carousell', 'Facebook Marketplace', '', '', '', 'WhatsApp'];
+  funkos.forEach(([name, cost, sold, fee, ago], k) => {
     const d = addDays(today, -ago);
     s = L.addBizItems(s, { name, costSen: cost, qty: 1, boughtOn: d, askSen: sold ? undefined : Math.round(cost * 1.8 / 100) * 100 }, at(d, 11)).state;
-    if (sold) { const sd = addDays(d, Math.min(ago, 5)); s = L.sellBizItem(s, s.business.items[s.business.items.length - 1].id, { soldSen: sold, feesSen: fee ?? 0, soldOn: sd > today ? today : sd }, at(sd > today ? today : sd, 19)).state; }
-  }
+    if (sold) { const sd = addDays(d, Math.min(ago, 5)); s = L.sellBizItem(s, s.business.items[s.business.items.length - 1].id, { soldSen: sold, feesSen: fee ?? 0, soldOn: sd > today ? today : sd, platform: plats[k] }, at(sd > today ? today : sd, 19)).state; }
+  });
+  // a reservation with a deposit, and two pieces in the personal collection
+  { const d = addDays(today, -6);
+    s = L.addBizItems(s, { name: 'Funko Pop! Stitch #1045', costSen: 4200, qty: 1, boughtOn: d, askSen: 8000 }, at(d, 11)).state;
+    s = L.reserveBizItem(s, s.business.items[s.business.items.length - 1].id, { depositSen: 2000, dueOn: addDays(today, 4), platform: 'WhatsApp', priceSen: 8000, note: 'Meetup at Sunway' }, at(addDays(today, -1), 20)).state;
+    s = L.addBizItems(s, { name: 'Funko Pop! No-Face #46', costSen: 6000, qty: 1, boughtOn: addDays(today, -40), kept: true }, at(addDays(today, -40), 12)).state;
+    s = L.setBizValue(s, s.business.items[s.business.items.length - 1].id, 15000, at(addDays(today, -3), 12)).state;
+    s = L.addBizItems(s, { name: 'Funko Pop! Kiki #1176', costSen: 5500, qty: 1, boughtOn: addDays(today, -15), kept: true }, at(addDays(today, -15), 12)).state; }
   s = L.addBizExpense(s, { sen: 1890, label: 'Pop protectors', date: addDays(today, -2) }, at(addDays(today, -2), 15)).state;
   // today
   s = L.rollover(s, now).state;

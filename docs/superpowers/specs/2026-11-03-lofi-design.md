@@ -549,3 +549,73 @@ The 3D town and any illustrated assets, coins and shops, sync, a mobile app, ban
 **Business tab (item by item).** Money has Personal | Business tabs. Bought adds N pieces to stock with cost and an optional asking price. Sold records the price, fees and date for one piece, with a live profit preview. Other cost is for packaging, shipping supplies and similar. The tab shows profit this month (sales vs. item cost + fees + other costs), stock on hand (cost, asking, oldest piece, sell-through bar), profit over the last 6 months, stock cards grouped by name and cost with search, sold this month, and other costs. Business profit raises Wealth (RM 1 profit = +1), a loss lowers it, and other costs lower it. Business profit counts in "You kept" and on the recap. Achievements: First sale (bronze) and The Hustler (gold, RM 1,000 profit, title).
 
 **Icon.** The sword icon now has slightly rounded corners (radius 18%, transparent outside).
+
+## Rev 8 — Refinement round (2026-11-03, approved and built)
+
+Priorities: **Funko business** and **To-do / My Day** first. Goals: faster, more delight, better insights.
+
+### Wealth follows cash for Funkos (changed by Chloe)
+This replaces the earlier "a sale adds its profit" rule.
+- **Buying a piece** lowers Wealth by its cost, at 1 XP per RM 1. This applies to stock and to the collection.
+- **Money received** raises Wealth: sale price minus fees, a deposit when it's taken, and a kept deposit.
+- **Refunds and other costs** lower it.
+- **Over a piece's life**, Wealth moves by exactly its profit. Profit is still computed per piece (price − cost − fees), whichever way the piece came.
+- **Migration:** older data gets cost entries for past purchases and revenue in place of profit. Bookkeeping XP is kept.
+- **Exact undo:** an undone entry and its compensation are both ignored when computing progress. Deleting a mistaken purchase while Wealth is at 0 can't create Wealth.
+
+### Business
+- **Platforms:** every sale has a platform: Carousell, Threads, Facebook Marketplace or WhatsApp (editable list). The Business tab shows sales, profit and count per platform for the month. No buyer names.
+- **Reservations (deposit required):**
+  - Reserve a piece in stock with a deposit, platform, balance-due date and optional note.
+  - A reserved piece shows a "Reserved" tag and drops out of available stock and the Sell list.
+  - An optional agreed price prefills the balance.
+  - **Balance paid** turns it into a sale: sold price = deposit + balance, and fees are optional. Profit counts only at that point.
+  - **Cancel:** the piece returns to stock. Choose "deposit kept" (counts as other income in the business, which raises profit) or "deposit refunded".
+  - Deposits held are shown as a liability line ("Deposits held: RM X"), not as profit.
+  - **Overdue balance:** a gentle nudge card and an auto-task.
+- **Personal collection:**
+  - Pieces you keep, each with what you paid and your own value estimate (editable, with the date it was last updated).
+  - Shows total cost, total estimated value and the gain or loss, as a gallery of cards (never a table).
+  - Move a piece from stock to the collection and back (moving changes neither profit nor Wealth). A piece can be sold or reserved straight from the collection.
+- **Linked tasks (auto):**
+  - Reserving creates "Collect balance — <item>", due on the balance date.
+  - Selling via a delivery platform creates "Ship <item>", due tomorrow.
+  - The tasks sit in an auto-created **Business** list (stat: Wealth). Completing a task doesn't change the sale. Cancelling a reservation removes its open task.
+
+### Tasks
+- **Steps inside tasks:**
+  - Add, check, reorder and delete steps in the detail panel.
+  - A small progress ring on the task row shows steps done out of the total.
+  - Each step done gives +2 XP to the task's stat. Undoing a step reverses it.
+- **Deadline countdowns:**
+  - A task with a due date shows a "days left" chip.
+  - Normal and Big tasks also show a thin bar that drains from when the task was created to its due date.
+  - **Early nudge:** a Big task due within 5 days with no steps done and no focus time shows "Due in N days. Start today?" in My Day Suggestions.
+
+### Delight
+- **Sale moment scales with profit:**
+  - Under RM 10: chime and coin-shape burst.
+  - RM 10–49: a bigger burst and "+RM X" floating up.
+  - RM 50 or more, or a new monthly profit record: a full overlay moment.
+- **Completion combo:**
+  - Finishing tasks within 90 s of each other builds a combo (×2, ×3…) with a rising pitch and a combo chip.
+  - Bonus XP: +2 per combo step, capped at +10.
+- **Streak and milestone moments** at 7, 30 and 100 days (cascade plus overlay at 30 and 100), and for monthly profit records.
+
+### Insights (new Insights page)
+- **Where your money goes:**
+  - Six-month trend per category as small bars.
+  - This month versus your average.
+  - Biggest changes.
+  - A weekday-versus-weekend spending pattern.
+- **Productivity:**
+  - Comparisons are paced: this month so far is set against what you usually spend by the same day of the month.
+  - Tasks finished versus planned in My Day each day.
+  - Best weekday and best time of day.
+  - Focus minutes per week.
+  - Stat growth over 90 days.
+
+### Backup to Google Drive
+- Chloe will install **Google Drive for desktop** and sign in with her Google account. Drive for desktop shows which account is signed in, so she confirms the email there.
+- In Settings → Backup, she **chooses the folder** (for example `G:\My Drive\Undr Ctrl`). Nothing is copied until a folder is chosen and confirmed. Settings shows the full path and the time of the last backup.
+- **One file, replaced daily:** `Undr Ctrl backup.json`, written atomically. Drive keeps it as a single file, so old copies don't pile up. The 14 local backups on this PC stay as they are.
