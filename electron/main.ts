@@ -2,7 +2,7 @@ import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog, Notificat
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { loadWithFallback, saveAtomic } from './storage';
+import { loadWithFallback, saveAtomic, writeCloudBackup } from './storage';
 
 app.setName('Undr Ctrl');
 app.setAppUserModelId('app.undrctrl.desktop');
@@ -135,6 +135,12 @@ app.whenReady().then(() => {
     fs.writeFileSync(r.filePath, json);
     return true;
   });
+  ipcMain.handle('backup:chooseFolder', async () => {
+    const r = await dialog.showOpenDialog(win!, { title: 'Choose your Google Drive backup folder', properties: ['openDirectory', 'createDirectory'] });
+    return r.canceled || !r.filePaths[0] ? null : r.filePaths[0];
+  });
+  ipcMain.handle('backup:write', (_e, folder: string, json: string) => writeCloudBackup(folder, json));
+  ipcMain.handle('backup:open', (_e, folder: string) => shell.openPath(folder));
   ipcMain.handle('data:import', async () => {
     const r = await dialog.showOpenDialog(win!, { title: 'Import Undr Ctrl backup', properties: ['openFile'], filters: [{ name: 'Undr Ctrl backup', extensions: ['json'] }] });
     return r.canceled ? null : fs.readFileSync(r.filePaths[0], 'utf8');

@@ -21,6 +21,9 @@ export interface Settings {
   hiddenPages: string[];
   navOrder: string[];
   title?: string; // chosen special title
+  backupFolder?: string; // cloud folder (e.g. Google Drive) for the single daily backup
+  lastCloudBackup?: string; // ISO time of last successful cloud backup
+  cloudBackupFailed?: boolean;
 }
 
 export interface MusicState { tracks: Track[]; playlists: Playlist[]; volume: number; shuffle: boolean; repeat: 'off' | 'all' | 'one'; resumeOnReturn: boolean; linkInsteadOfCopy: boolean; activePlaylist: string }
@@ -47,6 +50,7 @@ export interface AppState {
   myDayCleared: string[];
   reminded: string[];
   lastRollover?: string;
+  combo?: { count: number; lastMs: number };
 }
 
 export function defaultLists(): List[] {

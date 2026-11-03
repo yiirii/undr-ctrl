@@ -144,6 +144,7 @@ export function completeTask(s: AppState, id: string, now: Date): Result {
     next = { ...s, tasks, ledger: [...s.ledger, entry('task', stat, xp, true, `task:${id}`, iso(now))] };
     moments.push({ type: 'taskCompleted', xp, stat, taskId: id });
   }
+  next = applyCombo(next, t.habit && t.recurrence ? `habit:${id}:${today}` : `task:${id}`, now, moments);
   return settle(s, next, now, moments);
 }
 
@@ -155,7 +156,7 @@ export function uncompleteTask(s: AppState, id: string, now: Date): Result {
     if (!t.completions.includes(today)) return done(s);
     const completions = t.completions.filter((d) => d !== today);
     const streak = streakAfter(new Set(completions), t.recurrence, t.anchor ?? today, today);
-    return done({ ...s, tasks: s.tasks.map((x) => (x.id === id ? { ...x, completions, streak } : x)), ledger: reverse(s.ledger, `habit:${id}:${today}`, iso(now)) });
+    return done({ ...s, tasks: s.tasks.map((x) => (x.id === id ? { ...x, completions, streak } : x)), ledger: reverse(reverse(s.ledger, `habit:${id}:${today}`, iso(now)), `combo:habit:${id}:${today}`, iso(now)) });
   }
   if (!t.doneAt) return done(s);
   let tasks = s.tasks.map((x) => (x.id === id ? { ...x, doneAt: undefined, spawnedId: undefined } : x));
@@ -163,7 +164,59 @@ export function uncompleteTask(s: AppState, id: string, now: Date): Result {
     const sp = tasks.find((x) => x.id === t.spawnedId);
     if (sp && !sp.doneAt) tasks = tasks.filter((x) => x.id !== t.spawnedId);
   }
-  return done({ ...s, tasks, ledger: reverse(s.ledger, `task:${id}`, iso(now)) });
+  return done({ ...s, tasks, ledger: reverse(reverse(s.ledger, `task:${id}`, iso(now)), `combo:task:${id}`, iso(now)) });
+}
+
+// ---------------- combo ----------------
+export const COMBO_WINDOW_MS = 90_000;
+/** Completions within 90 s of each other build a combo: +2 character XP per step, capped at +10. */
+function applyCombo(s: AppState, ref: string, now: Date, moments: Moment[]): AppState {
+  const t = now.getTime();
+  const prev = s.combo;
+  const count = prev && t - prev.lastMs <= COMBO_WINDOW_MS && t >= prev.lastMs ? prev.count + 1 : 1;
+  const next = { ...s, combo: { count, lastMs: t } };
+  if (count < 2) return next;
+  const bonus = Math.min(10, 2 * (count - 1));
+  moments.push({ type: 'combo', count, bonus });
+  return { ...next, ledger: [...next.ledger, entry('combo', null, bonus, true, `combo:${ref}`, iso(now))] };
+}
+
+// ---------------- steps ----------------
+const mapTask = (s: AppState, id: string, f: (t: Task) => Task): AppState => ({ ...s, tasks: s.tasks.map((t) => (t.id === id ? f(t) : t)) });
+export const STEP_XP = 2;
+export function addStep(s: AppState, taskId: string, title: string): Result {
+  const x = title.trim();
+  if (!x || !s.tasks.some((t) => t.id === taskId)) return done(s);
+  return done(mapTask(s, taskId, (t) => ({ ...t, steps: [...(t.steps ?? []), { id: uid(), title: x, done: false }] })));
+}
+export function renameStep(s: AppState, taskId: string, stepId: string, title: string): Result {
+  const x = title.trim();
+  if (!x) return done(s);
+  return done(mapTask(s, taskId, (t) => ({ ...t, steps: (t.steps ?? []).map((st) => (st.id === stepId ? { ...st, title: x } : st)) })));
+}
+export function toggleStep(s: AppState, taskId: string, stepId: string, now: Date): Result {
+  const t = s.tasks.find((x) => x.id === taskId);
+  const st = t?.steps?.find((x) => x.id === stepId);
+  if (!t || !st) return done(s);
+  const ref = `step:${taskId}:${stepId}`;
+  const next = mapTask(s, taskId, (x) => ({ ...x, steps: x.steps!.map((y) => (y.id === stepId ? { ...y, done: !y.done } : y)) }));
+  if (st.done) return done({ ...next, ledger: reverse(s.ledger, ref, iso(now)) });
+  const stat = taskStat(s, t);
+  return settle(s, { ...next, ledger: [...s.ledger, entry('step', stat, STEP_XP, true, ref, iso(now))] }, now, [{ type: 'xp', amount: STEP_XP, stat, label: 'Step' }]);
+}
+export function deleteStep(s: AppState, taskId: string, stepId: string, now: Date): Result {
+  const next = mapTask(s, taskId, (t) => ({ ...t, steps: (t.steps ?? []).filter((y) => y.id !== stepId) }));
+  return done({ ...next, ledger: reverse(s.ledger, `step:${taskId}:${stepId}`, iso(now)) });
+}
+export function moveStep(s: AppState, taskId: string, stepId: string, toIndex: number): Result {
+  return done(mapTask(s, taskId, (t) => {
+    const steps = [...(t.steps ?? [])];
+    const from = steps.findIndex((y) => y.id === stepId);
+    if (from < 0) return t;
+    const [it] = steps.splice(from, 1);
+    steps.splice(Math.max(0, Math.min(steps.length, toIndex)), 0, it);
+    return { ...t, steps };
+  }));
 }
 
 // ---------------- lists ----------------

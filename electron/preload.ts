@@ -22,6 +22,11 @@ contextBridge.exposeInMainWorld('lofi', {
   onFocusTask: (cb: (id: string) => void) => on('focus-task', (id) => cb(id as string)),
   exportData: (json: string) => ipcRenderer.invoke('data:export', json),
   importData: () => ipcRenderer.invoke('data:import'),
+  backup: {
+    chooseFolder: () => ipcRenderer.invoke('backup:chooseFolder'),
+    write: (folder: string, json: string) => ipcRenderer.invoke('backup:write', folder, json),
+    open: (folder: string) => ipcRenderer.invoke('backup:open', folder),
+  },
   musicUrl: (file: string) => `lofi-music://t/${encodeURIComponent(file)}`,
   isWindowVisible: () => ipcRenderer.sendSync('win:visible') as boolean,
   platform: process.platform,

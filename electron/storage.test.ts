@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { loadWithFallback, saveAtomic, pruneBackups } from './storage';
+import { loadWithFallback, saveAtomic, pruneBackups, writeCloudBackup, CLOUD_FILE } from './storage';
 
 let dir: string;
 beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lofi-')); });
@@ -42,5 +42,21 @@ describe('storage', () => {
   test('atomic write leaves no temp file', () => {
     saveAtomic(dir, '{}', '2026-11-03');
     expect(fs.existsSync(path.join(dir, 'data.json.tmp'))).toBe(false);
+  });
+});
+
+describe('cloud folder backup', () => {
+  test('writes one file and replaces it each time (no pile-up)', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-'));
+    expect(writeCloudBackup(dir, '{"a":1}')).toBe(true);
+    expect(writeCloudBackup(dir, '{"a":2}')).toBe(true);
+    expect(fs.readdirSync(dir)).toEqual([CLOUD_FILE]);
+    expect(fs.readFileSync(path.join(dir, CLOUD_FILE), 'utf8')).toBe('{"a":2}');
+  });
+  test('refuses a folder that does not exist (e.g. Drive not running) and invalid JSON', () => {
+    expect(writeCloudBackup('/nope/not/here', '{}')).toBe(false);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-'));
+    expect(writeCloudBackup(dir, 'not json')).toBe(false);
+    expect(fs.readdirSync(dir)).toEqual([]);
   });
 });

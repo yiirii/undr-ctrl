@@ -14,6 +14,7 @@ import { Onboarding } from '../views/Onboarding';
 import { Moments } from '../motion/Moments';
 import { Reminders } from './Reminders';
 import { Icon } from '../shapes/icons';
+import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
 import { act } from '../../store/store';
 import { rollover } from '../../store/logic';
@@ -53,8 +54,10 @@ export function App() {
     window.addEventListener('keydown', key);
     const offs = [bridge()?.onOpenQuickAdd(() => setUI({ quickAdd: true })), bridge()?.onFocusTask((id) => setUI({ detailId: id }))];
     // midnight roll-over: check every minute
-    const iv = setInterval(() => act(rollover, new Date()), 60000);
-    return () => { window.removeEventListener('keydown', key); offs.forEach((o) => o?.()); clearInterval(iv); };
+    // also: once a day, copy a single backup into the chosen Google Drive folder
+    const iv = setInterval(() => { act(rollover, new Date()); void cloudBackup(); }, 60000);
+    const first = setTimeout(() => void cloudBackup(), 5000);
+    return () => { window.removeEventListener('keydown', key); offs.forEach((o) => o?.()); clearInterval(iv); clearTimeout(first); };
   }, [setUI]);
 
   if (!onboarded) return <><Onboarding /><Moments /></>;
