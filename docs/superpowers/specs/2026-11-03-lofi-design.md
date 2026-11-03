@@ -550,23 +550,33 @@ The 3D town and any illustrated assets, coins and shops, sync, a mobile app, ban
 
 **Icon.** The sword icon now has slightly rounded corners (radius 18%, transparent outside).
 
-## Rev 8 — Refinement round (2026-11-03, approved scope pending review)
+## Rev 8 — Refinement round (2026-11-03, approved and built)
 
 Priorities: **Funko business** and **To-do / My Day** first. Goals: faster, more delight, better insights.
+
+### Wealth follows cash for Funkos (changed by Chloe)
+This replaces the earlier "a sale adds its profit" rule.
+- **Buying a piece** lowers Wealth by its cost, at 1 XP per RM 1. This applies to stock and to the collection.
+- **Money received** raises Wealth: sale price minus fees, a deposit when it's taken, and a kept deposit.
+- **Refunds and other costs** lower it.
+- **Over a piece's life**, Wealth moves by exactly its profit. Profit is still computed per piece (price − cost − fees), whichever way the piece came.
+- **Migration:** older data gets cost entries for past purchases and revenue in place of profit. Bookkeeping XP is kept.
+- **Exact undo:** an undone entry and its compensation are both ignored when computing progress. Deleting a mistaken purchase while Wealth is at 0 can't create Wealth.
 
 ### Business
 - **Platforms:** every sale has a platform: Carousell, Threads, Facebook Marketplace or WhatsApp (editable list). The Business tab shows sales, profit and count per platform for the month. No buyer names.
 - **Reservations (deposit required):**
   - Reserve a piece in stock with a deposit, platform, balance-due date and optional note.
   - A reserved piece shows a "Reserved" tag and drops out of available stock and the Sell list.
-  - **Balance paid** turns it into a sale: sold price = deposit + balance, and fees are optional. Profit and Wealth count only at that point.
+  - An optional agreed price prefills the balance.
+  - **Balance paid** turns it into a sale: sold price = deposit + balance, and fees are optional. Profit counts only at that point.
   - **Cancel:** the piece returns to stock. Choose "deposit kept" (counts as other income in the business, which raises profit) or "deposit refunded".
   - Deposits held are shown as a liability line ("Deposits held: RM X"), not as profit.
   - **Overdue balance:** a gentle nudge card and an auto-task.
 - **Personal collection:**
   - Pieces you keep, each with what you paid and your own value estimate (editable, with the date it was last updated).
   - Shows total cost, total estimated value and the gain or loss, as a gallery of cards (never a table).
-  - Move a piece from stock to the collection and back. Moving a piece doesn't affect profit or Wealth.
+  - Move a piece from stock to the collection and back (moving changes neither profit nor Wealth). A piece can be sold or reserved straight from the collection.
 - **Linked tasks (auto):**
   - Reserving creates "Collect balance — <item>", due on the balance date.
   - Selling via a delivery platform creates "Ship <item>", due tomorrow.
@@ -599,6 +609,7 @@ Priorities: **Funko business** and **To-do / My Day** first. Goals: faster, more
   - Biggest changes.
   - A weekday-versus-weekend spending pattern.
 - **Productivity:**
+  - Comparisons are paced: this month so far is set against what you usually spend by the same day of the month.
   - Tasks finished versus planned in My Day each day.
   - Best weekday and best time of day.
   - Focus minutes per week.
