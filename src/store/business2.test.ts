@@ -192,3 +192,29 @@ describe('undo is exact even at the Wealth floor', () => {
     expect(deriveProgress(s.ledger).statXp.wea).toBe(0);
   });
 });
+
+describe('free pieces (cost RM 0)', () => {
+  test('a free piece can be added to stock or the collection and does not touch Wealth', () => {
+    let s = buy(base(), { costSen: 0, kept: true, name: 'Gift Groot' });
+    s = buy(s, { costSen: 0, name: 'Free Hedwig' });
+    expect(s.business.items.map((i) => [i.name, i.costSen, i.status])).toEqual([['Gift Groot', 0, 'kept'], ['Free Hedwig', 0, 'stock']]);
+    expect(wea(s)).toBe(0);
+  });
+  test('selling a free piece: the whole price is profit', () => {
+    let s = buy(base(), { costSen: 0 });
+    s = L.sellBizItem(s, s.business.items[0].id, { soldSen: 5000, feesSen: 500, soldOn: '2026-11-03' }, NOW).state;
+    expect(bizMonth(s.business.items, [], '2026-11', []).profitSen).toBe(4500);
+    expect(wea(s)).toBe(45);
+  });
+  test('cost can be edited down to 0 (and the purchase leaves Wealth)', () => {
+    let s = buy(base());
+    s = L.editBizItem(s, s.business.items[0].id, { costSen: 0 }, NOW).state;
+    expect(s.business.items[0].costSen).toBe(0);
+    expect(wea(s)).toBe(0);
+  });
+  test('negative or missing costs are still refused', () => {
+    const s = base();
+    expect(L.addBizItems(s, { name: 'x', costSen: -100, qty: 1, boughtOn: '2026-11-03' }, NOW).state).toBe(s);
+    expect(L.addBizItems(s, { name: 'x', costSen: NaN, qty: 1, boughtOn: '2026-11-03' }, NOW).state).toBe(s);
+  });
+});

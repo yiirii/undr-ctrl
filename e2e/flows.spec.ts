@@ -266,3 +266,28 @@ test('catalogue mode: Enter adds a piece and starts the next one; known names pr
   await page.click('.nav-item:has-text("Money")');
   await expect(page.locator('.money-tabs button.on')).toHaveText('Business');
 });
+
+test('free pieces: tap Free, add to stock and collection, selling one counts the full price as profit', async ({ page }) => {
+  await open(page, 'reset=1&seed=fresh');
+  await page.evaluate(() => (window as any).__lofi.getState().patch((s: any) => ({ ...s, profile: { ...s.profile, name: 'C', onboarded: true } })));
+  await page.click('.nav-item:has-text("Money")');
+  await page.click('.money-tabs button:has-text("Business")');
+  await page.click('button:has-text("Log your first purchase")');
+  await page.fill('input[placeholder="Item name"]', 'Gift Groot');
+  await page.click('.sheet button:has-text("Free")');
+  await expect(page.locator('.sheet')).toContainText('Nothing comes off your Wealth');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.sheet .chip.ok')).toContainText('1 added');
+  await page.click('.sheet button:has-text("For my collection")');
+  await page.fill('input[placeholder="Item name"]', 'Birthday Kiki');
+  await page.locator('.sheet input[inputmode="decimal"]').first().fill('0');
+  await page.click('.sheet button:has-text("Add to collection")');
+  await expect(page.locator('.modal')).toHaveCount(0);
+  await expect(page.locator('.stock-card', { hasText: 'Gift Groot' })).toContainText('Free');
+  await expect(page.locator('.stock-card.kept', { hasText: 'Birthday Kiki' })).toContainText('Free');
+  await page.locator('.stock-card', { hasText: 'Gift Groot' }).locator('button:has-text("Sell")').click();
+  await page.locator('.sheet input[inputmode="decimal"]').first().fill('35');
+  await expect(page.locator('.sheet')).toContainText('+RM 35');
+  await page.click('button:has-text("Record sale")');
+  await expect(page.locator('.money-hero')).toContainText('RM 35');
+});

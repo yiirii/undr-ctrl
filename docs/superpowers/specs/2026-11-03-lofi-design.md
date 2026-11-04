@@ -635,3 +635,10 @@ This replaces the earlier "a sale adds its profit" rule.
   - A sale could leave an invisible window blocking all clicks. Windows are now keyed, never block clicks while closing, and keep showing the sold piece while they close.
 - **Big moments:** the full-screen blur behind them is gone, and they use fewer particles, so they're smoother on Windows.
 - **Checks:** `npm run sweep` performs every main action and then visits every page, checking for errors, stuck windows and invisible pages.
+
+## Rev 10: Free pieces (2026-11-04)
+
+- A piece's cost can be **RM 0**, for stock or the collection. The Bought window has a one-tap **Free** button, and typing `0` or "free" also works.
+- **Free pieces leave Wealth alone.** When one sells, the whole price minus fees is profit and raises Wealth.
+- Free pieces show as **"Free"** instead of "Cost RM 0". A piece's cost can also be edited down to 0.
+- Negative costs are still refused. Expenses and sale prices must still be more than RM 0.

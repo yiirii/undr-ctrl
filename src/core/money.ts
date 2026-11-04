@@ -36,6 +36,13 @@ export function defaultSources(): IncomeSource[] {
 }
 
 // ---------- amounts ----------
+/** Like parseAmount, but 0 (or "free") is allowed: for pieces you got for free. */
+export function parseCost(raw: string): number | null {
+  const s = raw.trim().toLowerCase();
+  if (s === 'free' || /^(rm\s*)?0*(\.0*)?$/.test(s) && /0/.test(s)) return 0;
+  return parseAmount(raw);
+}
+
 export function parseAmount(raw: string): number | null {
   let s = raw.trim().replace(/^rm\s*/i, '').replace(/\s+/g, '');
   if (!s) return null;

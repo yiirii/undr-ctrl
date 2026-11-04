@@ -340,7 +340,7 @@ const posSen = (n?: number) => (n && n > 0 ? Math.round(n) : undefined);
 export function addBizItems(s: AppState, n: { name: string; costSen: number; qty: number; boughtOn: string; askSen?: number; note?: string; kept?: boolean }, now: Date): Result {
   const name = n.name.trim();
   const qty = Math.max(1, Math.min(200, Math.floor(n.qty || 1)));
-  if (!name || !(n.costSen > 0)) return done(s);
+  if (!name || !Number.isFinite(n.costSen) || n.costSen < 0) return done(s); // 0 = a free piece
   const items: BizItem[] = Array.from({ length: qty }, () => ({ id: uid(), name, costSen: Math.round(n.costSen), boughtOn: n.boughtOn, status: n.kept ? 'kept' : 'stock', askSen: n.kept ? undefined : posSen(n.askSen), note: n.note }));
   const book = n.boughtOn === dayKey(now) ? [entry('bookkeeping', null, BOOKKEEPING_XP, true, `bought:${items[0].id}`, iso(now))] : [];
   const cost = items.flatMap((i) => wealthForBuy(i, iso(now)));
@@ -372,7 +372,7 @@ export function unsellBizItem(s: AppState, id: string, now: Date): Result {
 export function editBizItem(s: AppState, id: string, patch: Partial<Pick<BizItem, 'name' | 'costSen' | 'askSen' | 'note' | 'soldSen' | 'feesSen' | 'soldOn' | 'platform' | 'boughtOn' | 'valueSen'>>, now: Date): Result {
   const it = s.business.items.find((i) => i.id === id);
   if (!it) return done(s);
-  if ((patch.costSen !== undefined && !(patch.costSen > 0)) || (patch.soldSen !== undefined && !(patch.soldSen > 0))) return done(s);
+  if ((patch.costSen !== undefined && !(patch.costSen >= 0)) || (patch.soldSen !== undefined && !(patch.soldSen > 0))) return done(s);
   const nx: BizItem = { ...it, ...patch, id, status: it.status };
   let ledger = s.ledger;
   if (nx.costSen !== it.costSen) ledger = [...reverse(ledger, `buy:${id}`, iso(now)), ...wealthForBuy(nx, iso(now))];

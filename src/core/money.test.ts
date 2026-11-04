@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { statusOf, parseAmount, formatRM, monthSummary, suggestSplit, unassigned, fitToIncome, dripForDay, nudge, recap, defaultCategories, type MoneyState } from './money';
+import { statusOf, parseAmount, parseCost, formatRM, monthSummary, suggestSplit, unassigned, fitToIncome, dripForDay, nudge, recap, defaultCategories, type MoneyState } from './money';
 import type { MoneyEntry } from './types';
 
 const cats = defaultCategories();
@@ -128,5 +128,15 @@ describe('statusOf without a limit', () => {
   test('a category with no limit is never "over" (track-first mode has no limits yet)', () => {
     expect(statusOf(4720, 0).status).toBe('calm');
     expect(statusOf(0, 0).status).toBe('calm');
+  });
+});
+
+describe('parseCost', () => {
+  test('accepts 0 and "free" for free pieces; otherwise like parseAmount', () => {
+    for (const z of ['0', '0.00', 'RM 0', 'rm0', '00', 'free', 'Free']) expect(parseCost(z)).toBe(0);
+    expect(parseCost('40')).toBe(4000);
+    expect(parseCost('')).toBeNull();
+    expect(parseCost('-5')).toBeNull();
+    expect(parseCost('abc')).toBeNull();
   });
 });

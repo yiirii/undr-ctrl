@@ -44,7 +44,7 @@ describe('business actions', () => {
   });
   test('rejects invalid amounts', () => {
     const s = fresh();
-    expect(L.addBizItems(s, { name: 'x', costSen: 0, qty: 1, boughtOn: '2026-11-03' }, NOW).state).toBe(s);
+    expect(L.addBizItems(s, { name: 'x', costSen: -1, qty: 1, boughtOn: '2026-11-03' }, NOW).state).toBe(s); // 0 is allowed (free pieces)
     expect(L.addBizItems(s, { name: '', costSen: 100, qty: 1, boughtOn: '2026-11-03' }, NOW).state).toBe(s);
   });
 });

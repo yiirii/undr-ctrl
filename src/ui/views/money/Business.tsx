@@ -6,7 +6,7 @@ import {
   keepBizItem, unkeepBizItem, setBizValue, reserveBizItem, completeReservation, cancelReservation, setPlatforms,
 } from '../../../store/logic';
 import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, matchesQuery, type BizItem } from '../../../core/business';
-import { parseAmount } from '../../../core/money';
+import { parseAmount, parseCost } from '../../../core/money';
 import { addDays, dayKey, diffDays, monthName, MONTHS, monthKey } from '../../../core/dates';
 import { Icon } from '../../shapes/icons';
 import { Bar, Count, SPRING } from '../../shapes/Progress';
@@ -23,6 +23,8 @@ type Sheet =
   | { kind: 'platforms' }
   | { kind: 'item'; id: string };
 
+/** "Cost RM 40" / "Paid RM 40", or "Free" for pieces that cost nothing. */
+const costText = (sen: number, rm: (n: number) => string, word = 'Cost') => (sen === 0 ? 'Free' : `${word} ${rm(sen)}`);
 const PAGE = 48; // cards shown before "Show more"
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const groupKey = (i: BizItem) => `${i.name}|${i.costSen}`;
@@ -153,7 +155,7 @@ export function Business({ mk }: { mk: string }) {
                   return (
                     <motion.div key={groupKey(i)} layout className="stock-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING} onClick={() => setSheet({ kind: 'item', id: i.id })}>
                       <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                        <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}{i.askSen ? ` · asking ${fmt.rm(i.askSen)}` : ''}</div></div>
+                        <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">{costText(i.costSen, fmt.rm)}{i.askSen ? ` · asking ${fmt.rm(i.askSen)}` : ''}</div></div>
                         {g.length > 1 && <span className="chip">×{g.length}</span>}
                       </div>
                       <div className="row" style={{ marginTop: 12, gap: 6 }}>
@@ -187,7 +189,7 @@ export function Business({ mk }: { mk: string }) {
                 return (
                   <motion.div key={groupKey(i)} layout className="stock-card kept" onClick={() => setSheet({ kind: 'item', id: i.id })} whileHover={{ y: -2 }}>
                     <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                      <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">Paid {fmt.rm(i.costSen)}{i.valueSen ? ` · worth ${fmt.rm(i.valueSen)}` : ''}</div></div>
+                      <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">{costText(i.costSen, fmt.rm, 'Paid')}{i.valueSen ? ` · worth ${fmt.rm(i.valueSen)}` : ''}</div></div>
                       {g.length > 1 && <span className="chip">×{g.length}</span>}
                     </div>
                     <div className="row" style={{ marginTop: 12 }}>
@@ -304,8 +306,8 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-function MoneyField({ label, value, set, autoFocus, placeholder, onEnter }: { label: string; value: string; set: (v: string) => void; autoFocus?: boolean; placeholder?: string; onEnter?: () => void }) {
-  return <label className="field"><span>{label}</span><div className="row" style={{ gap: 8 }}><span className="muted" style={{ fontWeight: 700 }}>RM</span><input className="input" inputMode="decimal" autoFocus={autoFocus} placeholder={placeholder ?? '0.00'} value={value} onChange={(e) => set(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onEnter?.()} style={{ fontWeight: 700, fontSize: '1.05rem' }} /></div></label>;
+function MoneyField({ label, value, set, autoFocus, placeholder, onEnter, extra }: { label: string; value: string; set: (v: string) => void; autoFocus?: boolean; placeholder?: string; onEnter?: () => void; extra?: React.ReactNode }) {
+  return <div className="field"><span>{label}</span><div className="row" style={{ gap: 8 }}><span className="muted" style={{ fontWeight: 700 }}>RM</span><input className="input grow" inputMode="decimal" aria-label={label} autoFocus={autoFocus} placeholder={placeholder ?? '0.00'} value={value} onChange={(e) => set(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onEnter?.()} style={{ fontWeight: 700, fontSize: '1.05rem', minWidth: 0 }} />{extra}</div></div>;
 }
 
 function PlatformPick({ value, set }: { value: string; set: (v: string) => void }) {
@@ -342,7 +344,7 @@ function ItemPicker({ statuses, onPick }: { statuses: BizItem['status'][]; onPic
       <div className="tl-items" style={{ maxHeight: 320, overflowY: 'auto' }}>
         {groups.slice(0, 40).map((g) => { const i = g[0]; return (
           <div key={i.id} className="tl-item" onClick={() => onPick(i)}>
-            <div className="grow"><div className="tl-note">{i.name}{g.length > 1 && <span className="muted"> ×{g.length}</span>}</div><div className="tl-sub">Cost {fmt.rm(i.costSen)}{i.status === 'kept' ? ' · from my collection' : ''}</div></div>
+            <div className="grow"><div className="tl-note">{i.name}{g.length > 1 && <span className="muted"> ×{g.length}</span>}</div><div className="tl-sub">{costText(i.costSen, fmt.rm)}{i.status === 'kept' ? ' · from my collection' : ''}</div></div>
             <Icon name="right" size={16} />
           </div>
         ); })}
@@ -377,11 +379,11 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
   const [added, setAdded] = useState<{ n: number; last: string }>({ n: 0, last: '' });
   const nameRef = useRef<HTMLInputElement>(null);
   const fmt = useFmt();
-  const c = parseAmount(cost);
+  const c = parseCost(cost); // 0 = free
   /** Save this piece. `next` keeps the sheet open for the next one (catalogue mode). */
   const save = (next: boolean) => {
     if (!name.trim()) { if (next && added.n > 0 && !cost) return onClose(); return setHint('Give it a name.'); }
-    if (!c) return setHint('Type what it cost you, above RM 0.');
+    if (c === null) return setHint('Type what it cost you, or tap Free.');
     act(addBizItems, { name, costSen: c, qty, boughtOn: date, askSen: parseAmount(ask) ?? undefined, kept }, new Date());
     sfx.tink();
     if (!next) return onClose();
@@ -408,14 +410,15 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
       }} onKeyDown={enter} /></label>
       <datalist id="biz-names">{names.map((n) => <option key={n} value={n} />)}</datalist>
       <div className="two">
-        <MoneyField label="Cost per piece" value={cost} set={setCost} onEnter={() => save(true)} />
+        <MoneyField label="Cost per piece" value={cost} set={setCost} onEnter={() => save(true)} extra={<button type="button" className={`btn sm ${c === 0 ? 'primary' : ''}`} onClick={() => { setCost('0'); setHint(''); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(true); } }} title="Got it for free">Free</button>} />
         {!kept && <MoneyField label="Asking price (optional)" value={ask} set={setAsk} placeholder="—" onEnter={() => save(true)} />}
       </div>
       <div className="row" style={{ gap: 14 }}>
         <div className="field"><span>Quantity</span><div className="seg-ctl"><button onClick={() => setQty(Math.max(1, qty - 1))}>−</button><button className="on" style={{ minWidth: 44 }}>{qty}</button><button onClick={() => setQty(Math.min(200, qty + 1))}>+</button></div></div>
         <label className="field grow"><span>Bought on</span><input type="date" className="input" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} /></label>
       </div>
-      {c ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>Total spent: <b style={{ color: 'var(--t1)' }}>{fmt.rm(c * qty)}</b>. Your Wealth drops by this now{kept ? '.' : ' and goes back up by what you receive when each piece sells.'}</div> : null}
+      {c === 0 ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}><b style={{ color: 'var(--in)' }}>Free</b>. Nothing comes off your Wealth{kept ? '.' : ', and the whole sale price counts as profit when it sells.'}</div>
+        : c ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>Total spent: <b style={{ color: 'var(--t1)' }}>{fmt.rm(c * qty)}</b>. Your Wealth drops by this now{kept ? '.' : ' and goes back up by what you receive when each piece sells.'}</div> : null}
       {hint && <div className="chip warn" style={{ alignSelf: 'flex-start' }}>{hint}</div>}
       <div className="row" style={{ gap: 8 }}>
         <span className="muted" style={{ fontSize: '.78rem', whiteSpace: 'nowrap' }}><span className="kbd">Enter</span> add & next</span>
@@ -453,7 +456,7 @@ function SellSheet({ presetId, onClose }: { presetId?: string; onClose: () => vo
     <Sheet title="Sold" onClose={onClose}>
       {!it ? <ItemPicker statuses={['stock', 'kept']} onPick={(i) => { setId(i.id); if (i.askSen) setPrice(String(i.askSen / 100)); }} /> : (
         <>
-          <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Cost {fmt.rm(it.costSen)} · bought {fmt.day(it.boughtOn)}{it.status === 'kept' ? ' · from my collection' : ''}</div></div>{!presetId && <button className="btn sm ghost" onClick={() => setId('')}>Change</button>}</div>
+          <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">{costText(it.costSen, fmt.rm)} · bought {fmt.day(it.boughtOn)}{it.status === 'kept' ? ' · from my collection' : ''}</div></div>{!presetId && <button className="btn sm ghost" onClick={() => setId('')}>Change</button>}</div>
           <div className="two">
             <MoneyField label="Sold for" value={price} set={setPrice} autoFocus onEnter={save} />
             <MoneyField label="Fees (shipping, platform)" value={fees} set={setFees} placeholder="0" onEnter={save} />
@@ -499,7 +502,7 @@ function ReserveSheet({ presetId, onClose }: { presetId?: string; onClose: () =>
     <Sheet title="Reserve for a buyer" onClose={onClose}>
       {!it ? <ItemPicker statuses={['stock', 'kept']} onPick={(i) => { setId(i.id); if (i.askSen) setPrice(String(i.askSen / 100)); }} /> : (
         <>
-          <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Cost {fmt.rm(it.costSen)}</div></div>{!presetId && <button className="btn sm ghost" onClick={() => setId('')}>Change</button>}</div>
+          <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">{costText(it.costSen, fmt.rm)}</div></div>{!presetId && <button className="btn sm ghost" onClick={() => setId('')}>Change</button>}</div>
           <div className="two">
             <MoneyField label="Deposit paid" value={deposit} set={setDeposit} autoFocus onEnter={save} />
             <MoneyField label="Agreed price (optional)" value={price} set={setPrice} placeholder="—" onEnter={save} />
@@ -536,7 +539,7 @@ function PaidSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const save = () => { if (bl === null) return; act(completeReservation, id, { balanceSen: bl, feesSen: parseAmount(fees) ?? 0, soldOn: date, ship }, new Date()); onClose(); };
   return (
     <Sheet title="Balance paid" onClose={onClose}>
-      <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Deposit {fmt.rm(r.depositSen)}{it.platform ? ` · ${it.platform}` : ''} · cost {fmt.rm(it.costSen)}</div></div></div>
+      <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Deposit {fmt.rm(r.depositSen)}{it.platform ? ` · ${it.platform}` : ''} · {costText(it.costSen, fmt.rm).toLowerCase()}</div></div></div>
       <div className="two">
         <MoneyField label="Balance received" value={bal} set={setBal} autoFocus onEnter={save} />
         <MoneyField label="Fees (shipping, platform)" value={fees} set={setFees} placeholder="0" onEnter={save} />
@@ -601,7 +604,7 @@ function ItemSheet({ id, onClose, go }: { id: string; onClose: () => void; go: (
   const [cancel, setCancel] = useState(false);
   if (!it) return null;
   const save = () => {
-    const patch: Parameters<typeof editBizItem>[2] = { name: name.trim() || it.name, costSen: parseAmount(cost) ?? it.costSen };
+    const patch: Parameters<typeof editBizItem>[2] = { name: name.trim() || it.name, costSen: parseCost(cost) ?? it.costSen };
     if (it.status === 'stock') patch.askSen = parseAmount(ask) ?? undefined;
     if (it.status === 'sold') { patch.soldSen = parseAmount(sold) ?? it.soldSen; patch.feesSen = parseAmount(fees) ?? undefined; }
     act(editBizItem, id, patch, new Date());
