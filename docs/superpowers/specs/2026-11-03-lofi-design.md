@@ -643,7 +643,7 @@ This replaces the earlier "a sale adds its profit" rule.
 - Free pieces show as **"Free"** instead of "Cost RM 0". A piece's cost can also be edited down to 0.
 - Negative costs are still refused. Expenses and sale prices must still be more than RM 0.
 
-## Rev 11: iPhone app and sync (design, awaiting Chloe's review)
+## Rev 11: iPhone app and sync (built 2026-11-05)
 
 **Goal:** Undr Ctrl on Chloe's iPhone as a Home Screen web app that shares the same data as the laptop. A sale logged at a meetup shows up on the PC, and the reverse.
 
