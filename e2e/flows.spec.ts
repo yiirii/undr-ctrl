@@ -1,4 +1,17 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
+
+// Pages you've visited stay alive (hidden) so switching back is instant. Tests mean "what's on screen",
+// so every page-level selector here only matches visible elements.
+const vis = (sel: string) => (sel.includes('visible=') ? sel : `${sel} >> visible=true`);
+const test = base.extend({
+  page: async ({ page }, use) => {
+    const loc = page.locator.bind(page), click = page.click.bind(page), fill = page.fill.bind(page);
+    (page as any).locator = (sel: string, o?: any) => loc(vis(sel), o);
+    (page as any).click = (sel: string, o?: any) => click(vis(sel), o);
+    (page as any).fill = (sel: string, v: string, o?: any) => fill(vis(sel), v, o);
+    await use(page);
+  },
+});
 
 const lofi = (page: Page, fn: string) => page.evaluate(fn);
 async function open(page: Page, q: string) {
@@ -359,6 +372,33 @@ test.describe('phone', () => {
     await expect(page.locator('.main-scroll h1')).toHaveText('Settings');
     await page.locator('.pn-tab', { hasText: 'Money' }).click();
     await expect(page.locator('.main-scroll h1')).toHaveText('Money');
+  });
+  test('pages stay ready: fresh data when you come back, scroll kept, tap the tab again for the top', async ({ page }) => {
+    await open(page, 'reset=1&seed=demo&view=myday');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+    await page.waitForTimeout(3500); // Money, Insights and Planned get prepared in the background
+    expect(await page.evaluate(() => [...document.querySelectorAll('.page-kept')].map((e) => (e as HTMLElement).dataset.view).sort())).toEqual(['insights', 'money', 'planned']);
+    // change data while Planned is hidden; it must show the change when opened
+    await page.evaluate(() => { const st = (window as any).__lofi.getState(); st.patch((s: any) => ({ ...s, tasks: [...s.tasks, { ...s.tasks.find((t: any) => t.due && !t.done), id: 'fresh1', title: 'Fresh while hidden', done: false }] })); });
+    await page.locator('.pn-tab', { hasText: 'More' }).tap();
+    await page.locator('.more-row', { hasText: 'Planned' }).tap();
+    await expect(page.locator('.main-scroll .task-title', { hasText: 'Fresh while hidden' })).toBeVisible();
+    // scroll position is kept per page
+    await page.locator('.pn-tab', { hasText: 'Money' }).tap();
+    await expect(page.locator('.main-scroll h1')).toHaveText('Money');
+    await page.evaluate(() => document.querySelector('.main-scroll')!.scrollTo(0, 500));
+    await page.locator('.pn-tab', { hasText: 'My Day' }).tap();
+    await expect(page.locator('.main-scroll h1')).toHaveText('My Day');
+    await page.locator('.pn-tab', { hasText: 'Money' }).tap();
+    await expect(page.locator('.main-scroll h1')).toHaveText('Money');
+    expect(await page.evaluate(() => document.querySelector('.main-scroll')!.scrollTop)).toBeGreaterThan(400);
+    // tapping the tab you're on goes back to the top
+    await page.locator('.pn-tab', { hasText: 'Money' }).tap();
+    await expect.poll(() => page.evaluate(() => document.querySelector('.main-scroll')!.scrollTop)).toBeLessThan(5);
+    // Personal / Business both stay ready
+    await page.locator('.money-tabs button', { hasText: 'Business' }).tap();
+    await page.locator('.money-tabs button', { hasText: 'Personal' }).tap();
+    await expect(page.locator('.money-hero')).toBeVisible();
   });
   test('nothing is wider than the screen; settings tabs all reachable; desktop-only settings hidden', async ({ page }) => {
     await open(page, 'reset=1&seed=demo&view=myday');

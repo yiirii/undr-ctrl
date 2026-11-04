@@ -4,9 +4,10 @@ import { remaining } from '../../core/focus';
 import { Ring } from '../shapes/Progress';
 import { fmtSec } from '../music/service';
 
-export function useNow(ms = 500) {
+/** The current time, refreshed every `ms` while `on` (a stopped clock costs nothing). */
+export function useNow(ms = 500, on = true) {
   const [n, setN] = useState(Date.now());
-  useEffect(() => { const i = setInterval(() => setN(Date.now()), ms); return () => clearInterval(i); }, [ms]);
+  useEffect(() => { if (!on) return; setN(Date.now()); const i = setInterval(() => setN(Date.now()), ms); return () => clearInterval(i); }, [ms, on]);
   return n;
 }
 
@@ -16,7 +17,7 @@ export function MiniTimer() {
   const view = useStore((x) => x.ui.view);
   const go = useStore((x) => x.go);
   const collapsed = useStore((x) => x.s.appearance.sidebarCollapsed);
-  const now = useNow(1000);
+  const now = useNow(1000, !!f && f.pausedAt === undefined && view !== 'focus');
   if (!f || view === 'focus') return null;
   const left = remaining(f, now);
   return (

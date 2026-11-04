@@ -1,6 +1,6 @@
 // Real backend: Firebase Auth (email + password) and Firestore records under users/{uid}/records.
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentSingleTabManager, collection, doc, setDoc, onSnapshot, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 import type { Backend } from './backend';
@@ -11,7 +11,8 @@ const enc = (key: string) => key.replace(/\//g, '~'); // Firestore ids can't con
 
 export function firebaseBackend(): Backend {
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+  // Email + password only: no Google pop-up helper, so nothing extra is downloaded at start-up.
+  const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
   let db: Firestore;
   try { db = initializeFirestore(app, { ignoreUndefinedProperties: true, localCache: persistentLocalCache({ tabManager: persistentSingleTabManager(undefined) }) }); }
   catch { db = initializeFirestore(app, { ignoreUndefinedProperties: true }); }

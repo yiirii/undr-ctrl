@@ -712,3 +712,29 @@ This replaces the earlier "a sale adds its profit" rule.
 **Offline worker.** It deletes the previous release's cache. If the network takes more than 2.5 s it opens the cached app, so a weak signal never holds up launch.
 
 **Safety.** `?reset=1` only wipes data in development builds.
+
+## Rev 13: Smoother iPhone (built 2026-11-05, version 1.2.1)
+
+Chloe still felt a delay moving between tabs on the iPhone. The fix is measured with `scripts/perf-tap.cjs`: tap → new screen, emulated iPhone, CPU slowed 4×.
+
+- **Pages stay ready.**
+  - Once visited, a page stays alive in the background, hidden and paused (React Suspense "freeze"), so coming back to it is instant.
+  - Up to 8 pages are kept; the least recently used is let go.
+  - A short while after start-up, Money, Insights and Planned are prepared in the background while the phone is idle.
+  - Each page remembers its scroll position.
+  - Tapping the tab you're already on scrolls back to the top, as in iOS apps.
+- **Personal and Business** on Money are also both kept, and each is rebuilt only when its data changes.
+- **Instant tabs.** Bottom-bar tabs switch as soon as your finger touches them, not when it lifts. Pages appear at once with no fade. Buttons that open sheets (+, More) still act on the lift.
+- **No background work.**
+  - The savings-goal waves and the empty-state shapes animate in CSS instead of JavaScript on every frame. They pause by themselves while hidden.
+  - The focus clock only ticks while a session is running.
+  - The app shell no longer redraws when a sheet opens.
+- **Lighter cards.** Category bubbles, stock and collection cards, and activity rows no longer track their layout. That was costly with a big catalogue.
+- **Sync start-up.** Sign-in is email and password only, so the unused Google pop-up helper is no longer loaded (it was also blocked by the CSP).
+- **Result.**
+
+  | Measure | Before | After |
+  |---|---|---|
+  | Average tap → new screen shown | ~120 ms | ~47 ms |
+  | Average tap → fully settled | ~200 ms | ~56 ms |
+  | Money ↔ Business | ~100 ms | ~50 ms |

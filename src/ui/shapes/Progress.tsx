@@ -88,8 +88,9 @@ export function Liquid({ value, max, color = 'var(--wea)', size = 72, radius = 1
       <rect width={size} height={size} rx={radius} fill="var(--bg4)" opacity={0.5} />
       <g clipPath={`url(#lq${id})`}>
         <motion.g style={{ y }}>
-          <motion.path d={wave(6)} fill={color} opacity={0.45} animate={reduced ? {} : { x: [-w / 2, 0] }} transition={{ repeat: Infinity, duration: 5.5, ease: 'linear' }} />
-          <motion.path d={wave(5)} fill={color} animate={reduced ? {} : { x: [0, -w / 2] }} transition={{ repeat: Infinity, duration: 3.8, ease: 'linear' }} style={{ translateY: 3 }} />
+          {/* waves move with CSS: smooth, off the main thread, and paused while hidden */}
+          <g transform="translate(0 0)"><path className={reduced ? undefined : 'lq-wave lq-a'} d={wave(6)} fill={color} opacity={0.45} style={{ ['--w' as string]: `${w / 2}px` }} /></g>
+          <g transform="translate(0 3)"><path className={reduced ? undefined : 'lq-wave lq-b'} d={wave(5)} fill={color} style={{ ['--w' as string]: `${w / 2}px` }} /></g>
         </motion.g>
       </g>
       <rect width={size - 1} height={size - 1} x={0.5} y={0.5} rx={radius} fill="none" stroke="var(--line)" />

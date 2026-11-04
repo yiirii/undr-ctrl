@@ -8,6 +8,10 @@ const problems = []; const _push = problems.push.bind(problems); problems.push =
   const b = await chromium.launch();
   const PHONE = process.env.VIEWPORT === 'phone';
   const p = await b.newPage(PHONE ? { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } : { viewport: { width: 1440, height: 900 } });
+  // visited pages stay alive (hidden) for instant switching: only ever act on what's on screen
+  { const vis = (sel) => (typeof sel === 'string' && !sel.includes('visible=') ? `${sel} >> visible=true` : sel);
+    const loc = p.locator.bind(p), click = p.click.bind(p), fill = p.fill.bind(p);
+    p.locator = (sel, o) => loc(vis(sel), o); p.click = (sel, o) => click(vis(sel), o); p.fill = (sel, v, o) => fill(vis(sel), v, o); }
   p.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
   p.on('console', (m) => { if (m.type() === 'error' && !/favicon|Download the React/.test(m.text())) problems.push(`console: ${m.text().slice(0, 200)}`); });
   await p.goto(`${URL}/?reset=1&seed=demo&view=myday`); await p.waitForTimeout(900);

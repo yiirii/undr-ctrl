@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Keep } from '../shapes/Keep';
 import { useStore, act } from '../../store/store';
 import { deposit, dismissNudge, addGoal, deleteGoal, upsertCategory } from '../../store/logic';
 import { monthSummary, nudge as getNudge, goalPlan, parseAmount, inMonth, suggestFromHistory } from '../../core/money';
@@ -19,7 +20,7 @@ import type { MoneyEntry } from '../../core/types';
 
 export function Money() {
   const s = useStore((x) => x.s);
-  const ui = useStore((x) => x.ui);
+  const ui = { recapMonth: useStore.getState().ui.recapMonth }; // read once, for the auto-open below
   const setUI = useStore((x) => x.setUI);
   const fmt = useFmt();
   const today = dayKey(new Date());
@@ -51,37 +52,9 @@ export function Money() {
   const used = m.budgetSen > 0 ? m.outSen / m.budgetSen : 0;
   const biz = bizMonth(s.business.items, s.business.expenses, mk);
   const kept = m.keptSen + biz.profitSen;
-  return (
-    <div className="page page-wide">
-      <div className="ph ph-money">
-        <div><h1>Money</h1><div className="sub">What comes in, what goes out, and what you keep</div></div>
-        <div className="ph-actions" style={{ alignItems: 'center' }}>
-          <div className="seg-ctl money-tabs"><button className={tab === 'personal' ? 'on' : ''} onClick={() => setTab('personal')}>Personal</button><button className={tab === 'business' ? 'on' : ''} onClick={() => setTab('business')}>Business</button></div>
-          <div className="month-nav">
-            <button className="icon-btn" disabled={mk <= monthKey(earliest)} onClick={() => setMk(addMonths(mk, -1))}><Icon name="left" size={16} /></button>
-            <b>{monthName(mk)} {mk.slice(0, 4)}</b>
-            <button className="icon-btn" disabled={isCurrent} onClick={() => setMk(addMonths(mk, 1))}><Icon name="right" size={16} /></button>
-          </div>
-          {!isCurrent && <button className="btn" onClick={() => setUI({ recapMonth: mk })}><Icon name="sparkle" size={16} />Recap</button>}
-          {isCurrent && prevHas && <button className="btn ghost" onClick={() => setUI({ recapMonth: prevMk })}><Icon name="sparkle" size={16} />{monthName(prevMk)} recap</button>}
-          {tab === 'personal' && <button className="btn primary" onClick={() => setUI({ logSheet: { kind: 'out' } })}><Icon name="plus" size={16} stroke={2.4} />Log <span className="kbd" style={{ background: 'transparent', color: 'inherit', opacity: 0.7 }}>Ctrl E</span></button>}
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {tab === 'personal' && showNudge && nd && (
-          <motion.div className="nudge" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, marginBottom: 0, padding: 0 }}>
-            <Icon name={nd.kind === 'warn' ? 'bell' : nd.kind === 'payday' ? 'coins' : 'clock'} size={18} />
-            <div className="grow">{nd.text}</div>
-            {nd.kind === 'payday' && nd.goalId && <button className="btn primary sm" onClick={() => { act(deposit, nd.goalId!, nd.suggestSen!, new Date()); act(dismissNudge, nd.id); }}>Put {fmt.rm(nd.suggestSen!)} aside</button>}
-            {nd.kind === 'quiet' && <button className="btn sm" onClick={() => setUI({ logSheet: { kind: 'out' } })}>Log something</button>}
-            <button className="icon-btn" onClick={() => act(dismissNudge, nd.id)} title="Dismiss"><Icon name="x" size={14} /></button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {tab === 'business' ? <Business mk={mk} /> : (<>
-
+  // Each tab's content is only rebuilt when its data changes, so flipping Personal / Business is instant.
+  const bizPane = useMemo(() => <Business mk={mk} />, [mk]);
+  const personalPane = useMemo(() => (<>
       <div className="money-grid">
         {!m.hasBudget && !s.money.setupDone ? (
           <div className="money-hero" style={{ justifyContent: 'center', textAlign: 'center', flexDirection: 'column', gap: 12, padding: 36 }}>
@@ -162,7 +135,7 @@ export function Money() {
                       const c = e.kind === 'out' ? s.money.categories.find((x) => x.id === e.categoryId) : undefined;
                       const src = e.kind === 'in' ? s.money.sources.find((x) => x.id === e.sourceId) : undefined;
                       return (
-                        <motion.div key={e.id} layout initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="tl-item" onClick={() => setUI({ logSheet: { kind: e.kind, editId: e.id } })}>
+                        <motion.div key={e.id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="tl-item" onClick={() => setUI({ logSheet: { kind: e.kind, editId: e.id } })}>
                           <CatIcon c={c ?? { icon: src?.icon ?? 'coins', color: 'var(--in)' }} size={34} />
                           <div style={{ minWidth: 0 }}><div className="tl-note">{e.note || c?.name || src?.name}</div><div className="tl-sub">{c?.name ?? src?.name}{e.autoFrom ? ' · added automatically' : e.repeatMonthly ? ' · repeats monthly' : ''}</div></div>
                           <div className={`tl-amt ${e.kind}`}>{e.kind === 'in' ? '+' : ''}{fmt.rm(e.sen)}</div>
@@ -196,7 +169,41 @@ export function Money() {
         </div>
       </div>
 
-      </>)}
+  </>), [s, mk, catId, newGoal, addingCat, catName, setup]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="page page-wide">
+      <div className="ph ph-money">
+        <div><h1>Money</h1><div className="sub">What comes in, what goes out, and what you keep</div></div>
+        <div className="ph-actions" style={{ alignItems: 'center' }}>
+          <div className="seg-ctl money-tabs"><button className={tab === 'personal' ? 'on' : ''} onClick={() => setTab('personal')}>Personal</button><button className={tab === 'business' ? 'on' : ''} onClick={() => setTab('business')}>Business</button></div>
+          <div className="month-nav">
+            <button className="icon-btn" disabled={mk <= monthKey(earliest)} onClick={() => setMk(addMonths(mk, -1))}><Icon name="left" size={16} /></button>
+            <b>{monthName(mk)} {mk.slice(0, 4)}</b>
+            <button className="icon-btn" disabled={isCurrent} onClick={() => setMk(addMonths(mk, 1))}><Icon name="right" size={16} /></button>
+          </div>
+          {!isCurrent && <button className="btn" onClick={() => setUI({ recapMonth: mk })}><Icon name="sparkle" size={16} />Recap</button>}
+          {isCurrent && prevHas && <button className="btn ghost" onClick={() => setUI({ recapMonth: prevMk })}><Icon name="sparkle" size={16} />{monthName(prevMk)} recap</button>}
+          {tab === 'personal' && <button className="btn primary" onClick={() => setUI({ logSheet: { kind: 'out' } })}><Icon name="plus" size={16} stroke={2.4} />Log <span className="kbd" style={{ background: 'transparent', color: 'inherit', opacity: 0.7 }}>Ctrl E</span></button>}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {tab === 'personal' && showNudge && nd && (
+          <motion.div className="nudge" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, marginBottom: 0, padding: 0 }}>
+            <Icon name={nd.kind === 'warn' ? 'bell' : nd.kind === 'payday' ? 'coins' : 'clock'} size={18} />
+            <div className="grow">{nd.text}</div>
+            {nd.kind === 'payday' && nd.goalId && <button className="btn primary sm" onClick={() => { act(deposit, nd.goalId!, nd.suggestSen!, new Date()); act(dismissNudge, nd.id); }}>Put {fmt.rm(nd.suggestSen!)} aside</button>}
+            {nd.kind === 'quiet' && <button className="btn sm" onClick={() => setUI({ logSheet: { kind: 'out' } })}>Log something</button>}
+            <button className="icon-btn" onClick={() => act(dismissNudge, nd.id)} title="Dismiss"><Icon name="x" size={14} /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* both tabs stay ready once seen; the other one is prepared while the app is idle */}
+      <Keep show={tab === 'business'} warm>{bizPane}</Keep>
+      <Keep show={tab === 'personal'} warm>{personalPane}</Keep>
+
       {catId && <CategoryDetail id={catId} mk={mk} onClose={() => setCatId(null)} />}
       {setup !== false && <Setup startStep={setup} onDone={() => setSetup(false)} onSkip={() => setSetup(false)} />}
     </div>

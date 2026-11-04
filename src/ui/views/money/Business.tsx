@@ -146,7 +146,7 @@ export function Business({ mk }: { mk: string }) {
                   const i = g[0];
                   const days = diffDays(i.boughtOn, today);
                   return (
-                    <motion.div key={groupKey(i)} layout className="stock-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING} onClick={() => setSheet({ kind: 'item', id: i.id })}>
+                    <motion.div key={groupKey(i)} className="stock-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING} onClick={() => setSheet({ kind: 'item', id: i.id })}>
                       <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
                         <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">{costText(i.costSen, fmt.rm)}{i.askSen ? ` · asking ${fmt.rm(i.askSen)}` : ''}</div></div>
                         {g.length > 1 && <span className="chip">×{g.length}</span>}
@@ -181,7 +181,7 @@ export function Business({ mk }: { mk: string }) {
                 const i = g[0];
                 const gain = (i.valueSen ?? i.costSen) - i.costSen;
                 return (
-                  <motion.div key={groupKey(i)} layout className="stock-card kept" onClick={() => setSheet({ kind: 'item', id: i.id })} whileHover={{ y: -2 }}>
+                  <motion.div key={groupKey(i)} className="stock-card kept" onClick={() => setSheet({ kind: 'item', id: i.id })} whileHover={{ y: -2 }}>
                     <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
                       <div className="grow" style={{ minWidth: 0 }}><div className="stock-name">{i.name}</div><div className="tl-sub">{costText(i.costSen, fmt.rm, 'Paid')}{i.valueSen ? ` · worth ${fmt.rm(i.valueSen)}` : ''}</div></div>
                       {g.length > 1 && <span className="chip">×{g.length}</span>}

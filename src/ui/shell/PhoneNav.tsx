@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore, useProgress } from '../../store/store';
 import { NAV_PAGES, type View } from '../../store/state';
 import { Icon } from '../shapes/icons';
@@ -44,8 +44,20 @@ export function PhoneNav() {
   const setUI = useStore((x) => x.setUI);
   const go = useStore((x) => x.go);
   const moreActive = !['myday', 'money', 'insights'].includes(view);
+  // Tabs switch the moment your finger touches them (like iOS), not when it lifts.
+  // (Only tabs: a button that opens a sheet must wait for the lift, or the lift would land on the sheet.)
+  // Tapping the tab you're already on scrolls back to the top.
+  const touched = useRef(0);
+  const nav = (v: View) => {
+    if (useStore.getState().ui.view === v) { document.querySelector('.main-scroll')?.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    go(v); setUI({ moreOpen: false, detailId: null });
+  };
+  const press = (f: () => void) => ({
+    onPointerDown: (e: React.PointerEvent) => { if (e.pointerType !== 'mouse' && e.isPrimary) { touched.current = Date.now(); f(); } },
+    onClick: () => { if (Date.now() - touched.current > 700) f(); },
+  });
   const tab = (t: (typeof TABS)[number]) => (
-    <button key={t.v} className={`pn-tab ${view === t.v ? 'on' : ''}`} onClick={() => { go(t.v); setUI({ moreOpen: false, detailId: null }); }}>
+    <button key={t.v} className={`pn-tab ${view === t.v ? 'on' : ''}`} {...press(() => nav(t.v))}>
       <Icon name={t.icon} size={22} /><span>{t.label}</span>
     </button>
   );
@@ -62,8 +74,8 @@ export function PhoneNav() {
 function PhoneSheet({ onClose, children, title }: { onClose: () => void; children: React.ReactNode; title: string }) {
   const present = useIsPresent();
   return (
-    <motion.div className="modal phone-sheet-bg" style={{ pointerEvents: present ? 'auto' : 'none' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.14 } }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div className="phone-sheet" initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 40, transition: { duration: 0.14 } }} transition={SPRING}>
+    <motion.div className="modal phone-sheet-bg" style={{ pointerEvents: present ? 'auto' : 'none' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} exit={{ opacity: 0, transition: { duration: 0.12 } }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <motion.div className="phone-sheet" initial={{ y: 48 }} animate={{ y: 0 }} exit={{ y: 40, transition: { duration: 0.12 } }} transition={{ type: 'tween', duration: 0.2, ease: [0.2, 0.9, 0.25, 1] }}>
         <div className="ps-grab" />
         <div className="ps-title">{title}</div>
         {children}

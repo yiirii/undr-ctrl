@@ -19,7 +19,8 @@ const LENGTHS = [15, 25, 45, 50];
 export function FocusTicker() {
   const f = useStore((x) => x.s.focus);
   const link = useStore((x) => x.s.focusSettings.musicLink);
-  const now = useNow(500);
+  // only tick while a session is actually running
+  const now = useNow(500, !!f && f.pausedAt === undefined);
   const phase = useRef<string | null>(null);
   useEffect(() => {
     if (!f || f.pausedAt !== undefined) return;
@@ -46,7 +47,7 @@ export function Focus() {
   const go = useStore((x) => x.go);
   const setSettings = useStore((x) => x.patch);
   const f = s.focus;
-  const now = useNow(250);
+  const now = useNow(250, !!f && f.pausedAt === undefined);
   const today = dayKey(new Date());
   if (!f) {
     const recent = s.tasks.filter((t) => !t.doneAt && !t.habit).slice(-6).reverse();

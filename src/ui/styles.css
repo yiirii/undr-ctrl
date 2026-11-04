@@ -623,3 +623,12 @@ button, a, label, .task, .qa-cand, .dd-opt, .more-row, .pn-tab { touch-action: m
 }
 input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .no-select, .pn-tab, .pn-plus, .numpad button, .qa-btn { -webkit-user-select: none; user-select: none; }
+
+/* pages kept alive in the background (see PageSlot) */
+.page-kept { display: none; }
+.lq-wave { will-change: transform; animation: lqWave linear infinite; }
+.lq-a { animation-duration: 5.5s; animation-direction: reverse; }
+.lq-b { animation-duration: 3.8s; }
+@keyframes lqWave { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--w))); } }
+.amb-float { animation: ambFloat ease-in-out infinite; }
+@keyframes ambFloat { 50% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); } }

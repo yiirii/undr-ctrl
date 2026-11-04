@@ -1,5 +1,7 @@
 import { AnimatePresence, motion, PresenceContext } from 'framer-motion';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, memo, startTransition, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Freeze, whenIdle } from '../shapes/Keep';
+import type { View } from '../../store/state';
 import { useStore } from '../../store/store';
 import { Sidebar } from './Sidebar';
 import { TaskDetail } from './TaskDetail';
@@ -32,31 +34,79 @@ const Profile = lazy(() => loadProfile().then((m) => ({ default: m.Profile })));
 const Quests = lazy(() => loadQuests().then((m) => ({ default: m.Quests })));
 export function prefetchPages() { for (const f of [loadInsights, loadSettings, loadProfile, loadQuests]) void f().catch(() => {}); }
 
-function View() {
-  const view = useStore((x) => x.ui.view);
-  let el;
-  if (view === 'myday') el = <MyDay />;
-  else if (view === 'planned') el = <Planned />;
-  else if (view === 'habits') el = <Habits />;
-  else if (view === 'money') el = <Money />;
-  else if (view === 'insights') el = <Insights />;
-  else if (view === 'quests') el = <Quests />;
-  else if (view === 'profile') el = <Profile />;
-  else if (view === 'settings') el = <Settings />;
-  else if (view === 'focus') el = <Focus />;
-  else if (view.startsWith('list:')) el = <ListView id={view.slice(5)} />;
-  // The new page swaps in at once and eases in; the old one never waits on an exit animation,
-  // so a tab tap answers immediately and nothing can hold a page change open.
-  return (
-    <motion.div key={view} className="main-scroll" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}>
-      <PresenceContext.Provider value={null}><Suspense fallback={null}>{el}</Suspense></PresenceContext.Provider>
-    </motion.div>
-  );
+function pageFor(view: string) {
+  if (view === 'myday') return <MyDay />;
+  if (view === 'planned') return <Planned />;
+  if (view === 'habits') return <Habits />;
+  if (view === 'money') return <Money />;
+  if (view === 'insights') return <Insights />;
+  if (view === 'quests') return <Quests />;
+  if (view === 'profile') return <Profile />;
+  if (view === 'settings') return <Settings />;
+  if (view === 'focus') return <Focus />;
+  if (view.startsWith('list:')) return <ListView id={view.slice(5)} />;
+  return null;
 }
+
+/**
+ * One page, kept alive once visited. When you leave it, it stays in memory, hidden and paused,
+ * so coming back is instant and keeps your scroll position. Only the visible page is ".main-scroll".
+ */
+const PageSlot = memo(function PageSlot({ view, active }: { view: string; active: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const top = useRef(0);
+  const [committed, setCommitted] = useState(false);
+  useEffect(() => setCommitted(true), []);
+  useLayoutEffect(() => { if (active && ref.current) ref.current.scrollTop = top.current; }, [active]);
+  // the same element every time, so showing a kept page again doesn't redraw it from scratch
+  const page = useMemo(() => pageFor(view), [view]);
+  return (
+    <div ref={ref} className={active ? 'main-scroll' : 'page-kept'} data-view={view} onScroll={(e) => { top.current = e.currentTarget.scrollTop; }}>
+      <PresenceContext.Provider value={null}>
+        <Freeze frozen={!active && committed}><Suspense fallback={null}>{page}</Suspense></Freeze>
+      </PresenceContext.Provider>
+    </div>
+  );
+});
+
+const KEEP = 8; // pages kept alive at once (least recently used are let go)
+const WARM: View[] = ['money', 'insights', 'planned'];
+
+const Pages = memo(function Pages() {
+  const view = useStore((x) => x.ui.view);
+  const order = useRef<string[]>([]);
+  const [, bump] = useState(0);
+  if (order.current[order.current.length - 1] !== view) {
+    order.current = [...order.current.filter((v) => v !== view), view].slice(-KEEP);
+  }
+  // after start-up, quietly prepare the pages you're most likely to open next
+  useEffect(() => {
+    let cancel = () => {};
+    const next = (i: number) => {
+      if (i >= WARM.length) return;
+      cancel = whenIdle(() => {
+        const v = WARM[i];
+        if (!order.current.includes(v)) { order.current = [v, ...order.current].slice(-KEEP); startTransition(() => bump((n) => n + 1)); }
+        const t = setTimeout(() => next(i + 1), 400);
+        cancel = () => clearTimeout(t);
+      });
+    };
+    const t = setTimeout(() => next(0), 1200);
+    return () => { clearTimeout(t); cancel(); };
+  }, []);
+  // a stable order keeps React from moving DOM around when you switch
+  const slots = [...order.current].sort();
+  return <>{slots.map((v) => <PageSlot key={v} view={v} active={v === view} />)}</>;
+});
 
 export function App() {
   const phone = useIsPhone();
-  const ui = useStore((x) => x.ui);
+  // subscribe only to what this shell shows, so opening a sheet doesn't redraw the whole app
+  const saveError = useStore((x) => x.ui.saveError);
+  const recovered = useStore((x) => x.ui.recovered);
+  const detailId = useStore((x) => x.ui.detailId);
+  const quickAdd = useStore((x) => x.ui.quickAdd);
+  const ui = { saveError, recovered, detailId, quickAdd };
   const onboarded = useStore((x) => x.s.profile.onboarded);
   const setUI = useStore((x) => x.setUI);
 
@@ -105,7 +155,7 @@ export function App() {
             </div>
           </div>
         )}
-        <View />
+        <Pages />
         <AnimatePresence>{ui.detailId && <TaskDetail id={ui.detailId} />}</AnimatePresence>
       </main>
       {ui.quickAdd && <QuickAdd />}
