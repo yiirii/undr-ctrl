@@ -9,6 +9,7 @@ import { isScheduled, describeRecurrence } from '../../core/recurrence';
 import { STAT_META, STATS, type Stat, type Task, type Recurrence } from '../../core/types';
 import { Bar, SegBar, Ring, SPRING } from '../shapes/Progress';
 import { Icon, LIST_ICONS } from '../shapes/icons';
+import { Select } from '../shapes/Select';
 import { Ambient } from '../shapes/Ambient';
 import { TaskRow } from '../shell/TaskRow';
 import { AddRow } from '../shell/AddRow';
@@ -260,7 +261,7 @@ export function Habits() {
         <div className="row" style={{ flexWrap: 'wrap', gap: 10 }}>
           <div className="seg-ctl">{(['daily', 'weekdays', 'custom'] as const).map((k) => <button key={k} type="button" className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>{k === 'daily' ? 'Every day' : k === 'weekdays' ? 'Weekdays' : 'Pick days'}</button>)}</div>
           {kind === 'custom' && <div className="seg-ctl">{[1, 2, 3, 4, 5, 6, 0].map((d) => <button key={d} type="button" className={days.includes(d) ? 'on' : ''} onClick={() => setDays(days.includes(d) ? days.filter((x) => x !== d) : [...days, d])}>{DAY_LABELS[d]}</button>)}</div>}
-          <select className="input" style={{ width: 180, height: 36 }} value={listId} onChange={(e) => setListId(e.target.value)}>{s.lists.map((l) => <option key={l.id} value={l.id}>{l.name}{l.stat ? ` · ${STAT_META[l.stat].name}` : ''}</option>)}</select>
+          <Select compact ariaLabel="List" style={{ width: 190 }} value={listId} onChange={setListId} options={s.lists.map((l) => ({ value: l.id, label: l.name, dot: l.color, hint: l.stat ? STAT_META[l.stat].name : undefined }))} />
         </div>
       </div>
       {habits.length === 0 && <Empty title="No habits yet" text="Add one above. Habits due today also appear at the top of My Day." />}

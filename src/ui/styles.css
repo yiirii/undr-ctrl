@@ -541,3 +541,30 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .first-brand img { border-radius: 16px; }
 .first-brand h1 { font-size: 1.8rem; }
 .first-screen .sync-card { width: 100%; }
+
+/* ---- custom dropdown ---- */
+.dd { display: flex; align-items: center; gap: 10px; height: 40px; width: 100%; padding: 0 12px; border-radius: var(--radius-sm); background: var(--bg0); border: 1px solid transparent; color: var(--t1); text-align: left; transition: border-color .15s, background .15s; }
+.dd:hover { background: color-mix(in srgb, var(--bg0) 80%, var(--bg3)); }
+.dd.open, .dd:focus-visible { border-color: var(--accent); outline: none; }
+.dd.compact { height: 34px; }
+.dd-val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dd-chev { display: flex; color: var(--t3); }
+.dd .sdot, .dd-opt .sdot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.dd-menu { position: fixed; z-index: 120; overflow-y: auto; padding: 6px; border-radius: calc(var(--radius) + 2px); background: var(--bg1); border: 1px solid var(--line); box-shadow: var(--shadow); transform-origin: top center; }
+.dd-opt { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-radius: var(--radius-sm); color: var(--t2); cursor: pointer; font-size: .92rem; }
+.dd-opt.active { background: var(--bg3); color: var(--t1); }
+.dd-opt.on { color: var(--t1); font-weight: 600; }
+.dd-sheet-bg { position: fixed; inset: 0; z-index: 120; background: color-mix(in srgb, var(--bg0) 60%, transparent); display: flex; align-items: flex-end; }
+.dd-sheet { width: 100%; max-height: 70dvh; overflow-y: auto; background: var(--bg1); border-radius: 22px 22px 0 0; padding: 8px 12px calc(env(safe-area-inset-bottom) + 14px); box-shadow: var(--shadow); }
+.dd-sheet .dd-opt { min-height: 48px; font-size: 1rem; }
+/* the task-detail "opt" rows host a dropdown */
+.opt .dd { background: transparent; height: 100%; padding: 0; border: 0; }
+.opt .dd:hover { background: transparent; }
+
+/* ---- text entry polish ---- */
+input, textarea { caret-color: var(--accent); }
+.add-row { cursor: text; transition: background .15s, box-shadow .15s; }
+.add-row:focus-within { background: color-mix(in srgb, var(--bg0) 75%, var(--bg2)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.add-row input { align-self: stretch; height: 100%; line-height: 1.4; }
+.add-row .plus { transition: transform .2s; }
+.add-row:focus-within .plus { transform: rotate(90deg); }

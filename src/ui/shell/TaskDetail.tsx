@@ -9,6 +9,7 @@ import { STAT_META, STATS, type Recurrence, type Size, type Task } from '../../c
 import { SIZE_XP } from '../../core/rules';
 import { dayKey } from '../../core/dates';
 import { Icon } from '../shapes/icons';
+import { Select } from '../shapes/Select';
 import { SPRING, Bar } from '../shapes/Progress';
 
 function recKind(r?: Recurrence) { return r ? r.kind : 'none'; }
@@ -57,7 +58,7 @@ export function TaskDetail({ id }: { id: string }) {
       </div>
 
       <div className="field"><span>List</span>
-        <div className="opt"><Icon name="list" /><select value={t.listId} onChange={(e) => up({ listId: e.target.value })}>{s.lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
+        <div className="opt"><Icon name="list" /><Select ariaLabel="List" value={t.listId} onChange={(v) => up({ listId: v })} options={s.lists.map((l) => ({ value: l.id, label: l.name, dot: l.color }))} /></div>
       </div>
 
       <div className="field"><span>Stat {t.stat === undefined ? '· from list' : ''}</span>
@@ -78,9 +79,7 @@ export function TaskDetail({ id }: { id: string }) {
 
       <div className="field"><span>Repeat</span>
         <div className="opt"><Icon name="repeat" />
-          <select value={recKind(t.recurrence)} onChange={(e) => setRec(e.target.value)}>
-            <option value="none">Doesn't repeat</option><option value="daily">Every day</option><option value="weekdays">Weekdays</option><option value="weekly">Weekly on…</option><option value="everyN">Every N days</option><option value="monthly">Monthly</option>
-          </select>
+          <Select ariaLabel="Repeat" value={recKind(t.recurrence)} onChange={setRec} options={[{ value: 'none', label: 'Doesn\u2019t repeat' }, { value: 'daily', label: 'Every day' }, { value: 'weekdays', label: 'Weekdays' }, { value: 'weekly', label: 'Weekly on…' }, { value: 'everyN', label: 'Every N days' }, { value: 'monthly', label: 'Monthly' }]} />
         </div>
         {t.recurrence?.kind === 'weekly' && (
           <div className="seg-ctl">{[1, 2, 3, 4, 5, 6, 0].map((d) => { const days = (t.recurrence as { days: number[] }).days; const on = days.includes(d); return <button key={d} className={on ? 'on' : ''} onClick={() => up({ recurrence: { kind: 'weekly', days: on ? days.filter((x) => x !== d) : [...days, d] } })}>{'SMTWTFS'[d]}</button>; })}</div>

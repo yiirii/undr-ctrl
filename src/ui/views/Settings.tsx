@@ -5,6 +5,7 @@ import { THEMES, THEME_LABELS, ACCENTS, FONTS, DEFAULT_APPEARANCE, type ThemeId,
 import { UNLOCKS, isUnlocked, nextUnlock, lockedValue } from '../../core/unlocks';
 import { upsertCategory, addSource } from '../../store/logic';
 import { Icon } from '../shapes/icons';
+import { Select } from '../shapes/Select';
 import { Bar, SegBar, Ring } from '../shapes/Progress';
 import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
@@ -54,7 +55,7 @@ function General() {
       <div className="mcard stack">
         <Row label="Your name"><input className="input" style={{ width: 240 }} value={s.profile.name} onChange={(e) => patch((x) => ({ ...x, profile: { ...x.profile, name: e.target.value } }))} /></Row>
         <Row label="Start with Windows" hint="Opens quietly to the tray when you log in, so reminders always work. Music never auto-plays."><Toggle on={st.startWithWindows} set={(v) => { set({ startWithWindows: v }); bridge()?.setStartup(v); }} /></Row>
-        <Row label="Start page"><select className="input" style={{ width: 200 }} value={st.startPage} onChange={(e) => set({ startPage: e.target.value as never })}>{[...NAV_PAGES.filter((k) => k !== 'quests'), ...s.lists.map((l) => `list:${l.id}`)].map((k) => <option key={k} value={k}>{PAGE_LABEL[k] ?? s.lists.find((l) => `list:${l.id}` === k)?.name}</option>)}</select></Row>
+        <Row label="Start page"><Select ariaLabel="Start page" style={{ width: 200 }} value={st.startPage as string} onChange={(v) => set({ startPage: v as never })} options={[...NAV_PAGES.filter((k) => k !== 'quests'), ...s.lists.map((l) => `list:${l.id}`)].map((k) => ({ value: k as string, label: PAGE_LABEL[k] ?? s.lists.find((l) => `list:${l.id}` === k)?.name ?? k }))} /></Row>
         <Row label="Week starts on"><div className="seg-ctl"><button className={st.weekStartsMonday ? 'on' : ''} onClick={() => set({ weekStartsMonday: true })}>Monday</button><button className={!st.weekStartsMonday ? 'on' : ''} onClick={() => set({ weekStartsMonday: false })}>Sunday</button></div></Row>
         <Row label="Date format"><div className="seg-ctl">{(['short', 'dmy', 'iso'] as const).map((f) => <button key={f} className={st.dateFormat === f ? 'on' : ''} onClick={() => set({ dateFormat: f })}>{f === 'short' ? '3 Nov' : f === 'dmy' ? '03/11' : '2026-11-03'}</button>)}</div></Row>
         <Row label="Time format"><div className="seg-ctl"><button className={!st.time24 ? 'on' : ''} onClick={() => set({ time24: false })}>5 PM</button><button className={st.time24 ? 'on' : ''} onClick={() => set({ time24: true })}>17:00</button></div></Row>
@@ -137,8 +138,8 @@ function AppearanceTab() {
         </div>
         <div className="mcard stack">
           <div className="section-label" style={{ marginTop: 0 }}>Fonts & text</div>
-          <Row label="Interface font"><select className="input" style={{ width: 220, fontFamily: a.uiFont }} value={a.uiFont} onChange={(e) => set({ uiFont: e.target.value as Appearance['uiFont'] })}>{FONTS.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}</select></Row>
-          <Row label="Heading font"><select className="input" style={{ width: 220, fontFamily: a.headingFont }} value={a.headingFont} onChange={(e) => set({ headingFont: e.target.value as Appearance['headingFont'] })}>{FONTS.map((f) => <option key={f} value={f}>{f}</option>)}</select></Row>
+          <Row label="Interface font"><Select ariaLabel="Interface font" style={{ width: 220 }} value={a.uiFont as string} onChange={(v) => set({ uiFont: v as Appearance['uiFont'] })} options={FONTS.map((f) => ({ value: f as string, label: f, font: f }))} /></Row>
+          <Row label="Heading font"><Select ariaLabel="Heading font" style={{ width: 220 }} value={a.headingFont as string} onChange={(v) => set({ headingFont: v as Appearance['headingFont'] })} options={FONTS.map((f) => ({ value: f as string, label: f, font: f }))} /></Row>
           <Row label="Text size"><div className="seg-ctl">{scales.map((sc) => <button key={sc} className={a.scale === sc ? 'on' : ''} onClick={() => set({ scale: sc })}>{Math.round(sc * 100)}%</button>)}</div></Row>
           <Row label="Numbers"><div className="seg-ctl"><button className={a.tabularNums ? 'on' : ''} onClick={() => set({ tabularNums: true })}>Tabular</button><button className={!a.tabularNums ? 'on' : ''} onClick={() => set({ tabularNums: false })}>Proportional</button></div></Row>
           <Row label="Ringgit format"><div className="seg-ctl"><button className={!a.compactRM ? 'on' : ''} onClick={() => set({ compactRM: false })}>RM 12.50</button><button className={a.compactRM ? 'on' : ''} onClick={() => set({ compactRM: true })}>RM12.50</button></div></Row>

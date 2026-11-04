@@ -8,6 +8,7 @@ import { buildFacts } from '../../store/facts';
 import { rank, title as makeTitle } from '../../core/rules';
 import { addDays, dayKey, weekStart } from '../../core/dates';
 import { Icon } from '../shapes/icons';
+import { Select } from '../shapes/Select';
 import { useTitle } from '../shell/Sidebar';
 
 function Sparkline({ values, color }: { values: number[]; color: string }) {
@@ -42,9 +43,7 @@ export function Profile() {
           <div style={{ width: '100%' }}><Bar value={p.char.into} max={p.char.need} color="var(--xp)" height={10} showNumbers label={`Level ${p.char.level} → ${p.char.level + 1}`} format={(v) => `${Math.round(v)} XP`} /></div>
           <div className="row muted" style={{ width: '100%', fontSize: '.8rem', fontWeight: 600 }}><span>Lifetime</span><div className="grow" /><b style={{ color: 'var(--t1)' }}>{p.lifetime.toLocaleString()} XP</b></div>
           <label className="field" style={{ width: '100%' }}><span>Title</span>
-            <select className="input" value={s.settings.title ?? ''} onChange={(e) => setSettings({ title: e.target.value || undefined })}>
-              {titles.map((t) => <option key={t} value={t}>{t || `${makeTitle(p.char.level, p.topStat)} (automatic)`}</option>)}
-            </select>
+            <Select ariaLabel="Title" value={s.settings.title ?? ''} onChange={(v) => setSettings({ title: v || undefined })} options={titles.map((t) => ({ value: t, label: t || `${makeTitle(p.char.level, p.topStat)} (automatic)` }))} />
           </label>
         </div>
         <div className="stack">

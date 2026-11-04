@@ -371,3 +371,30 @@ test.describe('iPhone first run', () => {
     await expect(page.locator('.onb, .onb-name').first()).toBeVisible();
   });
 });
+
+test('custom dropdowns: pick with the mouse, the keyboard, and close with Esc without closing the panel', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=myday');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+  await page.locator('.task:not(.done)').first().click();
+  const list = page.locator('.detail .dd[aria-label="List"]');
+  await list.click();
+  await expect(page.locator('.dd-menu')).toBeVisible();
+  await page.locator('.dd-menu .dd-opt', { hasText: 'Fitness' }).click();
+  await expect(list).toContainText('Fitness');
+  await expect(page.locator('.dd-menu')).toHaveCount(0);
+  // keyboard: open, type to jump, Enter
+  await list.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.type('soc');
+  await page.keyboard.press('Enter');
+  await expect(list).toContainText('Social');
+  // Esc closes only the menu
+  await list.click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.dd-menu')).toHaveCount(0);
+  await expect(page.locator('.detail')).toBeVisible();
+  // repeat dropdown
+  await page.locator('.detail .dd[aria-label="Repeat"]').click();
+  await page.locator('.dd-menu .dd-opt', { hasText: 'Weekdays' }).click();
+  await expect(page.locator('.detail .dd[aria-label="Repeat"]')).toContainText('Weekdays');
+});
