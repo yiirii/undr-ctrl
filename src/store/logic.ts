@@ -537,7 +537,7 @@ export function rollover(s: AppState, now: Date): Result {
       const d = `${mk}-${String(Math.min(dom, daysInMonth(`${mk}-01`))).padStart(2, '0')}`;
       if (d > today) break;
       if (st.money.entries.some((e) => e.autoFrom === tmpl.id && monthKey(e.date) === mk)) continue;
-      added.push({ ...tmpl, id: uid(), date: d, loggedOn: d, repeatMonthly: undefined, autoFrom: tmpl.id });
+      added.push({ ...tmpl, id: `${tmpl.id}@${mk}`, date: d, loggedOn: d, repeatMonthly: undefined, autoFrom: tmpl.id }); // same id on every device
     }
   }
   if (added.length) {
