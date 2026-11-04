@@ -9,6 +9,17 @@ import type { Appearance } from '../core/appearance';
 
 type Args<F> = F extends (s: AppState, ...a: infer A) => L.Result ? A : never;
 
+/** Business windows, opened from the Business tab or from the phone's + button. */
+export type BizSheet =
+  | null
+  | { kind: 'buy'; kept?: boolean }
+  | { kind: 'sell'; id?: string }
+  | { kind: 'reserve'; id?: string }
+  | { kind: 'paid'; id: string }
+  | { kind: 'cost' }
+  | { kind: 'platforms' }
+  | { kind: 'item'; id: string };
+
 interface UI {
   view: View;
   detailId: string | null;
@@ -16,6 +27,9 @@ interface UI {
   logSheet: false | { kind: 'in' | 'out'; editId?: string };
   recapMonth: string | null;
   moneyTab?: 'personal' | 'business'; // remembered while the app is open
+  bizSheet?: BizSheet;
+  moreOpen?: boolean; // phone: the More sheet
+  quickActions?: boolean; // phone: the + sheet
   saveError: boolean;
   recovered: boolean;
   loaded: boolean;

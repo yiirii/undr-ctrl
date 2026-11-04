@@ -1,5 +1,5 @@
 import { AnimatePresence, motion , PresenceContext } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../../store/store';
 import { Sidebar } from './Sidebar';
 import { TaskDetail } from './TaskDetail';
@@ -14,6 +14,11 @@ import { Onboarding } from '../views/Onboarding';
 import { Moments } from '../motion/Moments';
 import { Reminders } from './Reminders';
 import { Insights } from '../views/Insights';
+import { BizSheets } from '../views/money/Business';
+import { useSync } from '../../sync/service';
+import { SyncPanel } from '../views/SyncPanel';
+import { Ambient } from '../shapes/Ambient';
+import { PhoneNav, PhoneTop, QuickActions, MoreSheet, useIsPhone } from './PhoneNav';
 import { Icon } from '../shapes/icons';
 import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
@@ -45,6 +50,7 @@ function View() {
 }
 
 export function App() {
+  const phone = useIsPhone();
   const ui = useStore((x) => x.ui);
   const onboarded = useStore((x) => x.s.profile.onboarded);
   const setUI = useStore((x) => x.setUI);
@@ -64,10 +70,10 @@ export function App() {
     return () => { window.removeEventListener('keydown', key); offs.forEach((o) => o?.()); clearInterval(iv); clearTimeout(first); };
   }, [setUI]);
 
-  if (!onboarded) return <><Onboarding /><Moments /></>;
+  if (!onboarded) return <><FirstScreen /><Moments /></>;
   return (
-    <div className="app">
-      <Sidebar />
+    <div className={`app ${phone ? 'is-phone' : ''}`}>
+      {phone ? <PhoneTop /> : <Sidebar />}
       <main className="main">
         {(ui.saveError || ui.recovered) && (
           <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 30 }}>
@@ -83,9 +89,30 @@ export function App() {
       </main>
       {ui.quickAdd && <QuickAdd />}
       <MoneyOverlays />
+      <BizSheets />
+      {phone && <><PhoneNav /><QuickActions /><MoreSheet /></>}
       <FocusTicker />
       <Reminders />
       <Moments />
     </div>
   );
+}
+
+/** Before onboarding: on the iPhone app, sign in first so your laptop's data comes down instead of starting blank. */
+function FirstScreen() {
+  const { enabled, ready, user, firstData } = useSync();
+  const web = !bridge();
+  const [skipped, setSkipped] = useState(() => { try { return localStorage.getItem('undr-skip-sync') === '1'; } catch { return false; } });
+  const [waited, setWaited] = useState(false);
+  useEffect(() => { if (user) { const t = setTimeout(() => setWaited(true), 9000); return () => clearTimeout(t); } }, [user]);
+  if (!web || !enabled || skipped) return <Onboarding />;
+  if (!ready) return <div className="first-screen"><Ambient size={140} /></div>;
+  if (!user) return (
+    <div className="first-screen">
+      <div className="first-brand"><img src="./icons/icon-192.png" alt="" width={64} height={64} /><h1>Undr Ctrl</h1></div>
+      <SyncPanel compact onSkip={() => { try { localStorage.setItem('undr-skip-sync', '1'); } catch { /* private mode */ } setSkipped(true); }} />
+    </div>
+  );
+  if (!firstData && !waited) return <div className="first-screen"><Ambient size={140} /><div className="muted">Getting your data…</div></div>;
+  return <Onboarding />;
 }

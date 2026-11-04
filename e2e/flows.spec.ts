@@ -315,3 +315,59 @@ test('search boxes have an × that clears the search in one click', async ({ pag
   await expect(ps).toHaveValue('');
   await expect(page.locator('.modal')).toHaveCount(1);
 });
+
+test('sync settings: create account, see synced status, sign out, wrong password is explained', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=settings&syncfake=1');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+  await page.click('.seg-ctl button:has-text("Sync")');
+  await expect(page.locator('.sync-card')).toContainText('Sign in to sync');
+  await page.click('button:has-text("First time? Create an account")');
+  await page.fill('.sync-card input[type="email"]', 'chloe@example.com');
+  await page.fill('.sync-card input[type="password"]', 'secret1');
+  await page.click('.sync-card button:has-text("Create account")');
+  await expect(page.locator('.sync-card')).toContainText('chloe@example.com');
+  await expect(page.locator('.sync-card')).toContainText('Up to date', { timeout: 8000 });
+  await page.click('.sync-card button:has-text("Sign out")');
+  await page.fill('.sync-card input[type="email"]', 'chloe@example.com');
+  await page.fill('.sync-card input[type="password"]', 'wrong-pw');
+  await page.click('.sync-card button:has-text("Sign in")');
+  await expect(page.locator('.sync-card')).toContainText('don’t match');
+  await page.fill('.sync-card input[type="password"]', 'secret1');
+  await page.click('.sync-card button:has-text("Sign in")');
+  await expect(page.locator('.sync-card')).toContainText('Synced with your account');
+});
+
+test.describe('phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test('tab bar instead of sidebar; + → Sold records a sale; More → Settings', async ({ page }) => {
+    await open(page, 'reset=1&seed=demo&view=myday');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+    await expect(page.locator('.phone-nav')).toBeVisible();
+    await expect(page.locator('.sidebar')).toHaveCount(0);
+    await page.locator('.pn-plus').click();
+    await page.locator('.qa-btn', { hasText: 'Sold' }).click();
+    await page.locator('.sheet .tl-item').first().click();
+    await page.locator('.sheet input[inputmode="decimal"]').first().fill('60');
+    await page.locator('.sheet button:has-text("Carousell")').click();
+    await page.locator('button:has-text("Record sale")').click();
+    await expect(page.locator('.modal')).toHaveCount(0);
+    const sold = await page.evaluate(() => (window as any).__lofi.getState().s.business.items.filter((i: any) => i.status === 'sold' && i.platform === 'Carousell' && i.soldSen === 6000).length);
+    expect(sold).toBe(1);
+    if (await page.locator('.levelup').isVisible().catch(() => false)) await page.locator('.levelup').click();
+    await page.locator('.pn-tab', { hasText: 'More' }).click();
+    await page.locator('.more-row', { hasText: 'Settings' }).click();
+    await expect(page.locator('.main-scroll h1')).toHaveText('Settings');
+    await page.locator('.pn-tab', { hasText: 'Money' }).click();
+    await expect(page.locator('.main-scroll h1')).toHaveText('Money');
+  });
+});
+
+test.describe('iPhone first run', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test('a new phone asks to sign in first; "Use without syncing" goes to the welcome', async ({ page }) => {
+    await page.goto('/?reset=1&syncfake=1');
+    await expect(page.locator('.first-screen')).toContainText('Sign in to sync');
+    await page.click('button:has-text("Use without syncing")');
+    await expect(page.locator('.onb, .onb-name').first()).toBeVisible();
+  });
+});

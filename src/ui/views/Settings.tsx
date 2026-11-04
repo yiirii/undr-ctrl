@@ -8,6 +8,7 @@ import { Icon } from '../shapes/icons';
 import { Bar, SegBar, Ring } from '../shapes/Progress';
 import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
+import { SyncPanel } from './SyncPanel';
 import { sfx } from '../sound/synth';
 import { getPlayer, useMusic, fmtSec } from '../music/service';
 import { Cover } from '../music/Cover';
@@ -18,7 +19,7 @@ import { uid } from '../../core/id';
 import { parseAmount } from '../../core/money';
 import type { Track } from '../../core/types';
 
-const TABS = ['General', 'Appearance', 'Money', 'Music', 'Data'] as const;
+const TABS = ['General', 'Appearance', 'Money', 'Music', 'Sync', 'Data'] as const;
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return <div className="set-row"><div className="grow"><div className="set-l">{label}</div>{hint && <div className="set-h">{hint}</div>}</div>{children}</div>;
@@ -35,6 +36,7 @@ export function Settings() {
       {tab === 'Appearance' && <AppearanceTab />}
       {tab === 'Money' && <MoneyTab />}
       {tab === 'Music' && <MusicTab />}
+      {tab === 'Sync' && <SyncPanel />}
       {tab === 'Data' && <DataTab />}
     </div>
   );
