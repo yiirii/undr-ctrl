@@ -154,3 +154,23 @@ describe('sync engine', () => {
     for (const d of [lap, ph]) expect(d.s.business.items.find((i) => i.id === groot)!.askSen).toBe(9900);
   });
 });
+
+describe('restart while offline', () => {
+  test('changes made offline survive an app restart and are pushed later', async () => {
+    const server = new FakeServer();
+    const lap = device(server, laptopWithData(), 'laptop');
+    lap.eng.start(); await settle(lap);
+    lap.remote.online = false;
+    lap.act(L.addTask, { title: 'Written offline', listId: 'uni' }, D('2026-11-02'));
+    const saved = JSON.parse(JSON.stringify(lap.eng.snapshot()));
+    lap.eng.stop();
+    // app restarts with the saved state + sync snapshot, now online
+    let s = lap.s;
+    const remote = server.client('laptop2');
+    const eng2 = new SyncEngine({ get: () => s, set: (x) => { s = x; }, remote, device: 'laptop', meta: saved.meta, pending: saved.pending, now: () => 99_999 });
+    eng2.start(); await eng2.flush();
+    const ph = device(server, initialState(''), 'phone');
+    ph.eng.start(); await settle(ph);
+    expect(ph.s.tasks.map((t) => t.title)).toContain('Written offline');
+  });
+});

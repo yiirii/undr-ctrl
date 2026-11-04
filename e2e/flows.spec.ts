@@ -315,3 +315,24 @@ test('search boxes have an × that clears the search in one click', async ({ pag
   await expect(ps).toHaveValue('');
   await expect(page.locator('.modal')).toHaveCount(1);
 });
+
+test('sync settings: create account, see synced status, sign out, wrong password is explained', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=settings&syncfake=1');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+  await page.click('.seg-ctl button:has-text("Sync")');
+  await expect(page.locator('.sync-card')).toContainText('Sign in to sync');
+  await page.click('button:has-text("First time? Create an account")');
+  await page.fill('.sync-card input[type="email"]', 'chloe@example.com');
+  await page.fill('.sync-card input[type="password"]', 'secret1');
+  await page.click('.sync-card button:has-text("Create account")');
+  await expect(page.locator('.sync-card')).toContainText('chloe@example.com');
+  await expect(page.locator('.sync-card')).toContainText('Up to date', { timeout: 8000 });
+  await page.click('.sync-card button:has-text("Sign out")');
+  await page.fill('.sync-card input[type="email"]', 'chloe@example.com');
+  await page.fill('.sync-card input[type="password"]', 'wrong-pw');
+  await page.click('.sync-card button:has-text("Sign in")');
+  await expect(page.locator('.sync-card')).toContainText('don’t match');
+  await page.fill('.sync-card input[type="password"]', 'secret1');
+  await page.click('.sync-card button:has-text("Sign in")');
+  await expect(page.locator('.sync-card')).toContainText('Synced with your account');
+});

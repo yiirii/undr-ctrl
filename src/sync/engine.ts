@@ -24,7 +24,13 @@ export class SyncEngine {
   constructor(private o: {
     get(): AppState; set(s: AppState): void; remote: Remote; device: string;
     now?: () => number; meta: SyncMeta; onMeta?: (m: SyncMeta) => void;
-  }) {}
+    /** Changes made offline in an earlier session that were never pushed. */
+    pending?: Rec[];
+  }) {
+    for (const r of o.pending ?? []) this.pending.set(r.key, r);
+  }
+  /** Everything needed to resume after a restart (persist it alongside the app data). */
+  snapshot(): { meta: SyncMeta; pending: Rec[] } { return { meta: this.o.meta, pending: [...this.pending.values()] }; }
 
   private now() { return (this.o.now ?? Date.now)(); }
   /** Newer than anything this device has seen for the key, so a later edit wins even if this clock runs behind. */

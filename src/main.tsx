@@ -17,5 +17,7 @@ async function boot() {
   if (q.get('view')) useStore.getState().go(q.get('view') as never);
   createRoot(document.getElementById('root')!).render(<ThemeProvider><App /></ThemeProvider>);
   (window as unknown as { __lofi: unknown }).__lofi = useStore;
+  // Sync runs in the real app; in dev only when asked (?syncfake uses an in-memory server).
+  if (!import.meta.env.DEV || q.has('syncfake') || q.has('sync')) void import('./sync/service').then((m) => m.startSyncService());
 }
 boot();
