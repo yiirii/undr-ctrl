@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { useDeferredValue, useMemo, useRef, useState } from 'react';
-import { useStore, act } from '../../../store/store';
+import { useStore, act, type BizSheet } from '../../../store/store';
 import {
   addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense, deleteBizIncome,
   keepBizItem, unkeepBizItem, setBizValue, reserveBizItem, completeReservation, cancelReservation, setPlatforms,
@@ -14,15 +14,7 @@ import { Bar, Count, SPRING } from '../../shapes/Progress';
 import { useFmt } from '../../format';
 import { sfx } from '../../sound/synth';
 
-type Sheet =
-  | null
-  | { kind: 'buy'; kept?: boolean }
-  | { kind: 'sell'; id?: string }
-  | { kind: 'reserve'; id?: string }
-  | { kind: 'paid'; id: string }
-  | { kind: 'cost' }
-  | { kind: 'platforms' }
-  | { kind: 'item'; id: string };
+type Sheet = BizSheet;
 
 /** "Cost RM 40" / "Paid RM 40", or "Free" for pieces that cost nothing. */
 const costText = (sen: number, rm: (n: number) => string, word = 'Cost') => (sen === 0 ? 'Free' : `${word} ${rm(sen)}`);
@@ -40,7 +32,7 @@ export function Business({ mk }: { mk: string }) {
   const patch = useStore((x) => x.patch);
   const fmt = useFmt();
   const today = dayKey(new Date());
-  const [sheet, setSheet] = useState<Sheet>(null);
+  const setSheet = (bizSheet: Sheet) => useStore.getState().setUI({ bizSheet });
   const [q, setQ] = useState('');
   const b = s.business;
   const m = bizMonth(b.items, b.expenses, mk, b.income);
@@ -241,7 +233,17 @@ export function Business({ mk }: { mk: string }) {
         </>
       )}
 
-      <AnimatePresence>
+
+    </div>
+  );
+}
+
+/** All Business windows, mounted once at app level (so the phone's + button can open them anywhere). */
+export function BizSheets() {
+  const sheet = useStore((x) => x.ui.bizSheet ?? null);
+  const setSheet = (bizSheet: Sheet) => useStore.getState().setUI({ bizSheet });
+  return (
+    <AnimatePresence>
         {sheet?.kind === 'buy' && <BuySheet key="buy" kept={sheet.kept} onClose={() => setSheet(null)} />}
         {sheet?.kind === 'sell' && <SellSheet key="sell" presetId={sheet.id} onClose={() => setSheet(null)} />}
         {sheet?.kind === 'reserve' && <ReserveSheet key="reserve" presetId={sheet.id} onClose={() => setSheet(null)} />}
@@ -249,8 +251,7 @@ export function Business({ mk }: { mk: string }) {
         {sheet?.kind === 'cost' && <CostSheet key="cost" onClose={() => setSheet(null)} />}
         {sheet?.kind === 'platforms' && <PlatformsSheet key="platforms" onClose={() => setSheet(null)} />}
         {sheet?.kind === 'item' && <ItemSheet key="item" id={sheet.id} onClose={() => setSheet(null)} go={setSheet} />}
-      </AnimatePresence>
-    </div>
+    </AnimatePresence>
   );
 }
 

@@ -14,6 +14,8 @@ import { Onboarding } from '../views/Onboarding';
 import { Moments } from '../motion/Moments';
 import { Reminders } from './Reminders';
 import { Insights } from '../views/Insights';
+import { BizSheets } from '../views/money/Business';
+import { PhoneNav, PhoneTop, QuickActions, MoreSheet, useIsPhone } from './PhoneNav';
 import { Icon } from '../shapes/icons';
 import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
@@ -45,6 +47,7 @@ function View() {
 }
 
 export function App() {
+  const phone = useIsPhone();
   const ui = useStore((x) => x.ui);
   const onboarded = useStore((x) => x.s.profile.onboarded);
   const setUI = useStore((x) => x.setUI);
@@ -66,8 +69,8 @@ export function App() {
 
   if (!onboarded) return <><Onboarding /><Moments /></>;
   return (
-    <div className="app">
-      <Sidebar />
+    <div className={`app ${phone ? 'is-phone' : ''}`}>
+      {phone ? <PhoneTop /> : <Sidebar />}
       <main className="main">
         {(ui.saveError || ui.recovered) && (
           <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 30 }}>
@@ -83,6 +86,8 @@ export function App() {
       </main>
       {ui.quickAdd && <QuickAdd />}
       <MoneyOverlays />
+      <BizSheets />
+      {phone && <><PhoneNav /><QuickActions /><MoreSheet /></>}
       <FocusTicker />
       <Reminders />
       <Moments />

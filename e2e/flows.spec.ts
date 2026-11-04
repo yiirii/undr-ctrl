@@ -336,3 +336,28 @@ test('sync settings: create account, see synced status, sign out, wrong password
   await page.click('.sync-card button:has-text("Sign in")');
   await expect(page.locator('.sync-card')).toContainText('Synced with your account');
 });
+
+test.describe('phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test('tab bar instead of sidebar; + → Sold records a sale; More → Settings', async ({ page }) => {
+    await open(page, 'reset=1&seed=demo&view=myday');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+    await expect(page.locator('.phone-nav')).toBeVisible();
+    await expect(page.locator('.sidebar')).toHaveCount(0);
+    await page.locator('.pn-plus').click();
+    await page.locator('.qa-btn', { hasText: 'Sold' }).click();
+    await page.locator('.sheet .tl-item').first().click();
+    await page.locator('.sheet input[inputmode="decimal"]').first().fill('60');
+    await page.locator('.sheet button:has-text("Carousell")').click();
+    await page.locator('button:has-text("Record sale")').click();
+    await expect(page.locator('.modal')).toHaveCount(0);
+    const sold = await page.evaluate(() => (window as any).__lofi.getState().s.business.items.filter((i: any) => i.status === 'sold' && i.platform === 'Carousell' && i.soldSen === 6000).length);
+    expect(sold).toBe(1);
+    if (await page.locator('.levelup').isVisible().catch(() => false)) await page.locator('.levelup').click();
+    await page.locator('.pn-tab', { hasText: 'More' }).click();
+    await page.locator('.more-row', { hasText: 'Settings' }).click();
+    await expect(page.locator('.main-scroll h1')).toHaveText('Settings');
+    await page.locator('.pn-tab', { hasText: 'Money' }).click();
+    await expect(page.locator('.main-scroll h1')).toHaveText('Money');
+  });
+});

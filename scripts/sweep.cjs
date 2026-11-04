@@ -3,10 +3,11 @@
 const { chromium } = require('playwright');
 const URL = process.env.URL || 'http://localhost:5173';
 const PAGES = [['My Day', 'My Day'], ['Planned', 'Planned'], ['Habits', 'Habits'], ['Money', 'Money'], ['Insights', 'Insights'], ['Quests', 'Quests'], ['Profile', null], ['Uni', 'Uni'], ['Business', 'Business'], ['Settings', 'Settings']];
-const problems = [];
+const problems = []; const _push = problems.push.bind(problems); problems.push = (...a) => { a.forEach((x) => console.log('  !', x)); return _push(...a); };
 (async () => {
   const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+  const PHONE = process.env.VIEWPORT === 'phone';
+  const p = await b.newPage(PHONE ? { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } : { viewport: { width: 1440, height: 900 } });
   p.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
   p.on('console', (m) => { if (m.type() === 'error' && !/favicon|Download the React/.test(m.text())) problems.push(`console: ${m.text().slice(0, 200)}`); });
   await p.goto(`${URL}/?reset=1&seed=demo&view=myday`); await p.waitForTimeout(900);
@@ -17,7 +18,14 @@ const problems = [];
       break;
     }
   };
-  const nav = async (label) => { await calm(); await p.locator('.nav-item', { hasText: new RegExp(`^\\s*${label}`) }).first().click({ timeout: 3000 }); await p.waitForTimeout(260); };
+  const nav = async (label) => {
+    await calm();
+    if (!PHONE) { await p.locator('.nav-item', { hasText: new RegExp(`^\\s*${label}`) }).first().click({ timeout: 3000 }); await p.waitForTimeout(260); return; }
+    const tab = p.locator('.pn-tab', { hasText: new RegExp(`^\\s*${label}\\s*$`) });
+    if (await tab.count()) await tab.first().click({ timeout: 3000 });
+    else { await p.locator('.pn-tab', { hasText: 'More' }).click({ timeout: 3000 }); await p.locator('.more-row', { hasText: new RegExp(`^\\s*${label}\\s*$`) }).first().click({ timeout: 3000 }); }
+    await p.waitForTimeout(260);
+  };
   const navRound = async (after) => {
     for (const [label, h] of PAGES) {
       try {
@@ -31,7 +39,7 @@ const problems = [];
       } catch (e) { problems.push(`[after ${after}] nav to ${label} failed: ${e.message.split('\n')[0]}`); }
     }
     const modals = await p.locator('.modal').count();
-    if (modals) problems.push(`[after ${after}] ${modals} modal(s) left open`);
+    if (modals) problems.push(`[after ${after}] ${modals} modal(s) left open: ${await p.evaluate(() => [...document.querySelectorAll('.modal')].map((m) => m.className + ' :: ' + (m.textContent || '').slice(0, 50)).join(' || '))}`);
   };
   const step = async (name, fn) => {
     try { await calm(); await fn(); await p.waitForTimeout(450); await calm(); }
@@ -40,7 +48,7 @@ const problems = [];
     console.log('✓', name, problems.length ? `(problems so far: ${problems.length})` : '');
   };
   const biz = async () => { await nav('Money'); await p.click('.money-tabs button:has-text("Business")'); await p.waitForTimeout(250); };
-  const sheetIn = (i) => p.locator('.modal:last-child .sheet input[inputmode="decimal"]').nth(i);
+  const sheetIn = (i) => p.locator('.modal .sheet input[inputmode="decimal"]').nth(i);
   await p.keyboard.press('Escape');
 
   await step('initial', async () => {});
@@ -75,7 +83,7 @@ const problems = [];
   await step('quests reroll', async () => { await nav('Quests'); await p.locator('button:has-text("Reroll"), button[title*="eroll"]').first().click({ timeout: 1000 }).catch(() => {}); });
   await step('settings tabs', async () => { await nav('Settings'); for (const t of ['General', 'Appearance', 'Money', 'Music', 'Data']) await p.click(`.seg-ctl button:has-text("${t}")`).catch(() => problems.push(`settings tab ${t} missing`)); });
   await step('theme switch', async () => { await nav('Settings'); await p.click('.seg-ctl button:has-text("Appearance")'); await p.locator('.theme-tile, [data-theme]').nth(2).click({ timeout: 1000 }).catch(() => {}); });
-  await step('rapid nav spam', async () => { for (let i = 0; i < 3; i++) for (const [l] of PAGES) { await p.locator('.nav-item', { hasText: new RegExp(`^\\s*${l}`) }).first().click(); } });
+  await step('rapid nav spam', async () => { for (let i = 0; i < 3; i++) for (const [l] of PAGES) { if (PHONE) await nav(l); else await p.locator('.nav-item', { hasText: new RegExp(`^\\s*${l}`) }).first().click(); } });
   await step('rapid tab spam', async () => { await nav('Money'); for (let i = 0; i < 6; i++) { await p.click('.money-tabs button:has-text("Business")'); await p.click('.money-tabs button:has-text("Personal")'); } });
 
   // data checks: what the business actions should have produced
