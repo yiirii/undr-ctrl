@@ -129,7 +129,21 @@ export function applyRemote(s: AppState, recs: Rec[]): AppState {
     }
     let next = drop.size ? list.filter((x) => !drop.has(x.id)) : list;
     if (k === 'ledger') next = canonicalLedger(next as AppState['ledger']);
+    if (k === 'quests') next = canonicalQuests(next as AppState['quests']);
     st = c.set(st, next);
   }
   return st;
+}
+
+const QUEST_SLOTS = { daily: 3, weekly: 2 } as const;
+/** Two devices may roll different quests for the same day; both keep the same ones: claimed first, then lowest id. */
+export function canonicalQuests(qs: AppState['quests']): AppState['quests'] {
+  const groups = new Map<string, AppState['quests']>();
+  for (const q of qs) groups.set(`${q.kind}|${q.period}`, [...(groups.get(`${q.kind}|${q.period}`) ?? []), q]);
+  const keep = new Set<string>();
+  for (const g of groups.values()) {
+    const n = QUEST_SLOTS[g[0].kind as keyof typeof QUEST_SLOTS] ?? g.length;
+    [...g].sort((a, b) => (a.claimed === b.claimed ? (a.id < b.id ? -1 : 1) : a.claimed ? -1 : 1)).slice(0, n).forEach((q) => keep.add(q.id));
+  }
+  return qs.filter((q) => keep.has(q.id));
 }
