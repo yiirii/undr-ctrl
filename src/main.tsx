@@ -17,6 +17,8 @@ async function boot() {
   if (q.get('view')) useStore.getState().go(q.get('view') as never);
   createRoot(document.getElementById('root')!).render(<ThemeProvider><App /></ThemeProvider>);
   (window as unknown as { __lofi: unknown }).__lofi = useStore;
+  // Home Screen app: offline support (web build only, never inside the desktop app)
+  if (import.meta.env.PROD && !navigator.userAgent.includes('Electron') && (location.protocol === 'https:' || location.hostname === 'localhost') && 'serviceWorker' in navigator) void navigator.serviceWorker.register('./sw.js').catch(() => {});
   // Sync runs in the real app; in dev only when asked (?syncfake uses an in-memory server).
   if (!import.meta.env.DEV || q.has('syncfake') || q.has('sync')) void import('./sync/service').then((m) => m.startSyncService());
 }

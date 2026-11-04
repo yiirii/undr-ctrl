@@ -536,3 +536,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
   .kbd { display: none !important; }
   .hide-phone { display: none !important; }
 }
+.first-screen { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: calc(env(safe-area-inset-top) + 24px) 18px calc(env(safe-area-inset-bottom) + 24px); background: var(--bg0); }
+.first-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.first-brand img { border-radius: 16px; }
+.first-brand h1 { font-size: 1.8rem; }
+.first-screen .sync-card { width: 100%; }

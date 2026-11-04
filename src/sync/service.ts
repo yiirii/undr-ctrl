@@ -4,8 +4,8 @@ import { useStore } from '../store/store';
 import { SyncEngine, type SyncStatus } from './engine';
 import { authMessage, type Backend, type SyncUser } from './backend';
 
-interface SyncUI { user: SyncUser | null; ready: boolean; status: SyncStatus; available: boolean }
-export const useSync = create<SyncUI>(() => ({ user: null, ready: false, available: true, status: { pending: 0, online: true, started: false } }));
+interface SyncUI { user: SyncUser | null; ready: boolean; status: SyncStatus; available: boolean; enabled: boolean; firstData: boolean }
+export const useSync = create<SyncUI>(() => ({ user: null, ready: false, available: true, enabled: false, firstData: false, status: { pending: 0, online: true, started: false } }));
 
 let backend: Backend | null = null;
 let engine: SyncEngine | null = null;
@@ -50,7 +50,8 @@ function startEngine(u: SyncUser) {
   });
   const e = engine;
   teardown.push(useStore.subscribe((st, prev) => { if (st.s !== prev.s) { e.onLocalChange(prev.s, st.s); persist(); } }));
-  teardown.push(e.onStatus((status) => useSync.setState({ status })));
+  teardown.push(e.onStatus((status) => useSync.setState({ status, ...(status.lastSync ? { firstData: true } : {}) })));
+  teardown.push(useStore.subscribe((st) => { if (st.s.profile.onboarded) useSync.setState({ firstData: true }); }));
   const iv = setInterval(() => void e.flush(), 5000);
   const online = () => void e.flush();
   window.addEventListener('online', online);
@@ -61,6 +62,7 @@ function stopEngine() { teardown.forEach((f) => f()); teardown = []; engine?.sto
 
 /** Call once after the app data has loaded. */
 export async function startSyncService() {
+  useSync.setState({ enabled: true });
   try { backend = await pickBackend(); }
   catch { useSync.setState({ available: false, ready: true }); return; }
   backend.onUser((u) => { useSync.setState({ user: u, ready: true }); if (u) startEngine(u); else stopEngine(); });

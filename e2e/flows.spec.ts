@@ -361,3 +361,13 @@ test.describe('phone', () => {
     await expect(page.locator('.main-scroll h1')).toHaveText('Money');
   });
 });
+
+test.describe('iPhone first run', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test('a new phone asks to sign in first; "Use without syncing" goes to the welcome', async ({ page }) => {
+    await page.goto('/?reset=1&syncfake=1');
+    await expect(page.locator('.first-screen')).toContainText('Sign in to sync');
+    await page.click('button:has-text("Use without syncing")');
+    await expect(page.locator('.onb, .onb-name').first()).toBeVisible();
+  });
+});
