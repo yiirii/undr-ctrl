@@ -707,7 +707,7 @@ This replaces the earlier "a sale adds its profit" rule.
 - Page changes no longer wait for the old page to fade out.
 - The sound engine starts at idle instead of on the first tap.
 - Confetti runs on time instead of frames, so it looks the same at 120 Hz.
-- On a phone emulated at 4× CPU slowdown, changing tabs is about 35% faster and the stall when ticking a task fell from 220 ms + 133 ms to about 95 ms.
+- On a phone emulated at 4× CPU slowdown, changing tabs is about 40% faster (average 460 → 275 ms) and the stall when ticking a task fell from 220 ms + 133 ms to about 95 ms.
 
 **Offline worker.** It deletes the previous release's cache. If the network takes more than 2.5 s it opens the cached app, so a weak signal never holds up launch.
 
