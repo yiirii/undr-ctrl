@@ -642,3 +642,41 @@ This replaces the earlier "a sale adds its profit" rule.
 - **Free pieces leave Wealth alone.** When one sells, the whole price minus fees is profit and raises Wealth.
 - Free pieces show as **"Free"** instead of "Cost RM 0". A piece's cost can also be edited down to 0.
 - Negative costs are still refused. Expenses and sale prices must still be more than RM 0.
+
+## Rev 11: iPhone app and sync (design, awaiting Chloe's review)
+
+**Goal:** Undr Ctrl on Chloe's iPhone as a Home Screen web app that shares the same data as the laptop. A sale logged at a meetup shows up on the PC, and the reverse.
+
+### Pieces
+- **One codebase, two shells.** The existing React app gains a phone layout at narrow widths. The Electron desktop app stays as it is.
+- **Firebase (Spark, free) for sync and sign-in.** Firestore holds the data. Firebase Auth uses **email + password**, which works the same in the desktop app and on the phone (Google's sign-in popup is blocked inside desktop apps like Electron).
+- **Hosting:** the phone app is a static site with a web manifest, Apple touch icon (the sword) and a service worker for offline use. It is hosted on **GitHub Pages** from a repo in Chloe's GitHub account, which I can deploy to directly with no secrets handed over. The site's address is added to Firebase Auth's authorised domains.
+- **Security:** Firestore rules let only the signed-in owner read or write their data (`users/{uid}/**`). The Firebase web config is not a secret.
+
+### Sync model (offline-first, record by record)
+- Data is stored as records under `users/{uid}/{collection}/{id}`. Collections: tasks, lists, money entries, categories, sources, goals, deposits, business items, business expenses, business income, ledger entries, quests and focus log. Settings, appearance and profile are each a single document.
+- **Every record carries `updatedAt` and `deleted?`.** Deletes are tombstones so they sync too. The local copy is the working copy; changes queue while offline and are sent when online. Remote changes stream in live and merge record by record.
+- **Conflicts:** the newest `updatedAt` wins, per record. Ledger entries are append-only, apart from the `reversed` flag, which once set stays set. Two devices therefore can never double-count XP, Wealth or profit.
+- **First sync:**
+  - Signing in on the laptop uploads the existing data, nothing lost.
+  - Signing in on the phone downloads it.
+  - If both already have data, the two copies are merged record by record, never overwritten wholesale.
+- The midnight rollover, quest rolls and recurring repeats are idempotent and keyed by date and id, so running them on two devices produces the same records once.
+- The local backups and the Google Drive daily backup stay as safety nets.
+
+### Phone layout
+- **Bottom tab bar:** My Day · Money (Personal/Business) · **+** · Insights · More (Planned, Habits, Lists, Quests, Profile, Settings).
+- **+ opens a quick action sheet:** Sold · Bought · Reserve · Expense · Income · Task. Each is a full-screen sheet with large inputs and a numeric keypad.
+- **Cards and lists:** one column, 44 pt minimum touch targets, safe-area insets.
+- **Same look and feel:** themes, progress bars and moments, with lighter particle effects.
+- **Desktop-only:** the music player, tray, start-with-Windows, the folder picker for Drive backup and Windows notifications. Due-date reminders on the phone come later, through web push.
+
+### Settings → Sync
+- Shows sign-in state, the account email, the last sync time, an "Offline: N changes waiting" count and "Sign out".
+- Signing out keeps a local copy.
+
+### Testing
+- **Unit tests:** merge rules (newest wins, tombstones, ledger append and reversed-OR, idempotent rollover across two devices).
+- **Two-device tests:** two simulated devices against the Firebase emulator — offline edits on both, then reconnect and converge.
+- **Phone flows:** Playwright at iPhone size (390×844) for the quick actions.
+- **Install:** the manifest and service worker are checked to make the site installable.
