@@ -291,3 +291,27 @@ test('free pieces: tap Free, add to stock and collection, selling one counts the
   await page.click('button:has-text("Record sale")');
   await expect(page.locator('.money-hero')).toContainText('RM 35');
 });
+
+test('search boxes have an × that clears the search in one click', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=money');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+  await page.click('.money-tabs button:has-text("Business")');
+  const search = page.locator('.mcard .search-field input');
+  await expect(page.locator('.mcard .search-field .search-clear')).toHaveCount(0);
+  await search.fill('zzzz');
+  await expect(page.locator('.mcard', { hasText: 'Nothing matches.' }).first()).toBeVisible();
+  await page.locator('.mcard .search-field .search-clear').click();
+  await expect(search).toHaveValue('');
+  await expect(search).toBeFocused();
+  await expect(page.locator('.stock-card').first()).toBeVisible();
+  // in the picker: × clears, and Esc with text clears instead of closing the window
+  await page.click('button:has-text("Sold")');
+  const ps = page.locator('.sheet .search-field input');
+  await ps.fill('zzzz');
+  await page.locator('.sheet .search-field .search-clear').click();
+  await expect(ps).toHaveValue('');
+  await ps.fill('zzzz');
+  await page.keyboard.press('Escape');
+  await expect(ps).toHaveValue('');
+  await expect(page.locator('.modal')).toHaveCount(1);
+});

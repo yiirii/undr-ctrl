@@ -9,6 +9,7 @@ import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collec
 import { parseAmount, parseCost } from '../../../core/money';
 import { addDays, dayKey, diffDays, monthName, MONTHS, monthKey } from '../../../core/dates';
 import { Icon } from '../../shapes/icons';
+import { SearchField } from '../../shapes/SearchField';
 import { Bar, Count, SPRING } from '../../shapes/Progress';
 import { useFmt } from '../../format';
 import { sfx } from '../../sound/synth';
@@ -145,7 +146,7 @@ export function Business({ mk }: { mk: string }) {
           </div>
 
           <div className="mcard">
-            <div className="mcard-h"><h3>In stock</h3>{dq && <span className="muted">{stockGroups.reduce((n, g) => n + g.length, 0)} match</span>}<div className="grow" /><input className="input" style={{ width: 200, height: 32 }} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            <div className="mcard-h"><h3>In stock</h3>{dq && <span className="muted">{stockGroups.reduce((n, g) => n + g.length, 0)} match</span>}<div className="grow" /><SearchField value={q} onChange={setQ} width={220} className="sm" /></div>
             {stockGroups.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>{q ? 'Nothing matches.' : 'Everything is sold or reserved. Time to restock?'}</div>}
             <div className="stock">
               <AnimatePresence initial={false}>
@@ -181,6 +182,7 @@ export function Business({ mk }: { mk: string }) {
                 <div><div className="hero-label">{col.gainSen >= 0 ? 'Up' : 'Down'}</div><div className="stat-num" style={{ color: col.gainSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{col.gainSen >= 0 ? '+' : '−'}{fmt.rm(Math.abs(col.gainSen))}</div></div>
               </div>
             )}
+            {col.count > 0 && dq && kept.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>Nothing matches.</div>}
             {col.count === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>Pieces you keep for yourself. They still cost Wealth when you buy them, and you can sell one any time.</div>}
             <div className="stock">
               {kept.slice(0, showKept).map((g) => {
@@ -340,7 +342,7 @@ function ItemPicker({ statuses, onPick }: { statuses: BizItem['status'][]; onPic
   const groups = useMemo(() => groupItems(allItems.filter((i) => statuses.includes(i.status) && matchesQuery(i, dq))).sort((a, c) => (a[0].status === 'kept' ? 1 : 0) - (c[0].status === 'kept' ? 1 : 0)), [allItems, dq, key]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
-      <input className="input" autoFocus placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && groups[0]) onPick(groups[0][0]); }} />
+      <SearchField value={q} onChange={setQ} autoFocus onEnter={() => { if (groups[0]) onPick(groups[0][0]); }} />
       <div className="tl-items" style={{ maxHeight: 320, overflowY: 'auto' }}>
         {groups.slice(0, 40).map((g) => { const i = g[0]; return (
           <div key={i.id} className="tl-item" onClick={() => onPick(i)}>
