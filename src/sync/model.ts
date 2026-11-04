@@ -26,7 +26,7 @@ const COLLS: Coll[] = [
 const COLL = new Map(COLLS.map((c) => [c.k, c]));
 
 /** Settings that belong to one device and never sync. */
-export const LOCAL_SETTINGS = ['backupFolder', 'lastCloudBackup', 'cloudBackupFailed', 'startWithWindows'] as const;
+export const LOCAL_SETTINGS = ['backupFolder', 'lastCloudBackup', 'cloudBackupFailed', 'startWithWindows', 'haptics'] as const;
 
 type Merge = 'latest' | 'union' | 'max';
 interface One { id: string; get(s: AppState): unknown; set(s: AppState, v: unknown): AppState; merge?: Merge }

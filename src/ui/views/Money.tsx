@@ -76,7 +76,7 @@ export function Money() {
             </Ring>
             <div className="hero-side">
               {isCurrent ? (
-                <div className="hero-safe"><b>{fmt.rm(m.safePerDaySen)} a day</b><br />is safe to spend for the rest of {monthName(mk)}.</div>
+                <div className="hero-safe"><b><Count value={(m.safePerDaySen) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /> a day</b><br />is safe to spend for the rest of {monthName(mk)}.</div>
               ) : (
                 <div className="hero-safe"><b>{m.leftSen >= 0 ? `${fmt.rm(m.leftSen)} under` : `${fmt.rm(-m.leftSen)} over`}</b><br />budget in {monthName(mk)}.</div>
               )}
@@ -93,7 +93,7 @@ export function Money() {
         <div className="mcard">
           <div className="mcard-h"><h3>In & out</h3><span className="muted">{monthName(mk)}</span></div>
           <InOut inSen={m.inSen} expectedSen={isCurrent ? m.expectedInSen : 0} outSen={m.outSen} bizSen={biz.salesSen || biz.expensesSen || biz.cogsSen ? biz.profitSen : undefined} />
-          <div className="kept-line">{kept >= 0 ? <>You've kept <b>{fmt.rm(kept)}</b> so far{biz.profitSen ? <> (including <b style={{ color: biz.profitSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{fmt.rm(biz.profitSen)}</b> business profit)</> : ''}.</> : m.hasBudget ? <>You've spent <b style={{ color: 'var(--bad)' }}>{fmt.rm(-kept)}</b> more than came in.</> : <>That's <b style={{ color: 'var(--t1)' }}>{fmt.rm(-kept)}</b> more out than in. Fine while you're tracking; it shows where money goes.</>}</div>
+          <div className="kept-line">{kept >= 0 ? <>You've kept <b><Count value={(kept) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></b> so far{biz.profitSen ? <> (including <b style={{ color: biz.profitSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{fmt.rm(biz.profitSen)}</b> business profit)</> : ''}.</> : m.hasBudget ? <>You've spent <b style={{ color: 'var(--bad)' }}>{fmt.rm(-kept)}</b> more than came in.</> : <>That's <b style={{ color: 'var(--t1)' }}>{fmt.rm(-kept)}</b> more out than in. Fine while you're tracking; it shows where money goes.</>}</div>
         </div>
 
         <div className="mcard">

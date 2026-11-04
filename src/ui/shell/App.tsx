@@ -60,11 +60,13 @@ const PageSlot = memo(function PageSlot({ view, active }: { view: string; active
   useLayoutEffect(() => {
     const el = ref.current;
     if (!active || !el) return;
-    el.scrollTop = top.current;
+    if (top.current) el.scrollTop = top.current; // (setting it forces a layout; a page shown again starts at the top anyway)
     // the page eases in (fade + small rise), as before. It runs on the GPU and never holds up the tap:
     // the new page is there from the first frame.
     const reduced = document.documentElement.classList.contains('reduced-motion');
     el.animate?.(reduced ? [{ opacity: 0.6 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: reduced ? 120 : 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+    // then the page builds in: header, cards and rows rise into place one after another (pure CSS, no measuring)
+    if (!reduced) { el.classList.add('entering'); const t = setTimeout(() => el.classList.remove('entering'), 900); return () => { clearTimeout(t); el.classList.remove('entering'); }; }
   }, [active]);
   // the same element every time, so showing a kept page again doesn't redraw it from scratch
   const page = useMemo(() => pageFor(view), [view]);

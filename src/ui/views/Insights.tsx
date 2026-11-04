@@ -6,7 +6,7 @@ import { dayKey, WEEKDAYS, monthName, MONTHS } from '../../core/dates';
 import { STAT_META } from '../../core/types';
 import { statLevel } from '../../core/rules';
 import { CatIcon } from './money/parts';
-import { SPRING } from '../shapes/Progress';
+import { SPRING, Count } from '../shapes/Progress';
 import { Icon } from '../shapes/icons';
 import { useFmt } from '../format';
 
@@ -67,7 +67,7 @@ function MoneyInsights() {
       <div className="money-hero">
         <div style={{ minWidth: 240 }}>
           <div className="hero-label">Spent in {monthName(mk)} so far</div>
-          <div className="hero-num" style={{ fontSize: '2.4rem' }}>{fmt.rm(r.totalThisSen)}</div>
+          <div className="hero-num" style={{ fontSize: '2.4rem' }}><Count value={(r.totalThisSen) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></div>
           <div className="hero-of">{r.totalAvgSen ? <>Your usual month: {fmt.rm(r.totalAvgSen)}</> : 'Your usual month shows after one full month.'}</div>
         </div>
         <div className="hero-side">

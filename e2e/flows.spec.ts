@@ -400,6 +400,36 @@ test.describe('phone', () => {
     await page.locator('.money-tabs button', { hasText: 'Personal' }).tap();
     await expect(page.locator('.money-hero')).toBeVisible();
   });
+  test('juice: swipe right ticks a task off; a tick shows its effects and the XP lands; Reduced motion keeps it calm', async ({ page }) => {
+    await open(page, 'reset=1&seed=demo&view=myday');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+    // tap the check: ripple + flying XP appear, then the task really is done
+    const before = await xp(page);
+    const first = page.locator('.main-scroll .tasks .task:not(.done)').first();
+    const title = await first.locator('.task-title').textContent();
+    await first.locator('.check').tap();
+    await expect(page.locator('.fx-ripple')).toHaveCount(1);
+    await expect(page.locator('.fx-fly')).toHaveCount(1, { timeout: 2000 });
+    await expect.poll(() => xp(page)).toBeGreaterThan(before);
+    await expect.poll(() => page.evaluate((t) => (window as any).__lofi.getState().s.tasks.find((x: any) => x.title === t)?.doneAt != null, title)).toBe(true);
+    // swipe the next one to the right
+    const row = page.locator('.main-scroll .tasks .task:not(.done)').first();
+    const t2 = await row.locator('.task-title').textContent();
+    const bx = (await row.boundingBox())!;
+    const y = bx.y + bx.height / 2;
+    await page.mouse.move(bx.x + 40, y); await page.mouse.down();
+    for (let i = 1; i <= 10; i++) await page.mouse.move(bx.x + 40 + i * 16, y);
+    await page.mouse.up();
+    await expect.poll(() => page.evaluate((t) => (window as any).__lofi.getState().s.tasks.find((x: any) => x.title === t)?.doneAt != null, t2)).toBe(true);
+    await expect(page.locator('.detail')).toHaveCount(0); // a swipe never opens the task
+    // Reduced motion: no ripples or flying XP, and the tick commits at once
+    await page.evaluate(() => (window as any).__lofi.getState().setSettings({ reducedMotion: true }));
+    await page.waitForTimeout(800);
+    const t3 = await page.locator('.main-scroll .tasks .task:not(.done) .task-title').first().textContent();
+    await page.locator('.main-scroll .tasks .task:not(.done) .check').first().tap();
+    expect(await page.evaluate((t) => (window as any).__lofi.getState().s.tasks.find((x: any) => x.title === t)?.doneAt != null, t3)).toBe(true);
+    expect(await page.locator('.fx-ripple, .fx-fly').count()).toBe(0);
+  });
   test('nothing is wider than the screen; settings tabs all reachable; desktop-only settings hidden', async ({ page }) => {
     await open(page, 'reset=1&seed=demo&view=myday');
     for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');

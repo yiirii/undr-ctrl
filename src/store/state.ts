@@ -24,6 +24,7 @@ export interface Settings {
   backupFolder?: string; // cloud folder (e.g. Google Drive) for the single daily backup
   lastCloudBackup?: string; // ISO time of last successful cloud backup
   cloudBackupFailed?: boolean;
+  haptics?: boolean; // iPhone taps you can feel (default on; this device only)
 }
 
 export interface MusicState { tracks: Track[]; playlists: Playlist[]; volume: number; shuffle: boolean; repeat: 'off' | 'all' | 'one'; resumeOnReturn: boolean; linkInsteadOfCopy: boolean; activePlaylist: string }

@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { useRef, useState } from 'react';
 import { useStore, useProgress, act } from '../../store/store';
 import { NAV_PAGES, type View } from '../../store/state';
@@ -26,6 +27,8 @@ export function useTitle() {
   const chosen = useStore((s) => s.s.settings.title);
   return chosen || makeTitle(p.char.level, p.topStat);
 }
+
+const NAV_SPRING = { type: 'spring' as const, stiffness: 520, damping: 38, mass: 0.8 };
 
 export function Sidebar() {
   const s = useStore((x) => x.s);
@@ -74,7 +77,7 @@ export function Sidebar() {
       <div className="side-bars">
         <div className="side-bar-row" title={`${p.char.into} / ${p.char.need} XP to level ${p.char.level + 1}`}>
           <span style={{ color: 'var(--xp)' }}>XP</span>
-          <Bar value={p.char.into} max={p.char.need} color="var(--xp)" height={7} />
+          <Bar className="xp-target" value={p.char.into} max={p.char.need} color="var(--xp)" height={7} />
           <b className="num">{p.char.into}/{p.char.need}</b>
         </div>
         <div className="side-bar-row today-strip" title="My Day progress">
@@ -89,7 +92,7 @@ export function Sidebar() {
       <nav className="nav-scroll">
         <div className="nav">
           {order.map((k) => (
-            <button key={k} className={`nav-item ${view === k ? 'on' : ''}`} onClick={() => go(k as View)} title={PAGE_META[k].label}>
+            <button key={k} className={`nav-item ${view === k ? 'on' : ''}`} onClick={() => go(k as View)} title={PAGE_META[k].label}>{view === k && <motion.span layoutId="nav-pill" className="nav-pill" transition={NAV_SPRING} />}
               <Icon name={PAGE_META[k].icon} />
               <span>{PAGE_META[k].label}</span>
               {counts[k] ? <span className="ct">{counts[k]}</span> : null}
@@ -103,7 +106,7 @@ export function Sidebar() {
             const open = own.filter((t) => !t.doneAt).length;
             const doneN = own.length - open;
             return (
-              <button key={l.id} className={`nav-item ${view === `list:${l.id}` ? 'on' : ''}`} onClick={() => go(`list:${l.id}`)} title={l.name}>
+              <button key={l.id} className={`nav-item ${view === `list:${l.id}` ? 'on' : ''}`} onClick={() => go(`list:${l.id}`)} title={l.name}>{view === `list:${l.id}` && <motion.span layoutId="nav-pill" className="nav-pill" transition={NAV_SPRING} />}
                 <span className="list-dot" style={{ color: l.color }}>{l.emoji ? <span style={{ fontSize: 14 }}>{l.emoji}</span> : <Icon name={l.icon} size={16} />}</span>
                 <span className="grow" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</span>
                 <span className="ct row" style={{ gap: 6 }}>
@@ -125,7 +128,7 @@ export function Sidebar() {
       <div className="side-foot">
         <MiniPlayer />
         <div className="row" style={{ gap: 2 }}>
-          <button className={`nav-item ${view === 'settings' ? 'on' : ''}`} onClick={() => go('settings')} style={{ flex: 1 }} title="Settings"><Icon name="gear" /><span>Settings</span></button>
+          <button className={`nav-item ${view === 'settings' ? 'on' : ''}`} onClick={() => go('settings')} style={{ flex: 1 }} title="Settings">{view === 'settings' && <motion.span layoutId="nav-pill" className="nav-pill" transition={NAV_SPRING} />}<Icon name="gear" /><span>Settings</span></button>
           {!collapsed && <button className="icon-btn" title="Collapse sidebar" onClick={() => setAppearance({ sidebarCollapsed: true })}><Icon name="sidebar" /></button>}
           {collapsed && <button className="icon-btn" title="Expand sidebar" onClick={() => setAppearance({ sidebarCollapsed: false })}><Icon name="sidebar" /></button>}
         </div>

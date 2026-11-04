@@ -69,6 +69,7 @@ function General() {
         </Row>
         <Row label="Volume"><input type="range" min={0} max={1} step={0.05} value={st.volume} onChange={(e) => set({ volume: Number(e.target.value) })} style={{ width: 200 }} onMouseUp={() => sfx.check()} /></Row>
         <Row label="Mute all sounds"><Toggle on={st.muted} set={(v) => set({ muted: v })} /></Row>
+        {!bridge() && <Row label="Haptics" hint="Feel a light tap when you tick things off, switch tabs and log money (iPhone)."><Toggle on={st.haptics !== false} set={(v) => set({ haptics: v })} /></Row>}
         <Row label="Reduced motion" hint="Swaps springs and particles for simple fades."><Toggle on={st.reducedMotion} set={(v) => set({ reducedMotion: v })} /></Row>
       </div>
       <div className="mcard stack">

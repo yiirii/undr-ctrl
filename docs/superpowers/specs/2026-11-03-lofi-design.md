@@ -753,3 +753,57 @@ The goal waves and the empty-state shapes kept their motion throughout; only the
 Measured with perf-tap at 4× slowdown, a tap still shows the new page in about 50 ms, against about 120 ms before Rev 13. The page then finishes easing in over 180 ms.
 
 **Rule from now on:** performance work never removes or weakens an animation without asking Chloe first.
+
+## Rev 15: Juice (built 2026-11-05, version 1.3.0)
+
+Chloe asked for more juice: richer animation and feedback on both laptop and iPhone, good enough that people would pay for it, while keeping performance.
+
+**Toolkit (`src/ui/motion/juice.ts`):**
+- iPhone haptics, using the native "switch" checkbox trick on iOS 18+ and `navigator.vibrate` on Android.
+- Ripple, pop, sparks, fly-to and glow effects.
+- Sliding thumbs for segmented controls.
+- Everything animates transform and opacity only (Web Animations or CSS), and Reduced motion switches it off.
+
+**Ticking a task:**
+1. The tick plays out in place for 420 ms: the check pops with a springy fill, a ring ripples out in the stat colour, sparks burst, the row flashes in its colour, a strike-through draws across the title, and the iPhone gives a success tap.
+2. The task is then saved, and "+N XP" flies on an arc into the XP bar (the sidebar on the laptop, the top strip on the phone). The bar lights up with a sweep.
+3. With Reduced motion on, the task is saved at once with no effects.
+
+**Swipe to tick (iPhone):** drag a task to the right and a check slides in from the left. You feel a tap when you pass the threshold, and letting go ticks the task. A swipe never opens the task.
+
+**Habits:** the diamond spins half a turn and pops, with ripple and sparks. A 7-day multiple gives a stronger haptic.
+
+**My Day cleared:** the last tick lights up the day bar, throws confetti and plays a chime, and the counter becomes "All done for today" with a spring.
+
+**Pages:**
+- On every visit, the header, cards and rows rise in one after another. This is CSS only, so nothing is measured at tap time.
+- The laptop sidebar highlight slides between pages.
+- The iPhone tab bar has a sliding highlight. It moves by transform only, using tab positions measured once. Icons bounce on selection, the + turns into × while its sheet is open, and every tab tap gives a light haptic.
+
+**Controls:**
+- Every segmented control in the app (Personal/Business, Settings tabs, Insights tabs, the size and format pickers) has a highlight that slides, with a little overshoot.
+- Every button gives way under your finger and springs back.
+- On the laptop, primary buttons get a sheen on hover, buttons lift 1 px, and cards lift.
+
+**Numbers and bars:**
+- Rolling numbers write straight to the screen (no React render per frame) and pop when they go up. Rolling numbers were added to: XP today, safe-per-day, You've kept, stock cost/asking/deposits, collection paid/worth, and Insights spent.
+- Bars sweep with light when they grow, and newly filled day segments pop.
+
+**Sheets:**
+- Log money, the business sheets and More build in one row after another.
+- On the number pad, the amount bounces with each key and each key gives a light tap. The chosen category's icon pops.
+- Saving throws sparks from the button with a success haptic.
+
+**Toasts:** they spring in with a slight tilt and show a shrinking timer line. Achievements, quests, sales and level-ups each have their own haptic.
+
+**Quick add:** the chips for each part it understands pop in as you type.
+
+**Settings:** a new Haptics on/off switch appears on the iPhone. It is stored per device and not synced.
+
+**Performance:**
+- The first version used a shared-layout (`layoutId`) tab highlight. It made framer re-measure every animated element (about 88 ms at 4× slowdown), so it was replaced with a transform-only slide.
+- Restoring the page's scroll position now only forces a layout when there is one to restore.
+- Measured at 4× CPU slowdown on an emulated iPhone:
+  - Tap → new screen: about 60 ms, against 50 ms before Rev 15, while carrying all the added motion.
+  - Ticking a task: the worst frame fell from 233 ms to about 133 ms, because the tick's effects now run before the save.
+  - The new `scripts/perf-frames.cjs` measures frame times during these animations.

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useStore, act, useProgress } from '../../store/store';
 import { myDayTasks, completeTask, uncompleteTask, toggleMyDay, updateList, deleteList, addTask, focusStart, dismissNudge } from '../../store/logic';
 import { startNudges, NUDGE_DAYS } from '../../core/deadline';
@@ -7,11 +7,13 @@ import { taskStat } from '../../store/facts';
 import { addDays, dayKey, weekStart, diffDays } from '../../core/dates';
 import { isScheduled, describeRecurrence } from '../../core/recurrence';
 import { STAT_META, STATS, type Stat, type Task, type Recurrence } from '../../core/types';
-import { Bar, SegBar, Ring, SPRING } from '../shapes/Progress';
+import { Bar, SegBar, Ring, SPRING, Count } from '../shapes/Progress';
 import { Icon, LIST_ICONS } from '../shapes/icons';
 import { Select } from '../shapes/Select';
 import { Ambient } from '../shapes/Ambient';
-import { TaskRow } from '../shell/TaskRow';
+import { TaskRow, resolveColor } from '../shell/TaskRow';
+import { habitTick, haptic, glow } from '../motion/juice';
+import { burst, cssVar } from '../motion/particles';
 import { AddRow } from '../shell/AddRow';
 import { longDate, useFmt } from '../format';
 import { sfx } from '../sound/synth';
@@ -40,7 +42,7 @@ export function HabitPill({ t }: { t: Task }) {
   const stat = taskStat(s, t);
   const c = stat ? STAT_META[stat].hue : 'var(--accent)';
   return (
-    <motion.button layout className={`habit-pill ${done ? 'done' : ''}`} onClick={() => { act(done ? uncompleteTask : completeTask, t.id, new Date()); done ? sfx.click() : sfx.streak(t.streak + 1); }} title={done ? 'Undo' : 'Mark done today'}>
+    <motion.button layout className={`habit-pill ${done ? 'done' : ''}`} onClick={(e) => { if (!done) habitTick(e.currentTarget.querySelector('.diamond'), resolveColor(c), t.streak + 1); else haptic('light'); act(done ? uncompleteTask : completeTask, t.id, new Date()); done ? sfx.click() : sfx.streak(t.streak + 1); }} title={done ? 'Undo' : 'Mark done today'}>
       <span className={`diamond ${done ? 'on' : ''}`} style={{ ['--c' as string]: c }} />
       <span className="nm">{t.title}</span>
       {t.streak > 0 && <span className="st">{t.streak}</span>}
@@ -65,6 +67,22 @@ export function MyDay() {
   const early = startNudges(s.tasks, s.focusLog, today);
   const suggestions = s.tasks.filter((t) => !t.habit && !t.doneAt && t.myDay !== today && ((t.due && t.due <= today) || (!t.due && t.size === 'big') || early.some((n) => n.task.id === t.id)));
   const nudge = early.find((n) => !s.money.dismissedNudges.includes(`start:${n.task.id}:${today}`));
+  // the moment the last thing in My Day is ticked off: the bar lights up and confetti flies
+  const barRef = useRef<HTMLDivElement>(null);
+  const prevDone = useRef(doneCount);
+  const allDone = all.length > 0 && doneCount === all.length;
+  useEffect(() => {
+    const was = prevDone.current; prevDone.current = doneCount;
+    if (!(allDone && was < doneCount)) return;
+    const t = setTimeout(() => {
+      const el = barRef.current; if (!el || el.offsetParent === null) return;
+      const r = el.getBoundingClientRect();
+      glow(el.querySelector('.segbar'));
+      burst(r.left + r.width / 2, r.top + 6, [cssVar('--xp'), cssVar('--accent'), cssVar('--in'), cssVar('--cre'), cssVar('--int')], 46, 9);
+      haptic('heavy'); sfx.chime2();
+    }, 520);
+    return () => clearTimeout(t);
+  }, [doneCount, allDone]);
   return (
     <div className="page">
       <div className="ph">
@@ -77,8 +95,15 @@ export function MyDay() {
         </div>
       </div>
       {all.length > 0 && (
-        <div className="day-progress">
-          <div className="meta"><span>{doneCount} of {all.length} done</span><span style={{ color: 'var(--xp)' }}>+{xpToday} XP today</span></div>
+        <div className="day-progress" ref={barRef}>
+          <div className="meta">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {allDone
+                ? <motion.span key="all" className="all-clear" initial={{ opacity: 0, scale: 0.6, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ type: 'spring', stiffness: 420, damping: 16 }}><Icon name="check" size={13} stroke={3} />All done for today</motion.span>
+                : <motion.span key="n" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>{doneCount} of {all.length} done</motion.span>}
+            </AnimatePresence>
+            <span style={{ color: 'var(--xp)' }}>+<Count value={xpToday} /> XP today</span>
+          </div>
           <SegBar done={doneCount} total={all.length} height={10} gap={5} />
         </div>
       )}
@@ -288,7 +313,7 @@ function HabitCard({ t, ws, today }: { t: Task; ws: string; today: string }) {
   return (
     <div className="card habit-card" onClick={() => setUI({ detailId: t.id })}>
       <button className={`diamond ${done ? 'on' : ''}`} style={{ ['--c' as string]: c, width: 34, height: 34, opacity: dueToday || done ? 1 : 0.4 }} title={done ? 'Undo today' : 'Done today'}
-        onClick={(e) => { e.stopPropagation(); act(done ? uncompleteTask : completeTask, t.id, new Date()); done ? sfx.click() : sfx.streak(t.streak + 1); }} />
+        onClick={(e) => { e.stopPropagation(); if (!done) habitTick(e.currentTarget, resolveColor(c), t.streak + 1); else haptic('light'); act(done ? uncompleteTask : completeTask, t.id, new Date()); done ? sfx.click() : sfx.streak(t.streak + 1); }} />
       <div style={{ minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '1rem' }}>{t.title}</div>
         <div className="row" style={{ gap: 8, marginTop: 6, flexWrap: 'wrap' }}>

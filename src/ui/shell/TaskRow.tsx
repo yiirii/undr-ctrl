@@ -1,5 +1,14 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { useRef, useState } from 'react';
+import { haptic, ripple, sparks, centerOf, flyTo, reducedMotion } from '../motion/juice';
+import { cssVar } from '../motion/particles';
+import { useIsPhone } from './PhoneNav';
+
+const SWIPE = 84; // px to the right that ticks a task off on the phone
+/** The XP bar that's on screen now (sidebar on the laptop, top strip on the phone). */
+export const xpTarget = () => Array.from(document.querySelectorAll('.xp-target .pbar-track')).find((e) => (e as HTMLElement).offsetParent !== null) ?? null;
+/** CSS colour (may be a var()) → a concrete colour for canvas and inline effects. */
+export const resolveColor = (c: string) => { const m = /^var\((--[\w-]+)\)$/.exec(c.trim()); return m ? cssVar(m[1]) || '#fff' : c; };
 import type { Task } from '../../core/types';
 import { STAT_META } from '../../core/types';
 import { useStore, act } from '../../store/store';
@@ -14,13 +23,14 @@ import { sfx } from '../sound/synth';
 import { SPRING, Ring } from '../shapes/Progress';
 import { deadline } from '../../core/deadline';
 
-export function CheckCircle({ done, color, onToggle, size = 22 }: { done: boolean; color: string; onToggle: () => void; size?: number }) {
+const CHECK_POP = { type: 'spring' as const, stiffness: 520, damping: 17, mass: 0.7 };
+export function CheckCircle({ done, color, onToggle, size = 22 }: { done: boolean; color: string; onToggle: (el: HTMLElement) => void; size?: number }) {
   return (
-    <button className="check" style={{ width: size, height: size, borderColor: done ? color : undefined }} onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label={done ? 'Mark not done' : 'Complete'}>
-      <motion.span className="fill" style={{ background: color }} initial={false} animate={{ scale: done ? 1 : 0, opacity: done ? 1 : 0 }} transition={SPRING} />
+    <button className="check" style={{ width: size, height: size, borderColor: done ? color : undefined }} onClick={(e) => { e.stopPropagation(); onToggle(e.currentTarget); }} aria-label={done ? 'Mark not done' : 'Complete'}>
+      <motion.span className="fill" style={{ background: color }} initial={false} animate={{ scale: done ? 1 : 0, opacity: done ? 1 : 0 }} transition={done ? CHECK_POP : SPRING} />
       <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 12 12">
         <motion.path d="M2 6.5l2.6 2.6L10 3.4" fill="none" stroke="var(--bg0)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"
-          initial={false} animate={{ pathLength: done ? 1 : 0 }} transition={{ duration: 0.28, delay: done ? 0.08 : 0 }} />
+          initial={false} animate={{ pathLength: done ? 1 : 0 }} transition={{ duration: 0.26, delay: done ? 0.1 : 0, ease: [0.65, 0, 0.35, 1] }} />
       </svg>
     </button>
   );
@@ -32,12 +42,20 @@ export function TaskRow({ task, showList = false, focusable = true }: { task: Ta
   const setUI = useStore((x) => x.setUI);
   const go = useStore((x) => x.go);
   const fmt = useFmt();
-  const [float, setFloat] = useState<number | null>(null);
+  // A tick plays out in place (check pops, strike-through draws, row flashes) before the task moves to Completed.
+  const [pending, setPending] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const dragged = useRef(false);
+  const swipeArmed = useRef(false);
+  const x = useMotionValue(0);
+  const hintOpacity = useTransform(x, [8, SWIPE], [0, 1]);
+  const hintScale = useTransform(x, [0, SWIPE, SWIPE * 1.6], [0.5, 1, 1.15]);
+  const phone = useIsPhone();
   const today = dayKey(new Date());
   const list = s.lists.find((l) => l.id === task.listId);
   const stat = taskStat(s, task);
   const color = stat && s.appearance.useStatColours ? STAT_META[stat].hue : 'var(--accent)';
-  const done = task.habit ? task.completions.includes(today) : !!task.doneAt;
+  const done = pending || (task.habit ? task.completions.includes(today) : !!task.doneAt);
   const overdue = !done && task.due && task.due < today;
   const preview = taskXp(task.size, { onTime: !!task.due && today <= task.due, streak: task.habit ? task.streak + 1 : 0 });
   const focusMin = s.focusLog.filter((f) => f.taskId === task.id).reduce((n, f) => n + f.minutes, 0);
@@ -46,23 +64,40 @@ export function TaskRow({ task, showList = false, focusable = true }: { task: Ta
   const stepsDone = steps.filter((x) => x.done).length;
   const drain = dl && !dl.late && task.size !== 'quick' && !task.recurrence;
 
-  const toggle = () => {
-    if (done) { act(uncompleteTask, task.id, new Date()); sfx.click(); return; }
-    const before = useStore.getState().s.ledger.length;
-    act(completeTask, task.id, new Date());
-    const added = useStore.getState().s.ledger.slice(before).find((e) => e.source === 'task' || e.source === 'habit');
-    if (added) { setFloat(added.amount); setTimeout(() => setFloat(null), 1100); }
+  const toggle = (el?: HTMLElement | null) => {
+    if (pending) return;
+    if (done) { act(uncompleteTask, task.id, new Date()); sfx.click(); haptic('light'); return; }
     sfx.check();
+    haptic('success');
+    const at = el ? centerOf(el) : null;
+    if (at) {
+      const c = resolveColor(color);
+      ripple(at.x, at.y, c, 58);
+      sparks(at.x, at.y, [c, cssVar('--xp'), cssVar('--t1')], 12);
+    }
+    setPending(true); setFlash(true);
+    const commit = () => {
+      const before = useStore.getState().s.ledger.length;
+      act(completeTask, task.id, new Date());
+      const added = useStore.getState().s.ledger.slice(before).find((e) => e.source === 'task' || e.source === 'habit');
+      if (added && at) flyTo(at, xpTarget(), `+${added.amount} XP`);
+      setPending(false);
+    };
+    if (reducedMotion()) commit(); else setTimeout(commit, 420);
+    setTimeout(() => setFlash(false), 800);
   };
 
   return (
-    <motion.div layout="position" transition={SPRING} className={`task ${done ? 'done' : ''} ${selected ? 'sel' : ''}`} onClick={() => setUI({ detailId: task.id })}>
+    <motion.div layout="position" transition={SPRING} className={`task ${done ? 'done' : ''} ${pending ? 'striking' : ''} ${flash ? 'just-done' : ''} ${selected ? 'sel' : ''}`} style={{ ['--c' as string]: color, x }}
+      onClick={() => { if (dragged.current) return; setUI({ detailId: task.id }); }}
+      // iPhone: swipe a task to the right to tick it off
+      drag={phone && !pending ? 'x' : false} dragDirectionLock dragConstraints={{ left: 0, right: 0 }} dragElastic={{ left: 0.04, right: 0.55 }} dragSnapToOrigin
+      onDragStart={() => { dragged.current = true; }}
+      onDrag={(_, i) => { const over = i.offset.x > SWIPE; if (over !== swipeArmed.current) { swipeArmed.current = over; if (over) haptic('light'); } }}
+      onDragEnd={(e, i) => { const go = i.offset.x > SWIPE; swipeArmed.current = false; setTimeout(() => { dragged.current = false; }, 50); if (go) toggle((e.currentTarget as HTMLElement | null)?.querySelector?.('.check') as HTMLElement ?? document.querySelector(`[data-task="${task.id}"] .check`)); }}
+      data-task={task.id}>
+      {phone && !done && <motion.span className="swipe-hint" style={{ opacity: hintOpacity, scale: hintScale }}><Icon name="check" size={18} stroke={2.8} /></motion.span>}
       <CheckCircle done={done} color={color} onToggle={toggle} />
-      <AnimatePresence>
-        {float !== null && (
-          <motion.span className="xp-float" initial={{ opacity: 0, y: 6, scale: 0.8 }} animate={{ opacity: 1, y: -16, scale: 1 }} exit={{ opacity: 0, y: -30 }} transition={{ duration: 0.5 }}>+{float}</motion.span>
-        )}
-      </AnimatePresence>
       <div className="task-main">
         <div className="task-title">{task.title}</div>
         <div className="task-meta">

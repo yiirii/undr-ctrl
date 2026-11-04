@@ -1,5 +1,6 @@
+import { stagger } from '../../motion/juice';
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
-import { useDeferredValue, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, act, type BizSheet } from '../../../store/store';
 import {
   addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense, deleteBizIncome,
@@ -101,10 +102,10 @@ export function Business({ mk }: { mk: string }) {
             <div className="mcard">
               <div className="mcard-h"><h3>Stock on hand</h3><span className="muted">{st.count} piece{st.count === 1 ? '' : 's'}</span></div>
               <div className="row" style={{ gap: 26, marginBottom: 16, flexWrap: 'wrap' }}>
-                <div><div className="hero-label">Cost</div><div className="stat-num">{fmt.rm(st.costSen)}</div></div>
-                {st.askSen > 0 && <div><div className="hero-label">Asking</div><div className="stat-num" style={{ color: 'var(--in)' }}>{fmt.rm(st.askSen)}</div></div>}
+                <div><div className="hero-label">Cost</div><div className="stat-num"><Count value={(st.costSen) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></div></div>
+                {st.askSen > 0 && <div><div className="hero-label">Asking</div><div className="stat-num" style={{ color: 'var(--in)' }}><Count value={(st.askSen) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></div></div>}
                 {st.count > 0 && <div><div className="hero-label">Oldest</div><div className="stat-num">{st.oldestDays}d</div></div>}
-                {st.reservedCount > 0 && <div><div className="hero-label">Deposits held</div><div className="stat-num" style={{ color: 'var(--xp)' }}>{fmt.rm(st.depositsHeldSen)}</div></div>}
+                {st.reservedCount > 0 && <div><div className="hero-label">Deposits held</div><div className="stat-num" style={{ color: 'var(--xp)' }}><Count value={(st.depositsHeldSen) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></div></div>}
               </div>
               <Bar value={m.soldCount} max={Math.max(1, m.soldCount + st.count + st.reservedCount)} label={`Sold through in ${monthName(mk)}`} showNumbers color="var(--in)" height={8} />
             </div>
@@ -169,8 +170,8 @@ export function Business({ mk }: { mk: string }) {
             <div className="mcard-h"><h3>My collection</h3><span className="muted">{col.count} piece{col.count === 1 ? '' : 's'}</span><div className="grow" /><button className="btn sm ghost" onClick={() => setSheet({ kind: 'buy', kept: true })}><Icon name="plus" size={14} />Add</button></div>
             {col.count > 0 && (
               <div className="row" style={{ gap: 26, marginBottom: 16, flexWrap: 'wrap' }}>
-                <div><div className="hero-label">Paid</div><div className="stat-num">{fmt.rm(col.costSen)}</div></div>
-                <div><div className="hero-label">Worth (your estimate)</div><div className="stat-num">{fmt.rm(col.valueSen)}</div></div>
+                <div><div className="hero-label">Paid</div><div className="stat-num"><Count value={(col.costSen) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></div></div>
+                <div><div className="hero-label">Worth (your estimate)</div><div className="stat-num"><Count value={(col.valueSen) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></div></div>
                 <div><div className="hero-label">{col.gainSen >= 0 ? 'Up' : 'Down'}</div><div className="stat-num" style={{ color: col.gainSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{col.gainSen >= 0 ? '+' : '−'}{fmt.rm(Math.abs(col.gainSen))}</div></div>
               </div>
             )}
@@ -299,9 +300,11 @@ function PlatformBars({ rows }: { rows: { platform: string; count: number; sales
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   // While closing, never block clicks, even if the exit animation lingers.
   const present = useIsPresent();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { stagger(ref.current, { step: 28, max: 9, y: 12 }); }, []);
   return (
     <motion.div className="modal" style={{ pointerEvents: present ? 'auto' : 'none' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.14 } }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div className="sheet" initial={{ y: 24, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={SPRING} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
+      <motion.div ref={ref} className="sheet" initial={{ y: 24, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={SPRING} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
         <div className="sheet-h"><h2>{title}</h2><div className="grow" /><button className="icon-btn" onClick={onClose}><Icon name="x" /></button></div>
         {children}
       </motion.div>

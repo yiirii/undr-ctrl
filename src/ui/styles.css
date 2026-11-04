@@ -632,3 +632,106 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 @keyframes lqWave { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--w))); } }
 .amb-float { animation: ambFloat ease-in-out infinite; }
 @keyframes ambFloat { 50% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); } }
+
+/* ================= Juice (Rev 15) ================= */
+/* effects layer: ripples, flying XP */
+.fx-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
+.fx-ripple { position: absolute; border-radius: 50%; border: 2.5px solid; will-change: transform, opacity; }
+.fx-fly { position: absolute; font-weight: 900; font-size: .95rem; white-space: nowrap; text-shadow: 0 2px 10px color-mix(in srgb, currentColor 45%, transparent), 0 1px 0 rgba(0,0,0,.35); will-change: transform, opacity; }
+
+/* something just landed in this bar: a light sweep + soft pop */
+.pbar-track, .segbar, .phone-top .grow { position: relative; }
+.fx-gain { animation: fxGainPop .5s cubic-bezier(.34,1.56,.64,1); }
+.fx-gain::after { content: ''; position: absolute; inset: -3px 0; border-radius: 99px; pointer-events: none; background: linear-gradient(100deg, transparent 15%, rgba(255,255,255,.75) 50%, transparent 85%); animation: fxSweep .8s cubic-bezier(.22,1,.36,1) forwards; }
+@keyframes fxGainPop { 30% { transform: scaleY(1.6); } }
+@keyframes fxSweep { from { transform: translateX(-100%); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+/* every button gives way under your finger and springs back */
+.btn, .icon-btn, .qa-btn, .pn-tab, .more-row, .seg-ctl button, .numpad button, .theme-tile, .swatch, .tl-item, .habit-pill, .cat-pick, .dd, .dd-opt, .nav-item, .chip-btn {
+  transition: transform .42s cubic-bezier(.34,1.56,.64,1), background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .2s ease, opacity .15s ease, filter .15s ease;
+}
+.btn:active:not(:disabled), .icon-btn:active:not(:disabled), .qa-btn:active, .more-row:active, .seg-ctl button:active, .numpad button:active, .theme-tile:active, .swatch:active, .tl-item:active, .cat-pick:active, .dd:active, .nav-item:active, .chip-btn:active {
+  transform: scale(.95); transition-duration: .08s;
+}
+.pn-tab:active { transform: scale(.9); transition-duration: .08s; }
+
+/* primary buttons: a light sheen passes over them on hover (laptop) */
+.btn { position: relative; overflow: hidden; isolation: isolate; }
+.btn.primary::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%); transform: translateX(-120%); }
+@media (hover: hover) {
+  .btn.primary:hover::after { transform: translateX(120%); transition: transform .7s cubic-bezier(.22,1,.36,1); }
+  .btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .task:hover { box-shadow: 0 6px 18px -10px rgba(0,0,0,.55); }
+  .tl-item:hover, .habit-pill:hover, .cat-pick:hover, .theme-tile:hover { transform: translateY(-2px); }
+}
+
+/* task tick: strike-through draws across, the row flashes in its stat colour */
+.task.done .task-title { text-decoration: none; position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
+.task.done .task-title::after { content: ''; position: absolute; left: 0; right: 0; top: 54%; height: 1.5px; border-radius: 2px; background: var(--t3); transform-origin: left center; animation: strikeDraw .32s cubic-bezier(.65,0,.35,1) both; }
+.task.striking .task-title { color: var(--t2); transition: color .3s ease .15s; }
+@keyframes strikeDraw { from { transform: scaleX(0); } }
+.task.just-done::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 34%, transparent), color-mix(in srgb, var(--c) 8%, transparent) 70%, transparent); transform-origin: left center; animation: rowFlash .8s cubic-bezier(.22,1,.36,1) forwards; }
+@keyframes rowFlash { 0% { transform: scaleX(0); opacity: 1; } 45% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+.task .check { z-index: 1; }
+/* phone: swipe right to tick off; the check appears from the left as you pull */
+.swipe-hint { position: absolute; right: calc(100% + 14px); top: 50%; margin-top: -17px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: var(--bg0); pointer-events: none; }
+.tasks { overflow: visible; }
+.all-clear { display: inline-flex; align-items: center; gap: 5px; color: var(--ok, var(--in)); font-weight: 800; }
+.count { display: inline-block; font-variant-numeric: tabular-nums; }
+
+/* sliding highlight that follows you between pages */
+.nav-item { position: relative; }
+.nav-item.on { background: transparent; }
+.nav-item.on::before { display: none; }
+.nav-item > :not(.nav-pill) { position: relative; z-index: 1; }
+.nav-pill { position: absolute; inset: 0; border-radius: var(--radius-sm); background: var(--bg4); z-index: 0; }
+.nav-pill::before { content: ''; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 4px; border-radius: 0 4px 4px 0; background: var(--accent-fill); }
+.collapsed .nav-pill::before { left: -8px; }
+.pn-tab { position: relative; }
+.pn-tab > :not(.pn-pill) { position: relative; z-index: 1; }
+.pn-ico { display: grid; }
+.pn-pill { position: absolute; top: 9px; left: 0; width: 58px; height: 30px; margin-left: -29px; border-radius: 15px; background: color-mix(in srgb, var(--t1) 12%, transparent); z-index: 0; pointer-events: none; will-change: transform; }
+.pn-pill.ready { transition: transform .46s cubic-bezier(.34,1.35,.64,1); }
+.phone-nav { position: fixed; }
+
+/* segmented controls: the highlight slides to your choice */
+.seg-ctl { position: relative; }
+.seg-ctl > button { position: relative; z-index: 1; }
+.seg-ctl.has-thumb > button.on { background: transparent; }
+.seg-ctl.has-thumb::before { content: ''; position: absolute; left: 0; top: var(--ty); width: var(--tw); height: var(--th); transform: translateX(var(--tx)); border-radius: calc(var(--radius-sm) - 2px); background: var(--bg4); box-shadow: 0 1px 4px rgba(0,0,0,.18); z-index: 0; }
+.seg-ctl.thumb-ready::before { transition: transform .42s cubic-bezier(.34,1.45,.64,1), width .42s cubic-bezier(.34,1.45,.64,1); }
+.reduced-motion .seg-ctl.thumb-ready::before { transition-duration: .15s; transition-timing-function: ease; }
+
+/* toasts show how long they'll stay */
+.toast { position: relative; overflow: hidden; }
+.toast-timer { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: color-mix(in srgb, var(--t1) 35%, transparent); transform-origin: left; animation: toastTimer var(--dur, 4800ms) linear forwards; }
+@keyframes toastTimer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+/* quick add: understood bits pop in as you type */
+.parse-preview .chip, .qa-cand .chip { animation: chipIn .34s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes chipIn { from { opacity: 0; transform: scale(.6) translateY(4px); } }
+.reduced-motion .parse-preview .chip, .reduced-motion .qa-cand .chip, .reduced-motion .task.done .task-title::after, .reduced-motion .task.just-done::before, .reduced-motion .fx-gain, .reduced-motion .fx-gain::after, .reduced-motion .toast-timer { animation: none !important; }
+
+/* page build-in: blocks rise one after another (CSS only; the shell adds .entering on each visit) */
+@keyframes blockIn { from { opacity: 0; transform: translateY(12px) scale(.985); } }
+.main-scroll.entering .page > *, .main-scroll.entering .tasks > *, .main-scroll.entering .money-grid > *, .main-scroll.entering .habit-strip > *, .main-scroll.entering .bubbles > *, .main-scroll.entering .stack > *, .main-scroll.entering .quests > * { animation: blockIn .46s cubic-bezier(.22,1,.36,1) backwards; animation-delay: calc(40ms + var(--i, 10) * 32ms); }
+.main-scroll.entering .page > *:nth-child(1) { --i: 0; }
+.main-scroll.entering .page > *:nth-child(2) { --i: 1; }
+.main-scroll.entering .page > *:nth-child(3) { --i: 2; }
+.main-scroll.entering .page > *:nth-child(4) { --i: 3; }
+.main-scroll.entering .page > *:nth-child(5) { --i: 4; }
+.main-scroll.entering .page > *:nth-child(6) { --i: 5; }
+.main-scroll.entering .page > *:nth-child(7) { --i: 6; }
+.main-scroll.entering .page > *:nth-child(8) { --i: 7; }
+.main-scroll.entering .page > *:nth-child(9) { --i: 8; }
+.main-scroll.entering .page > *:nth-child(10) { --i: 9; }
+.main-scroll.entering .tasks > *:nth-child(1), .main-scroll.entering .money-grid > *:nth-child(1), .main-scroll.entering .habit-strip > *:nth-child(1), .main-scroll.entering .bubbles > *:nth-child(1), .main-scroll.entering .stack > *:nth-child(1), .main-scroll.entering .quests > *:nth-child(1) { --i: 3; }
+.main-scroll.entering .tasks > *:nth-child(2), .main-scroll.entering .money-grid > *:nth-child(2), .main-scroll.entering .habit-strip > *:nth-child(2), .main-scroll.entering .bubbles > *:nth-child(2), .main-scroll.entering .stack > *:nth-child(2), .main-scroll.entering .quests > *:nth-child(2) { --i: 4; }
+.main-scroll.entering .tasks > *:nth-child(3), .main-scroll.entering .money-grid > *:nth-child(3), .main-scroll.entering .habit-strip > *:nth-child(3), .main-scroll.entering .bubbles > *:nth-child(3), .main-scroll.entering .stack > *:nth-child(3), .main-scroll.entering .quests > *:nth-child(3) { --i: 5; }
+.main-scroll.entering .tasks > *:nth-child(4), .main-scroll.entering .money-grid > *:nth-child(4), .main-scroll.entering .habit-strip > *:nth-child(4), .main-scroll.entering .bubbles > *:nth-child(4), .main-scroll.entering .stack > *:nth-child(4), .main-scroll.entering .quests > *:nth-child(4) { --i: 6; }
+.main-scroll.entering .tasks > *:nth-child(5), .main-scroll.entering .money-grid > *:nth-child(5), .main-scroll.entering .habit-strip > *:nth-child(5), .main-scroll.entering .bubbles > *:nth-child(5), .main-scroll.entering .stack > *:nth-child(5), .main-scroll.entering .quests > *:nth-child(5) { --i: 7; }
+.main-scroll.entering .tasks > *:nth-child(6), .main-scroll.entering .money-grid > *:nth-child(6), .main-scroll.entering .habit-strip > *:nth-child(6), .main-scroll.entering .bubbles > *:nth-child(6), .main-scroll.entering .stack > *:nth-child(6), .main-scroll.entering .quests > *:nth-child(6) { --i: 8; }
+.main-scroll.entering .tasks > *:nth-child(7), .main-scroll.entering .money-grid > *:nth-child(7), .main-scroll.entering .habit-strip > *:nth-child(7), .main-scroll.entering .bubbles > *:nth-child(7), .main-scroll.entering .stack > *:nth-child(7), .main-scroll.entering .quests > *:nth-child(7) { --i: 9; }
+.main-scroll.entering .tasks > *:nth-child(8), .main-scroll.entering .money-grid > *:nth-child(8), .main-scroll.entering .habit-strip > *:nth-child(8), .main-scroll.entering .bubbles > *:nth-child(8), .main-scroll.entering .stack > *:nth-child(8), .main-scroll.entering .quests > *:nth-child(8) { --i: 10; }
+.main-scroll.entering .tasks > *:nth-child(n+9), .main-scroll.entering .money-grid > *:nth-child(n+9), .main-scroll.entering .habit-strip > *:nth-child(n+9), .main-scroll.entering .bubbles > *:nth-child(n+9), .main-scroll.entering .stack > *:nth-child(n+9), .main-scroll.entering .quests > *:nth-child(n+9) { animation: none; }
+.main-scroll.entering .page > :nth-child(n+11) { --i: 10; }
+.main-scroll.entering .keep, .main-scroll.entering .page > .keep { animation: none; }

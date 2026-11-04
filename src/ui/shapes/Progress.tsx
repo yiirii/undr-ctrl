@@ -2,6 +2,7 @@
 import { motion, useSpring, useTransform, animate } from 'framer-motion';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useStore } from '../../store/store';
+import { glow as gain } from '../motion/juice';
 
 export const SPRING = { type: 'spring' as const, stiffness: 140, damping: 22, mass: 0.9 };
 const useReduced = () => useStore((s) => s.s.settings.reducedMotion);
@@ -18,6 +19,9 @@ export function Bar({ value, max, color = 'var(--accent-fill)', height = 8, show
   const tailPct = over ? ((value - safeMax) / total) * 100 : 0;
   const complete = !over && value >= safeMax && max > 0;
   const f = format ?? ((v: number) => String(Math.round(v)));
+  const track = useRef<HTMLDivElement>(null);
+  const prev = useRef(value);
+  useEffect(() => { const was = prev.current; prev.current = value; if (value > was && track.current?.offsetParent) gain(track.current); }, [value]);
   return (
     <div className={`pbar ${className ?? ''}`} title={`${f(value)} / ${f(max)}`}>
       {(label || showNumbers) && (
@@ -26,7 +30,7 @@ export function Bar({ value, max, color = 'var(--accent-fill)', height = 8, show
           {showNumbers && <span className="pbar-num">{f(value)} <i>/ {f(max)}</i></span>}
         </div>
       )}
-      <div className={`pbar-track ${complete ? 'is-full' : ''}`} style={{ height }}>
+      <div ref={track} className={`pbar-track ${complete ? 'is-full' : ''}`} style={{ height }}>
         <motion.div className="pbar-fill" style={{ background: color }} initial={false} animate={{ width: `${mainPct}%` }} transition={tr(reduced)} />
         {over && <motion.div className="pbar-tail" initial={false} animate={{ width: `${tailPct}%` }} transition={tr(reduced)} />}
       </div>
@@ -36,10 +40,18 @@ export function Bar({ value, max, color = 'var(--accent-fill)', height = 8, show
 
 export function SegBar({ done, total, color = 'var(--accent-fill)', height = 8, gap = 4 }: { done: number; total: number; color?: string; height?: number; gap?: number }) {
   const reduced = useReduced();
+  const box = useRef<HTMLDivElement>(null);
+  const prev = useRef(done);
+  useEffect(() => {
+    const was = prev.current; prev.current = done;
+    if (done <= was || reduced || !box.current?.offsetParent) return;
+    const segs = box.current.children;
+    for (let i = was; i < done && i < segs.length; i++) (segs[i] as HTMLElement).animate?.([{ transform: 'scaleY(1)' }, { transform: 'scaleY(1.9)', offset: 0.3 }, { transform: 'scaleY(1)' }], { duration: 480, delay: (i - was) * 60 + 120, easing: 'ease-out' });
+  }, [done, reduced]);
   if (total > 24) return <Bar value={done} max={total} color={color} height={height} />;
   const n = Math.max(1, total);
   return (
-    <div className="segbar" style={{ gap, height }}>
+    <div className="segbar" ref={box} style={{ gap, height }}>
       {Array.from({ length: n }, (_, i) => (
         <div key={i} className={`seg ${total === 0 ? 'seg-empty' : ''}`}>
           <motion.div className="seg-fill" style={{ background: color }} initial={false} animate={{ scaleX: i < done ? 1 : 0 }} transition={reduced ? { duration: 0.2 } : { ...SPRING, delay: i < done ? 0 : 0 }} />
@@ -98,17 +110,25 @@ export function Liquid({ value, max, color = 'var(--wea)', size = 72, radius = 1
   );
 }
 
-/** Rolling number. */
-export function Count({ value, format = (v: number) => Math.round(v).toLocaleString('en-US') }: { value: number; format?: (v: number) => string }) {
+/** Rolling number: counts to its new value (written straight to the screen, no React work per frame) and pops when it goes up. */
+export function Count({ value, format = (v: number) => Math.round(v).toLocaleString('en-US'), pop = true }: { value: number; format?: (v: number) => string; pop?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const prev = useRef(value);
   const reduced = useReduced();
-  const [text, setText] = useState(format(value));
+  const fmt = useRef(format); fmt.current = format;
+  const busy = useRef(false);
+  const [first] = useState(() => format(value)); // React only sets the text once; the effect owns it after that
+  // keep the text right when only the formatting changes (e.g. the RM style setting)
+  useEffect(() => { const el = ref.current; if (el && !busy.current) { const t = fmt.current(value); if (el.textContent !== t) el.textContent = t; } });
   useEffect(() => {
-    if (reduced) { setText(format(value)); prev.current = value; return; }
-    const c = animate(prev.current, value, { duration: 0.7, ease: [0.22, 1, 0.36, 1], onUpdate: (v) => setText(format(v)) });
-    prev.current = value;
-    return () => c.stop();
+    const el = ref.current;
+    const from = prev.current; prev.current = value;
+    if (!el) return;
+    if (reduced || from === value) { el.textContent = fmt.current(value); return; }
+    busy.current = true;
+    const c = animate(from, value, { duration: Math.min(1.1, 0.55 + Math.log10(1 + Math.abs(value - from)) * 0.12), ease: [0.22, 1, 0.36, 1], onUpdate: (v) => { el.textContent = fmt.current(v); }, onComplete: () => { busy.current = false; el.textContent = fmt.current(value); } });
+    if (pop && value > from && el.animate && el.offsetParent !== null) el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.14)', offset: 0.3 }, { transform: 'scale(1)' }], { duration: 520, easing: 'ease-out' });
+    return () => { c.stop(); busy.current = false; };
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <span ref={ref} className="count">{text}</span>;
+  return <span ref={ref} className="count">{first}</span>;
 }

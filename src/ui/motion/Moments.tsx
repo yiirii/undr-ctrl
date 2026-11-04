@@ -8,6 +8,7 @@ import { title as makeTitle } from '../../core/rules';
 import type { Unlock } from '../../core/unlocks';
 import { attachCanvas, burst, cssVar } from './particles';
 import { sfx } from '../sound/synth';
+import { haptic } from './juice';
 import { Count, SPRING } from '../shapes/Progress';
 import { Icon } from '../shapes/icons';
 import { HexBadge } from '../views/Badges';
@@ -147,7 +148,7 @@ export function Moments() {
   useEffect(() => { attachCanvas(canvas.current); }, []);
   useEffect(() => moments.on((m) => {
     if (m.type === 'taskCompleted') return;
-    if (m.type === 'levelUp') { setLevels((l) => [...l, { level: m.level, unlocks: m.unlocks }]); return; }
+    if (m.type === 'levelUp') { haptic('heavy'); setLevels((l) => [...l, { level: m.level, unlocks: m.unlocks }]); return; }
     if (m.type === 'combo') {
       const id = ++tid;
       setCombo({ count: m.count, bonus: m.bonus, id });
@@ -157,6 +158,7 @@ export function Moments() {
     }
     if (m.type === 'sale') {
       const tier = saleTier(m.profitSen, m.record);
+      haptic(tier === 2 && m.profitSen > 0 ? 'heavy' : 'success');
       if (tier === 2 && m.profitSen > 0) { setBigs((b) => [...b, { kind: 'sale', profitSen: m.profitSen, record: m.record }]); return; }
       if (m.profitSen > 0) {
         sfx.sale(tier);
@@ -171,7 +173,7 @@ export function Moments() {
     }
     const id = ++tid;
     setToasts((t) => [...t.slice(-3), { id, m }]);
-    if (m.type === 'questCompleted' || m.type === 'achievementUnlocked') { sfx.chime2(); burst(window.innerWidth - 200, window.innerHeight - 70, [cssVar('--xp'), cssVar('--t1'), cssVar('--accent')], 26, 6); }
+    if (m.type === 'questCompleted' || m.type === 'achievementUnlocked') { haptic('success'); sfx.chime2(); burst(window.innerWidth - 200, window.innerHeight - 70, [cssVar('--xp'), cssVar('--t1'), cssVar('--accent')], 26, 6); }
     else if (m.type === 'statLevelUp') sfx.chime2();
     else if (m.type === 'streakMilestone') sfx.streak(m.streak);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), m.type === 'achievementUnlocked' && m.unlocks.length ? 9000 : 4800);
@@ -182,8 +184,9 @@ export function Moments() {
       <div className="toasts">
         <AnimatePresence>
           {toasts.map((t) => (
-            <motion.div key={t.id} className="toast" layout initial={{ x: 60, opacity: 0, scale: 0.95 }} animate={{ x: 0, opacity: 1, scale: 1 }} exit={{ x: 40, opacity: 0 }} transition={SPRING}>
-              <ToastView m={t.m} />
+            <motion.div key={t.id} className="toast" layout initial={{ x: 70, opacity: 0, scale: 0.9, rotate: 2 }} animate={{ x: 0, opacity: 1, scale: 1, rotate: 0 }} exit={{ x: 50, opacity: 0, scale: 0.95 }} transition={{ type: 'spring', stiffness: 380, damping: 22 }}
+              style={{ ['--dur' as string]: `${t.m.type === 'achievementUnlocked' && t.m.unlocks.length ? 9000 : 4800}ms` }}>
+              <ToastView m={t.m} /><span className="toast-timer" />
             </motion.div>
           ))}
         </AnimatePresence>

@@ -37,12 +37,12 @@ function loop(now: number = performance.now()) {
   if (ps.length) raf = requestAnimationFrame(loop); else { raf = 0; last = 0; ctx.clearRect(0, 0, canvas.width, canvas.height); }
 }
 
-export function burst(x: number, y: number, colors: string[], count = 40, power = 9, ring = false) {
+export function burst(x: number, y: number, colors: string[], count = 40, power = 9, ring = false, scale = 1) {
   if (!canvas || document.documentElement.classList.contains('reduced-motion')) return;
   for (let i = 0; i < count; i++) {
     const a = ring ? (i / count) * Math.PI * 2 : Math.random() * Math.PI * 2;
     const sp = ring ? power : power * (0.35 + Math.random() * 0.65);
-    ps.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 3 + Math.random() * 5, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, life: 0, max: 55 + Math.random() * 35, color: colors[i % colors.length], shape: (i % 4) as P['shape'] });
+    ps.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: (3 + Math.random() * 5) * scale, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, life: 0, max: (55 + Math.random() * 35) * (scale < 1 ? 0.6 : 1), color: colors[i % colors.length], shape: (i % 4) as P['shape'] });
   }
   if (!raf) raf = requestAnimationFrame(loop);
 }

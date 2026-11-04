@@ -5,6 +5,7 @@ import { ThemeProvider } from './ui/theme/ThemeProvider';
 import { App } from './ui/shell/App';
 import { useStore } from './store/store';
 import { warmAudio } from './ui/sound/synth';
+import { startSegThumbs } from './ui/motion/juice';
 
 async function boot() {
   const q = new URLSearchParams(location.search);
@@ -19,6 +20,7 @@ async function boot() {
   createRoot(document.getElementById('root')!).render(<ThemeProvider><App /></ThemeProvider>);
   (window as unknown as { __lofi: unknown }).__lofi = useStore;
   warmAudio();
+  startSegThumbs();
   // Home Screen app: offline support (web build only, never inside the desktop app)
   if (import.meta.env.PROD && !navigator.userAgent.includes('Electron') && (location.protocol === 'https:' || location.hostname === 'localhost') && 'serviceWorker' in navigator) void navigator.serviceWorker.register('./sw.js').catch(() => {});
   // Sync runs in the real app; in dev only when asked (?syncfake uses an in-memory server).

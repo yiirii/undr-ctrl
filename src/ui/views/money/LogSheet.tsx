@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { stagger, haptic, pop, sparks, centerOf } from '../../motion/juice';
+import { cssVar } from '../../motion/particles';
 import { useStore, act } from '../../../store/store';
 import { logMoney, editMoney, deleteMoney } from '../../../store/logic';
 import { parseAmount } from '../../../core/money';
@@ -25,6 +27,10 @@ export function LogSheet() {
   const [repeat, setRepeat] = useState(!!editing?.repeatMonthly);
   const [hint, setHint] = useState('');
   const close = () => setUI({ logSheet: false });
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const amountRef = useRef<HTMLDivElement>(null);
+  const saveRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => { stagger(sheetRef.current, { step: 30, max: 8, y: 14 }); }, []);
 
   // most-used categories first
   const cats = useMemo(() => {
@@ -41,10 +47,14 @@ export function LogSheet() {
     const payload = { kind, sen, note, date, repeatMonthly: repeat, ...(kind === 'out' ? { categoryId: pick } : { sourceId: pick }) };
     if (editing) act(editMoney, editing.id, payload, new Date()); else act(logMoney, payload, new Date());
     sfx.tink();
+    haptic('success');
+    if (saveRef.current) { const at = centerOf(saveRef.current); sparks(at.x, at.y, [cssVar(kind === 'in' ? '--in' : '--xp'), cssVar('--t1')], 16); }
     close();
   };
   const press = (k: string) => {
     setHint('');
+    haptic('light');
+    pop(amountRef.current, k === '⌫' ? 0.94 : 1.07, 240);
     if (k === '⌫') return setRaw((r) => r.slice(0, -1));
     setRaw((r) => {
       if (k === '.' && r.includes('.')) return r;
@@ -67,7 +77,7 @@ export function LogSheet() {
 
   return (
     <div className="modal" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <motion.div className="sheet" initial={{ y: 30, opacity: 0, scale: 0.98 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={SPRING}>
+      <motion.div ref={sheetRef} className="sheet" initial={{ y: 30, opacity: 0, scale: 0.98 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={SPRING}>
         <div className="sheet-h"><h2>{editing ? 'Edit entry' : 'Log money'}</h2><div className="grow" /><button className="icon-btn" onClick={close}><Icon name="x" /></button></div>
         <div className="inout-toggle">
           <motion.div className="pill" animate={{ x: kind === 'out' ? 0 : '100%' }} transition={SPRING} />
@@ -78,7 +88,7 @@ export function LogSheet() {
           <div className="section-label" style={{ marginTop: 0 }}>1 · {kind === 'out' ? 'What was it for?' : 'Where did it come from?'}</div>
           <div className="cat-cloud">
             {options.map((o) => (
-              <button key={o.id} className={`cat-pick ${pick === o.id ? 'on' : ''}`} style={{ ['--c' as string]: o.c.color }} onClick={() => { setPick(o.id); setHint(''); sfx.click(); }}>
+              <button key={o.id} className={`cat-pick ${pick === o.id ? 'on' : ''}`} style={{ ['--c' as string]: o.c.color }} onClick={(e) => { setPick(o.id); setHint(''); sfx.click(); haptic('light'); pop(e.currentTarget.firstElementChild, 1.2); }}>
                 <CatIcon c={o.c} size={36} />{o.name}
               </button>
             ))}
@@ -86,7 +96,7 @@ export function LogSheet() {
         </div>
         <div>
           <div className="section-label" style={{ marginTop: 0 }}>2 · How much?</div>
-          <div className="amount-display" style={{ color: kind === 'in' ? 'var(--in)' : undefined }}><span>RM</span>{raw || '0'}</div>
+          <div ref={amountRef} className="amount-display" style={{ color: kind === 'in' ? 'var(--in)' : undefined }}><span>RM</span>{raw || '0'}</div>
           <div className="numpad">{['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map((k) => <button key={k} onClick={() => press(k)}>{k}</button>)}</div>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
@@ -104,7 +114,7 @@ export function LogSheet() {
         <div className="row">
           {editing && <button className="btn ghost danger" onClick={() => { act(deleteMoney, editing.id, new Date()); close(); }}><Icon name="trash" size={16} />Delete</button>}
           <div className="grow" />
-          <button className="btn primary lg" onClick={save}><Icon name="check" size={18} stroke={2.4} />{editing ? 'Save' : sen ? `Log ${kind === 'in' ? '+' : ''}${fmt.rm(sen)}` : 'Log it'}</button>
+          <button ref={saveRef} className="btn primary lg" onClick={save}><Icon name="check" size={18} stroke={2.4} />{editing ? 'Save' : sen ? `Log ${kind === 'in' ? '+' : ''}${fmt.rm(sen)}` : 'Log it'}</button>
         </div>
       </motion.div>
     </div>
