@@ -57,7 +57,15 @@ const PageSlot = memo(function PageSlot({ view, active }: { view: string; active
   const top = useRef(0);
   const [committed, setCommitted] = useState(false);
   useEffect(() => setCommitted(true), []);
-  useLayoutEffect(() => { if (active && ref.current) ref.current.scrollTop = top.current; }, [active]);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!active || !el) return;
+    el.scrollTop = top.current;
+    // the page eases in (fade + small rise), as before. It runs on the GPU and never holds up the tap:
+    // the new page is there from the first frame.
+    const reduced = document.documentElement.classList.contains('reduced-motion');
+    el.animate?.(reduced ? [{ opacity: 0.6 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: reduced ? 120 : 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+  }, [active]);
   // the same element every time, so showing a kept page again doesn't redraw it from scratch
   const page = useMemo(() => pageFor(view), [view]);
   return (

@@ -41,7 +41,7 @@ export function CategoryBubble({ c, sum, onClick }: { c: Category; sum: Category
   const ratio = sum.limitSen > 0 ? Math.min(1, sum.spentSen / sum.limitSen) : sum.spentSen > 0 ? 1 : 0;
   const tone = sum.status === 'over' ? 'var(--bad)' : sum.status === 'warn' ? 'var(--warn)' : c.color;
   return (
-    <motion.button className={`bubble ${sum.status}`} onClick={onClick} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+    <motion.button className={`bubble ${sum.status}`} onClick={onClick} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} layout>
       <motion.div className="bubble-fill" style={{ background: `color-mix(in srgb, ${tone} 22%, transparent)` }} initial={false} animate={{ height: `${ratio * 100}%` }} transition={SPRING} />
       <div className="bubble-in">
         <CatIcon c={c} size={34} />

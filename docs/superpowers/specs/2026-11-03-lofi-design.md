@@ -738,3 +738,18 @@ Chloe still felt a delay moving between tabs on the iPhone. The fix is measured 
   | Average tap → new screen shown | ~120 ms | ~47 ms |
   | Average tap → fully settled | ~200 ms | ~56 ms |
   | Money ↔ Business | ~100 ms | ~50 ms |
+
+## Rev 14: Animations back (built 2026-11-05, version 1.2.2)
+
+Chloe had asked to keep the animations. Rev 13 dropped three of them for speed, and all three are restored:
+- **Page change:** the fade with a small rise, 180 ms, is back.
+  - It now runs on the GPU (Web Animations) over a page that is already there, so it never delays the tap.
+  - Reduced motion gives a short fade instead.
+- **More and + sheets:** the spring slide-up is back.
+- **Layout animations:** category bubbles, Money activity rows, and stock and collection cards glide to their new places again.
+
+The goal waves and the empty-state shapes kept their motion throughout; only the way they are drawn changed (CSS).
+
+Measured with perf-tap at 4× slowdown, a tap still shows the new page in about 50 ms, against about 120 ms before Rev 13. The page then finishes easing in over 180 ms.
+
+**Rule from now on:** performance work never removes or weakens an animation without asking Chloe first.

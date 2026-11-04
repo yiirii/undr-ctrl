@@ -74,8 +74,8 @@ export function PhoneNav() {
 function PhoneSheet({ onClose, children, title }: { onClose: () => void; children: React.ReactNode; title: string }) {
   const present = useIsPresent();
   return (
-    <motion.div className="modal phone-sheet-bg" style={{ pointerEvents: present ? 'auto' : 'none' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} exit={{ opacity: 0, transition: { duration: 0.12 } }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div className="phone-sheet" initial={{ y: 48 }} animate={{ y: 0 }} exit={{ y: 40, transition: { duration: 0.12 } }} transition={{ type: 'tween', duration: 0.2, ease: [0.2, 0.9, 0.25, 1] }}>
+    <motion.div className="modal phone-sheet-bg" style={{ pointerEvents: present ? 'auto' : 'none' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.14 } }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <motion.div className="phone-sheet" initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 40, transition: { duration: 0.14 } }} transition={SPRING}>
         <div className="ps-grab" />
         <div className="ps-title">{title}</div>
         {children}

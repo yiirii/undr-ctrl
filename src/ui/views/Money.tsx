@@ -135,7 +135,7 @@ export function Money() {
                       const c = e.kind === 'out' ? s.money.categories.find((x) => x.id === e.categoryId) : undefined;
                       const src = e.kind === 'in' ? s.money.sources.find((x) => x.id === e.sourceId) : undefined;
                       return (
-                        <motion.div key={e.id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="tl-item" onClick={() => setUI({ logSheet: { kind: e.kind, editId: e.id } })}>
+                        <motion.div key={e.id} layout initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="tl-item" onClick={() => setUI({ logSheet: { kind: e.kind, editId: e.id } })}>
                           <CatIcon c={c ?? { icon: src?.icon ?? 'coins', color: 'var(--in)' }} size={34} />
                           <div style={{ minWidth: 0 }}><div className="tl-note">{e.note || c?.name || src?.name}</div><div className="tl-sub">{c?.name ?? src?.name}{e.autoFrom ? ' · added automatically' : e.repeatMonthly ? ' · repeats monthly' : ''}</div></div>
                           <div className={`tl-amt ${e.kind}`}>{e.kind === 'in' ? '+' : ''}{fmt.rm(e.sen)}</div>
