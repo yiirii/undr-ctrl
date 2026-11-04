@@ -1,19 +1,15 @@
-import { AnimatePresence, motion , PresenceContext } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { AnimatePresence, motion, PresenceContext } from 'framer-motion';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useStore } from '../../store/store';
 import { Sidebar } from './Sidebar';
 import { TaskDetail } from './TaskDetail';
 import { QuickAdd } from './QuickAdd';
 import { MyDay, Planned, ListView, Habits } from '../views/Todo';
 import { Money, MoneyOverlays } from '../views/Money';
-import { Profile } from '../views/Profile';
-import { Quests } from '../views/Quests';
-import { Settings } from '../views/Settings';
 import { Focus, FocusTicker } from '../views/Focus';
 import { Onboarding } from '../views/Onboarding';
 import { Moments } from '../motion/Moments';
 import { Reminders } from './Reminders';
-import { Insights } from '../views/Insights';
 import { BizSheets } from '../views/money/Business';
 import { useSync } from '../../sync/service';
 import { SyncPanel } from '../views/SyncPanel';
@@ -24,6 +20,17 @@ import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
 import { act } from '../../store/store';
 import { rollover } from '../../store/logic';
+
+// Less-visited pages load in their own chunks, fetched while the app is idle after start-up.
+const loadInsights = () => import('../views/Insights');
+const loadSettings = () => import('../views/Settings');
+const loadProfile = () => import('../views/Profile');
+const loadQuests = () => import('../views/Quests');
+const Insights = lazy(() => loadInsights().then((m) => ({ default: m.Insights })));
+const Settings = lazy(() => loadSettings().then((m) => ({ default: m.Settings })));
+const Profile = lazy(() => loadProfile().then((m) => ({ default: m.Profile })));
+const Quests = lazy(() => loadQuests().then((m) => ({ default: m.Quests })));
+export function prefetchPages() { for (const f of [loadInsights, loadSettings, loadProfile, loadQuests]) void f().catch(() => {}); }
 
 function View() {
   const view = useStore((x) => x.ui.view);
@@ -38,14 +45,12 @@ function View() {
   else if (view === 'settings') el = <Settings />;
   else if (view === 'focus') el = <Focus />;
   else if (view.startsWith('list:')) el = <ListView id={view.slice(5)} />;
+  // The new page swaps in at once and eases in; the old one never waits on an exit animation,
+  // so a tab tap answers immediately and nothing can hold a page change open.
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div key={view} className="main-scroll" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}>
-        {/* Isolate the page's contents from the page transition: a layout card unmounting inside a page
-            (e.g. switching Money tabs) must never be able to hold the page's exit open and freeze navigation. */}
-        <PresenceContext.Provider value={null}>{el}</PresenceContext.Provider>
-      </motion.div>
-    </AnimatePresence>
+    <motion.div key={view} className="main-scroll" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}>
+      <PresenceContext.Provider value={null}><Suspense fallback={null}>{el}</Suspense></PresenceContext.Provider>
+    </motion.div>
   );
 }
 
@@ -67,7 +72,23 @@ export function App() {
     // also: once a day, copy a single backup into the chosen Google Drive folder
     const iv = setInterval(() => { act(rollover, new Date()); void cloudBackup(); }, 60000);
     const first = setTimeout(() => void cloudBackup(), 5000);
-    return () => { window.removeEventListener('keydown', key); offs.forEach((o) => o?.()); clearInterval(iv); clearTimeout(first); };
+    // coming back to the app (iPhone wakes it from the background): roll the day over at once
+    const pf = setTimeout(prefetchPages, 1500);
+    const vis = () => { if (document.visibilityState === 'visible') act(rollover, new Date()); };
+    document.addEventListener('visibilitychange', vis);
+    // iPhone: keep the field you're typing in clear of the on-screen keyboard
+    let kbT: ReturnType<typeof setTimeout> | undefined;
+    const focusIn = (e: FocusEvent) => {
+      const el = e.target as HTMLElement;
+      if (!el.matches?.('input:not([type=checkbox]):not([type=range]), textarea') || !window.visualViewport || !matchMedia('(hover: none)').matches) return;
+      clearTimeout(kbT);
+      kbT = setTimeout(() => {
+        const r = el.getBoundingClientRect(), vv = window.visualViewport!;
+        if (r.bottom > vv.height - 12 || r.top < 0) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, 320);
+    };
+    document.addEventListener('focusin', focusIn);
+    return () => { window.removeEventListener('keydown', key); offs.forEach((o) => o?.()); clearInterval(iv); clearTimeout(first); clearTimeout(pf); clearTimeout(kbT); document.removeEventListener('visibilitychange', vis); document.removeEventListener('focusin', focusIn); };
   }, [setUI]);
 
   if (!onboarded) return <><FirstScreen /><Moments /></>;

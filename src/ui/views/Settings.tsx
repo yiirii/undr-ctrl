@@ -10,6 +10,7 @@ import { Bar, SegBar, Ring } from '../shapes/Progress';
 import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
 import { SyncPanel } from './SyncPanel';
+import { useIsPhone } from '../shell/PhoneNav';
 import { sfx } from '../sound/synth';
 import { getPlayer, useMusic, fmtSec } from '../music/service';
 import { Cover } from '../music/Cover';
@@ -29,10 +30,12 @@ const Toggle = ({ on, set }: { on: boolean; set: (v: boolean) => void }) => <but
 
 export function Settings() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('General');
+  // Music plays local files through the desktop app; the web app has no player.
+  const tabs = TABS.filter((t) => t !== 'Music' || !!bridge());
   return (
     <div className="page page-wide">
       <div className="ph"><div><h1>Settings</h1><div className="sub">Make Undr Ctrl yours</div></div></div>
-      <div className="seg-ctl" style={{ marginBottom: 22 }}>{TABS.map((t) => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="seg-ctl settings-tabs" style={{ marginBottom: 22 }}>{tabs.map((t) => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t}</button>)}</div>
       {tab === 'General' && <General />}
       {tab === 'Appearance' && <AppearanceTab />}
       {tab === 'Money' && <MoneyTab />}
@@ -54,7 +57,7 @@ function General() {
     <div className="stack" style={{ maxWidth: 760 }}>
       <div className="mcard stack">
         <Row label="Your name"><input className="input" style={{ width: 240 }} value={s.profile.name} onChange={(e) => patch((x) => ({ ...x, profile: { ...x.profile, name: e.target.value } }))} /></Row>
-        <Row label="Start with Windows" hint="Opens quietly to the tray when you log in, so reminders always work. Music never auto-plays."><Toggle on={st.startWithWindows} set={(v) => { set({ startWithWindows: v }); bridge()?.setStartup(v); }} /></Row>
+        {bridge() && <Row label="Start with Windows" hint="Opens quietly to the tray when you log in, so reminders always work. Music never auto-plays."><Toggle on={st.startWithWindows} set={(v) => { set({ startWithWindows: v }); bridge()?.setStartup(v); }} /></Row>}
         <Row label="Start page"><Select ariaLabel="Start page" style={{ width: 200 }} value={st.startPage as string} onChange={(v) => set({ startPage: v as never })} options={[...NAV_PAGES.filter((k) => k !== 'quests'), ...s.lists.map((l) => `list:${l.id}`)].map((k) => ({ value: k as string, label: PAGE_LABEL[k] ?? s.lists.find((l) => `list:${l.id}` === k)?.name ?? k }))} /></Row>
         <Row label="Week starts on"><div className="seg-ctl"><button className={st.weekStartsMonday ? 'on' : ''} onClick={() => set({ weekStartsMonday: true })}>Monday</button><button className={!st.weekStartsMonday ? 'on' : ''} onClick={() => set({ weekStartsMonday: false })}>Sunday</button></div></Row>
         <Row label="Date format"><div className="seg-ctl">{(['short', 'dmy', 'iso'] as const).map((f) => <button key={f} className={st.dateFormat === f ? 'on' : ''} onClick={() => set({ dateFormat: f })}>{f === 'short' ? '3 Nov' : f === 'dmy' ? '03/11' : '2026-11-03'}</button>)}</div></Row>
@@ -104,6 +107,7 @@ function AppearanceTab() {
   const reqLabel = (kind: 'theme' | 'accent', v: string) => { const u = UNLOCKS.find((x) => x.kind === kind && x.value === v); return u?.req.level ? `Reach Lv ${u.req.level}` : u?.req.achievement ? `Achievement` : ''; };
   const locked = (kind: 'theme' | 'accent', v: string) => lockedValue(kind, v, p.char.level, s.achievements);
   const scales = [0.9, 1, 1.1, 1.25, 1.4];
+  const phone = useIsPhone();
   return (
     <div className="two" style={{ gridTemplateColumns: '1fr 340px', alignItems: 'start' }}>
       <div className="stack">
@@ -148,6 +152,7 @@ function AppearanceTab() {
           <div className="section-label" style={{ marginTop: 0 }}>Layout</div>
           <Row label="Density"><div className="seg-ctl">{(['compact', 'cozy', 'spacious'] as const).map((d) => <button key={d} className={a.density === d ? 'on' : ''} onClick={() => set({ density: d })}>{d[0].toUpperCase() + d.slice(1)}</button>)}</div></Row>
           <Row label="Corners"><div className="seg-ctl">{(['sharp', 'soft', 'round'] as const).map((r) => <button key={r} className={a.radius === r ? 'on' : ''} onClick={() => set({ radius: r })}>{r[0].toUpperCase() + r.slice(1)}</button>)}</div></Row>
+          {!phone && <>
           <Row label="Sidebar width" hint="You can also drag its edge."><input type="range" min={220} max={340} value={a.sidebarWidth} onChange={(e) => set({ sidebarWidth: Number(e.target.value), sidebarCollapsed: false })} style={{ width: 200 }} /></Row>
           <Row label="Collapse sidebar to icons"><Toggle on={a.sidebarCollapsed} set={(v) => set({ sidebarCollapsed: v })} /></Row>
           <div className="set-row" style={{ alignItems: 'flex-start' }}>
@@ -163,6 +168,7 @@ function AppearanceTab() {
               ))}
             </div>
           </div>
+          </>}
         </div>
         <div className="row"><div className="grow" /><button className="btn ghost" onClick={() => set({ ...DEFAULT_APPEARANCE })}><Icon name="undo" size={16} />Reset appearance</button></div>
       </div>
@@ -203,13 +209,13 @@ function MoneyTab() {
       <div className="mcard stack">
         <div className="section-label" style={{ marginTop: 0 }}>Categories</div>
         {s.money.categories.map((c) => (
-          <div key={c.id} className="row" style={{ gap: 12 }}>
+          <div key={c.id} className="row cat-edit" style={{ gap: 12 }}>
             <CatIcon c={c} size={32} />
             <input className="input" style={{ flex: 1 }} value={c.name} onChange={(e) => act(upsertCategory, { ...c, name: e.target.value })} />
             <input className="input" style={{ width: 70 }} placeholder="Emoji" value={c.emoji ?? ''} maxLength={4} onChange={(e) => act(upsertCategory, { ...c, emoji: e.target.value || undefined })} />
             <input type="color" value={c.color.startsWith('#') ? c.color : '#b5bac1'} onChange={(e) => act(upsertCategory, { ...c, color: e.target.value })} style={{ width: 36, height: 36, border: 0, background: 'none' }} />
             <div className="seg-ctl"><button className={c.need ? 'on' : ''} onClick={() => act(upsertCategory, { ...c, need: true })}>Need</button><button className={!c.need ? 'on' : ''} onClick={() => act(upsertCategory, { ...c, need: false })}>Want</button></div>
-            <span className="muted" style={{ width: 90, textAlign: 'right', fontSize: '.82rem' }}>{c.limitSen ? `${fmt.rm(c.limitSen)}/mo` : 'No limit'}</span>
+            <span className="muted cat-limit" style={{ width: 90, textAlign: 'right', fontSize: '.82rem' }}>{c.limitSen ? `${fmt.rm(c.limitSen)}/mo` : 'No limit'}</span>
           </div>
         ))}
         <button className="btn ghost" style={{ alignSelf: 'flex-start' }} onClick={() => act(upsertCategory, { name: 'New category' })}><Icon name="plus" size={16} />Add category</button>
@@ -217,7 +223,7 @@ function MoneyTab() {
       <div className="mcard stack">
         <div className="section-label" style={{ marginTop: 0 }}>Money in sources</div>
         {s.money.sources.map((x) => (
-          <div key={x.id} className="row" style={{ gap: 12 }}>
+          <div key={x.id} className="row src-edit" style={{ gap: 12 }}>
             <CatIcon c={{ icon: x.icon, color: 'var(--in)' }} size={32} />
             <input className="input" style={{ flex: 1 }} value={x.name} onChange={(e) => patch((st) => ({ ...st, money: { ...st.money, sources: st.money.sources.map((y) => (y.id === x.id ? { ...y, name: e.target.value } : y)) } }))} />
             <span className="muted">Expected RM</span>
@@ -327,13 +333,13 @@ function DataTab() {
     <div className="stack" style={{ maxWidth: 760 }}>
       <div className="mcard stack">
         <Row label="Export a backup" hint="Everything: tasks, money, progress and settings, in one .undrctrl.json file."><button className="btn" onClick={doExport}><Icon name="download" size={16} />Export</button></Row>
-        <Row label="Import a backup" hint="Replaces what's here now. Undr Ctrl keeps 14 daily backups automatically too."><button className="btn" onClick={doImport}><Icon name="upload" size={16} />Import</button></Row>
+        <Row label="Import a backup" hint={bridge() ? "Replaces what's here now. Undr Ctrl keeps 14 daily backups automatically too." : "Replaces what's here now, and syncs the change to your other devices."}><button className="btn" onClick={doImport}><Icon name="upload" size={16} />Import</button></Row>
         <input ref={fileRef} type="file" accept=".json" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) load(await f.text()); }} />
         {msg && <div className="chip ok" style={{ alignSelf: 'flex-start' }}>{msg}</div>}
       </div>
-      <CloudBackup />
+      {bridge() && <CloudBackup />}
       <div className="mcard dim" style={{ fontSize: '.86rem', lineHeight: 1.6 }}>
-        Your data lives on this PC in <code>%APPDATA%\Undr Ctrl</code>. {s.tasks.length} tasks · {s.money.entries.length} money entries · {s.ledger.length} XP events.
+        {bridge() ? <>Your data lives on this PC in <code>%APPDATA%\Undr Ctrl</code>.</> : <>Your data lives on this device. With Sync on, your account keeps a copy too.</>} {s.tasks.length} tasks · {s.money.entries.length} money entries · {s.ledger.length} XP events.
       </div>
     </div>
   );

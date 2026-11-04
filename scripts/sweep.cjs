@@ -81,7 +81,7 @@ const problems = []; const _push = problems.push.bind(problems); problems.push =
   await step('habits page tick', async () => { await nav('Habits'); await p.locator('.check').first().click().catch(() => {}); });
   await step('insights tabs', async () => { await nav('Insights'); await p.click('button:has-text("Productivity")'); await p.click('button:has-text("Where money goes")'); });
   await step('quests reroll', async () => { await nav('Quests'); await p.locator('button:has-text("Reroll"), button[title*="eroll"]').first().click({ timeout: 1000 }).catch(() => {}); });
-  await step('settings tabs', async () => { await nav('Settings'); for (const t of ['General', 'Appearance', 'Money', 'Music', 'Data']) await p.click(`.seg-ctl button:has-text("${t}")`).catch(() => problems.push(`settings tab ${t} missing`)); });
+  await step('settings tabs', async () => { await nav('Settings'); for (const t of ['General', 'Appearance', 'Money', 'Sync', 'Data']) await p.click(`.seg-ctl button:has-text("${t}")`).catch(() => problems.push(`settings tab ${t} missing`)); });
   await step('theme switch', async () => { await nav('Settings'); await p.click('.seg-ctl button:has-text("Appearance")'); await p.locator('.theme-tile, [data-theme]').nth(2).click({ timeout: 1000 }).catch(() => {}); });
   await step('rapid nav spam', async () => { for (let i = 0; i < 3; i++) for (const [l] of PAGES) { if (PHONE) await nav(l); else await p.locator('.nav-item', { hasText: new RegExp(`^\\s*${l}`) }).first().click(); } });
   await step('rapid tab spam', async () => { await nav('Money'); for (let i = 0; i < 6; i++) { await p.click('.money-tabs button:has-text("Business")'); await p.click('.money-tabs button:has-text("Personal")'); } });

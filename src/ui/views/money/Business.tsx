@@ -424,7 +424,7 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
         : c ? <div className="card flat dim" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>Total spent: <b style={{ color: 'var(--t1)' }}>{fmt.rm(c * qty)}</b>. Your Wealth drops by this now{kept ? '.' : ' and goes back up by what you receive when each piece sells.'}</div> : null}
       {hint && <div className="chip warn" style={{ alignSelf: 'flex-start' }}>{hint}</div>}
       <div className="row" style={{ gap: 8 }}>
-        <span className="muted" style={{ fontSize: '.78rem', whiteSpace: 'nowrap' }}><span className="kbd">Enter</span> add & next</span>
+        <span className="muted hide-phone" style={{ fontSize: '.78rem', whiteSpace: 'nowrap' }}><span className="kbd">Enter</span> add & next</span>
         <div className="grow" />
         <button className="btn lg" onClick={() => save(true)}><Icon name="plus" size={16} stroke={2.4} />Add & next</button>
         <button className="btn primary lg" onClick={() => (added.n > 0 && !name.trim() && !cost ? onClose() : save(false))}><Icon name="check" size={16} stroke={2.4} />{added.n > 0 && !name.trim() && !cost ? 'Done' : kept ? 'Add to collection' : 'Add to stock'}</button>

@@ -3,7 +3,23 @@ import { useStore } from '../../store/store';
 
 type Pack = 'soft' | 'glass' | 'wood' | 'chime';
 let ctx: AudioContext | null = null;
-const ac = () => (ctx ??= new AudioContext());
+const ac = () => {
+  ctx ??= new AudioContext();
+  // iPhone suspends audio until a tap, and again after the app goes to the background
+  if (ctx.state !== 'running') void ctx.resume().catch(() => {});
+  return ctx;
+};
+/** Build the audio engine while the app is idle, so the first tick sound doesn't stall a tap. */
+export function warmAudio() {
+  if (typeof window === 'undefined' || ctx) return;
+  const make = () => { try { ac(); } catch { /* no audio */ } };
+  const idle = (window as unknown as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback;
+  if (idle) idle(make); else setTimeout(make, 1200);
+  // a suspended context can only be started from a user gesture
+  const wake = () => { if (ctx && ctx.state !== 'running') void ctx.resume().catch(() => {}); };
+  window.addEventListener('pointerdown', wake, { passive: true });
+  window.addEventListener('keydown', wake);
+}
 
 function cfg() {
   const s = useStore.getState().s.settings;

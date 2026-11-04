@@ -6,8 +6,12 @@ let raf = 0;
 
 export function attachCanvas(c: HTMLCanvasElement | null) { canvas = c; }
 
-function loop() {
+let last = 0;
+function loop(now: number = performance.now()) {
   if (!canvas) return;
+  // time-based, so a 120 Hz iPhone and a 60 Hz laptop look the same
+  const k = last ? Math.min(3, (now - last) / 16.667) : 1;
+  last = now;
   const ctx = canvas.getContext('2d')!;
   const dpr = window.devicePixelRatio || 1;
   if (canvas.width !== canvas.clientWidth * dpr) { canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr; }
@@ -15,8 +19,8 @@ function loop() {
   ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
   ps = ps.filter((p) => p.life < p.max);
   for (const p of ps) {
-    p.life++;
-    p.x += p.vx; p.y += p.vy; p.vx *= 0.955; p.vy = p.vy * 0.955 + 0.05; p.rot += p.vr;
+    p.life += k;
+    p.x += p.vx * k; p.y += p.vy * k; const d = Math.pow(0.955, k); p.vx *= d; p.vy = p.vy * d + 0.05 * k; p.rot += p.vr * k;
     const t = p.life / p.max;
     ctx.save();
     ctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
@@ -30,7 +34,7 @@ function loop() {
     else { ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke(); }
     ctx.restore();
   }
-  if (ps.length) raf = requestAnimationFrame(loop); else { raf = 0; ctx.clearRect(0, 0, canvas.width, canvas.height); }
+  if (ps.length) raf = requestAnimationFrame(loop); else { raf = 0; last = 0; ctx.clearRect(0, 0, canvas.width, canvas.height); }
 }
 
 export function burst(x: number, y: number, colors: string[], count = 40, power = 9, ring = false) {

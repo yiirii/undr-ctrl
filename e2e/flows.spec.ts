@@ -360,6 +360,26 @@ test.describe('phone', () => {
     await page.locator('.pn-tab', { hasText: 'Money' }).click();
     await expect(page.locator('.main-scroll h1')).toHaveText('Money');
   });
+  test('nothing is wider than the screen; settings tabs all reachable; desktop-only settings hidden', async ({ page }) => {
+    await open(page, 'reset=1&seed=demo&view=myday');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+    const tooWide = () => page.evaluate(() => [...document.querySelectorAll('.main-scroll *')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1 && !e.closest('.settings-tabs, .seg-ctl, .chart-scroll'); }).map((e) => e.className).slice(0, 5));
+    for (const [v, h] of [['myday', 'My Day'], ['planned', 'Planned'], ['habits', 'Habits'], ['money', 'Money'], ['insights', 'Insights'], ['quests', 'Quests'], ['profile', 'Chloe'], ['settings', 'Settings']]) {
+      await page.evaluate((v) => (window as any).__lofi.getState().go(v), v);
+      await expect(page.locator('.main-scroll h1')).toHaveText(h);
+      await page.waitForTimeout(250);
+      expect(await tooWide(), v).toEqual([]);
+      if (v === 'habits') expect(await page.locator('.habit-card > div:nth-child(2)').first().evaluate((e) => e.getBoundingClientRect().width)).toBeGreaterThan(200);
+    }
+    await expect(page.locator('.settings-tabs button', { hasText: 'Music' })).toHaveCount(0);
+    await expect(page.locator('text=Start with Windows')).toHaveCount(0);
+    for (const t of ['Appearance', 'Money', 'Sync', 'Data']) {
+      await page.locator('.settings-tabs button', { hasText: t }).click();
+      expect(await page.evaluate(() => document.querySelector('.main-scroll')!.scrollLeft)).toBe(0);
+      expect(await tooWide(), t).toEqual([]);
+    }
+    await expect(page.locator('text=%APPDATA%')).toHaveCount(0);
+  });
 });
 
 test.describe('iPhone first run', () => {

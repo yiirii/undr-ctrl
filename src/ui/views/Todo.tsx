@@ -286,12 +286,12 @@ function HabitCard({ t, ws, today }: { t: Task; ws: string; today: string }) {
   const dueToday = isScheduled(t.recurrence!, anchor, today);
   const best = t.completions.length;
   return (
-    <div className="card" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 220px', gap: 18, alignItems: 'center', cursor: 'pointer' }} onClick={() => setUI({ detailId: t.id })}>
+    <div className="card habit-card" onClick={() => setUI({ detailId: t.id })}>
       <button className={`diamond ${done ? 'on' : ''}`} style={{ ['--c' as string]: c, width: 34, height: 34, opacity: dueToday || done ? 1 : 0.4 }} title={done ? 'Undo today' : 'Done today'}
         onClick={(e) => { e.stopPropagation(); act(done ? uncompleteTask : completeTask, t.id, new Date()); done ? sfx.click() : sfx.streak(t.streak + 1); }} />
       <div style={{ minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '1rem' }}>{t.title}</div>
-        <div className="row" style={{ gap: 8, marginTop: 6 }}>
+        <div className="row" style={{ gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
           <span className="chip"><Icon name="repeat" size={12} stroke={2.2} />{describeRecurrence(t.recurrence!)}</span>
           {stat && <span className="chip"><span className="sdot" style={{ background: c }} />{STAT_META[stat].name}</span>}
           <span className="chip" style={{ color: t.streak ? 'var(--xp)' : undefined }}>Streak {t.streak}</span>
@@ -305,7 +305,7 @@ function HabitCard({ t, ws, today }: { t: Task; ws: string; today: string }) {
           })}
         </div>
       </div>
-      <div>
+      <div className="habit-week">
         <Bar value={doneWeek} max={Math.max(1, sched.length)} color={c} height={8} showNumbers label="This week" />
       </div>
     </div>

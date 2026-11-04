@@ -499,7 +499,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
   /* sheets become full-screen pages */
   .modal { place-items: stretch; backdrop-filter: none; }
   .sheet { width: 100vw; max-width: none; height: 100dvh; max-height: none; border-radius: 0; padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 18px); }
-  .sheet .row:last-child { position: sticky; bottom: 0; background: var(--bg1); padding-top: 10px; flex-wrap: wrap; }
+  .sheet > .row:last-child { position: sticky; bottom: calc(-1 * (env(safe-area-inset-bottom) + 18px)); margin-bottom: calc(-1 * (env(safe-area-inset-bottom) + 18px)); background: var(--bg1); padding: 10px 0 calc(env(safe-area-inset-bottom) + 18px); flex-wrap: wrap; z-index: 2; box-shadow: 0 -10px 16px -10px rgba(0,0,0,.35); }
+  .cat-cloud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .cat-pick { width: auto; padding: 10px 2px 8px; border-radius: 16px; font-size: .72rem; text-align: center; }
+  .cat-pick:hover { transform: none; }
+  .amount-display { font-size: 2.4rem; padding: 0; }
+  .numpad button { height: 48px; }
   .sheet .btn.lg { flex: 1; justify-content: center; min-height: 50px; }
   input, select, textarea, .input { font-size: 16px !important; } /* stops iOS zooming into fields */
   .btn { min-height: 40px; }
@@ -568,3 +573,53 @@ input, textarea { caret-color: var(--accent); }
 .add-row input { align-self: stretch; height: 100%; line-height: 1.4; }
 .add-row .plus { transition: transform .2s; }
 .add-row:focus-within .plus { transform: rotate(90deg); }
+
+/* ---- habit cards ---- */
+.habit-card { display: grid; grid-template-columns: auto 1fr 220px; gap: 18px; align-items: center; cursor: pointer; }
+@media (max-width: 720px) {
+  .habit-card { grid-template-columns: auto 1fr; gap: 10px 14px; }
+  .habit-card .habit-week { grid-column: 1 / -1; }
+  .habit-card .diamonds { flex-wrap: wrap; }
+}
+
+/* ---- settings on phone ---- */
+@media (max-width: 720px) {
+  .settings-tabs { display: flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .settings-tabs::-webkit-scrollbar { display: none; }
+  .settings-tabs button { flex: none; }
+  .set-row { flex-wrap: wrap; gap: 10px 14px; }
+  .set-row > .grow { flex: 1 1 140px; }
+  .set-row > .input, .set-row > .dd { flex: 1 1 100%; width: 100% !important; }
+  .set-row > input[type=range] { flex: 1 1 100%; width: 100% !important; }
+  .set-row > .seg-ctl { max-width: 100%; overflow-x: auto; }
+  .cat-edit { flex-wrap: wrap; gap: 8px !important; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .cat-edit > .input:first-of-type { flex: 1 1 calc(100% - 44px) !important; }
+  .cat-edit .cat-limit { margin-left: auto; width: auto !important; }
+  .src-edit { flex-wrap: wrap; gap: 8px !important; }
+  .src-edit > .input:first-of-type { flex: 1 1 calc(100% - 44px) !important; }
+  .page { overflow-x: clip; }
+}
+
+/* ---- quick add ---- */
+.qa-title { font-weight: 600; }
+.qa-go { width: 38px; height: 38px; border-radius: 12px; border: 0; display: grid; place-items: center; background: var(--accent-fill); color: var(--accent-ink); cursor: pointer; flex: none; }
+.show-phone { display: none !important; }
+@media (max-width: 720px) {
+  .show-phone { display: grid !important; }
+  .qa-cand { flex-direction: column-reverse; align-items: flex-start; gap: 8px; }
+  .qa-cand .grow { display: none; }
+  .qa-title { font-size: 1rem; }
+  .qa-hint { flex-wrap: wrap; }
+}
+
+/* ---- touch polish (iPhone) ---- */
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+button, a, label, .task, .qa-cand, .dd-opt, .more-row, .pn-tab { touch-action: manipulation; }
+@media (hover: none) {
+  button:active:not(:disabled), .btn:active:not(:disabled) { filter: brightness(1.12); }
+  .task:active { background: var(--bg3); }
+  input[type=date], input[type=time] { -webkit-appearance: none; appearance: none; text-align: left; display: flex; align-items: center; min-height: 40px; }
+  input[type=date]::-webkit-date-and-time-value, input[type=time]::-webkit-date-and-time-value { text-align: left; }
+}
+input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
+.no-select, .pn-tab, .pn-plus, .numpad button, .qa-btn { -webkit-user-select: none; user-select: none; }

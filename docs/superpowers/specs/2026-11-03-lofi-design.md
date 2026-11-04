@@ -680,3 +680,35 @@ This replaces the earlier "a sale adds its profit" rule.
 - **Two-device tests:** two simulated devices against the Firebase emulator — offline edits on both, then reconnect and converge.
 - **Phone flows:** Playwright at iPhone size (390×844) for the quick actions.
 - **Install:** the manifest and service worker are checked to make the site installable.
+
+## Rev 12: Launch polish (built 2026-11-05, version 1.2.0)
+
+**Text entry.** Every text field has an accent-coloured caret. The add-task bar shows a focus ring when you're typing in it, and its + turns.
+
+**Dropdowns.** No native `<select>` is left. Every picker is the app's own menu: a floating menu on the laptop, a bottom sheet on the iPhone. They work with the mouse, the keyboard (arrows, Home/End, type-ahead, Esc) and touch.
+
+**iPhone layout:**
+- Habit cards stack: title and chips, then the week bar across the full width.
+- In Log money, the categories sit four to a row so the amount and keypad are in view. Sheet footers stay pinned above the home bar.
+- Quick add gets a ✓ button. On the phone it hides the keyboard hints and shows the title above its chips.
+- Settings tabs scroll sideways and never shift the page. Category and source rows wrap.
+- Settings that only mean anything on the laptop are hidden on the web app: Start with Windows, sidebar options, Music, the Google Drive backup and the %APPDATA% note.
+- A test checks that no page is wider than the screen.
+
+**Touch:**
+- Hover effects apply only on devices that can hover, so taps never leave things stuck in a hover look. A build step handles this.
+- No grey tap flash and no double-tap zoom. Buttons give pressed feedback.
+- A field you start typing in is scrolled clear of the keyboard.
+- The day rolls over the moment you reopen the app.
+
+**Speed:**
+- Fonts load Latin only: CSS falls from 54 kB to 11 kB gzipped and assets from 5.4 MB to 2.4 MB.
+- Insights, Settings, Profile and Quests load as separate chunks, fetched while the app is idle.
+- Page changes no longer wait for the old page to fade out.
+- The sound engine starts at idle instead of on the first tap.
+- Confetti runs on time instead of frames, so it looks the same at 120 Hz.
+- On a phone emulated at 4× CPU slowdown, changing tabs is about 35% faster and the stall when ticking a task fell from 220 ms + 133 ms to about 95 ms.
+
+**Offline worker.** It deletes the previous release's cache. If the network takes more than 2.5 s it opens the cached app, so a weak signal never holds up launch.
+
+**Safety.** `?reset=1` only wipes data in development builds.
