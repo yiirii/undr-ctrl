@@ -1,10 +1,12 @@
-import { stagger } from '../../motion/juice';
+import { stagger, haptic } from '../../motion/juice';
+import { businessMonthFlows, takenOutMonth } from '../../../core/wallet';
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, act, type BizSheet } from '../../../store/store';
 import {
   addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense, deleteBizIncome,
   keepBizItem, unkeepBizItem, setBizValue, reserveBizItem, completeReservation, cancelReservation, setPlatforms,
+  setTngBalance, addMove, deleteMove, businessMoneyNow,
 } from '../../../store/logic';
 import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, matchesQuery, type BizItem } from '../../../core/business';
 import { parseAmount, parseCost } from '../../../core/money';
@@ -97,6 +99,8 @@ export function Business({ mk }: { mk: string }) {
               </div>
             </div>
           </div>
+
+          <BusinessMoney mk={mk} />
 
           <div className="two">
             <div className="mcard">
@@ -252,6 +256,8 @@ export function BizSheets() {
         {sheet?.kind === 'cost' && <CostSheet key="cost" onClose={() => setSheet(null)} />}
         {sheet?.kind === 'platforms' && <PlatformsSheet key="platforms" onClose={() => setSheet(null)} />}
         {sheet?.kind === 'item' && <ItemSheet key="item" id={sheet.id} onClose={() => setSheet(null)} go={setSheet} />}
+        {sheet?.kind === 'tng' && <TngSheet key="tng" onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'move' && <MoveSheet key="move" onClose={() => setSheet(null)} />}
     </AnimatePresence>
   );
 }
@@ -660,6 +666,104 @@ function ItemSheet({ id, onClose, go }: { id: string; onClose: () => void; go: (
         {it.status === 'reserved' && <button className="btn" onClick={() => go({ kind: 'paid', id })}><Icon name="coins" size={16} />Balance paid</button>}
         <button className="btn primary" onClick={save}>Save</button>
       </div>
+    </Sheet>
+  );
+}
+
+
+// ---------------- Business money (TnG) ----------------
+const readSen = (v: string) => { const n = Number(v.replace(/[^\d.]/g, '')); return v.trim() && Number.isFinite(n) ? Math.round(n * 100) : null; };
+
+/** What's in your TnG (the business wallet), and where it went this month. */
+function BusinessMoney({ mk }: { mk: string }) {
+  const s = useStore((x) => x.s);
+  const fmt = useFmt();
+  const setSheet = (bizSheet: Sheet) => useStore.getState().setUI({ bizSheet });
+  const bal = businessMoneyNow(s);
+  const flows = businessMonthFlows(s.business.items, s.business.expenses, s.business.income, mk);
+  const t = takenOutMonth(s.money.entries, s.business.moves ?? [], mk);
+  const money = (sen: number) => <Count value={sen / 100} format={(v) => fmt.rm(Math.round(v * 100))} />;
+  const rows: [string, number, string][] = [
+    ['From sales & deposits', flows.inSen, 'var(--in)'],
+    ['Pieces & business costs', -flows.outSen, 'var(--t2)'],
+    ['Taken out for you', -t.takenOutSen, 'var(--wea)'],
+    ...(t.putInSen ? [['Put in', t.putInSen, 'var(--in)'] as [string, number, string]] : []),
+  ];
+  return (
+    <div className="mcard biz-money">
+      <div className="mcard-h">
+        <h3>Business money</h3><span className="muted">in your TnG</span><div className="grow" />
+        {bal !== null && <button className="btn sm ghost" onClick={() => setSheet({ kind: 'move' })}><Icon name="repeat" size={14} />Move money</button>}
+        {bal !== null && <button className="btn sm ghost" onClick={() => setSheet({ kind: 'tng' })}>Match my TnG</button>}
+      </div>
+      {bal === null ? (
+        <div className="bm-setup">
+          <div className="muted" style={{ lineHeight: 1.5 }}>Your TnG is your business wallet: sales go in, Funkos come out, and anything personal you pay with it is money taken out of the business. Tell Undr Ctrl what's in it now and it keeps the balance from here.</div>
+          <button className="btn primary" onClick={() => setSheet({ kind: 'tng' })}><Icon name="coins" size={16} />Set my TnG balance</button>
+        </div>
+      ) : (
+        <div className="bm-hero">
+          <div>
+            <div className="hero-num" style={{ fontSize: '2.2rem', color: bal < 0 ? 'var(--bad)' : undefined }}>{money(bal)}</div>
+            <div className="muted" style={{ fontSize: '.8rem' }}>{bal < 0 ? 'Below zero: something was missed. Tap "Match my TnG".' : `Last matched with your TnG: ${fmt.day(s.business.wallet!.setOn).toLowerCase() === 'today' ? 'today' : fmt.day(s.business.wallet!.setOn)}`}</div>
+          </div>
+        </div>
+      )}
+      <div className="section-label" style={{ marginTop: 16 }}>{monthName(mk)}</div>
+      <div className="bm-rows">
+        {rows.map(([label, sen, c]) => (
+          <div key={label} className="bm-row"><span>{label}</span><b style={{ color: sen === 0 ? 'var(--t3)' : c }}>{sen > 0 ? '+' : sen < 0 ? '−' : ''}{money(Math.abs(sen))}</b></div>
+        ))}
+      </div>
+      {t.spentSen > 0 && <div className="muted" style={{ fontSize: '.8rem', marginTop: 8 }}>You paid for {fmt.rm(t.spentSen)} of personal things with TnG this month.</div>}
+    </div>
+  );
+}
+
+function TngSheet({ onClose }: { onClose: () => void }) {
+  const s = useStore((x) => x.s);
+  const fmt = useFmt();
+  const now = businessMoneyNow(s);
+  const [amt, setAmt] = useState(now !== null ? String(Math.max(0, now) / 100) : '');
+  const sen = readSen(amt);
+  const save = () => { if (sen === null) return; act(setTngBalance, sen, new Date()); sfx.tink(); haptic('success'); onClose(); };
+  return (
+    <Sheet title={now === null ? 'Your TnG balance' : 'Match my TnG'} onClose={onClose}>
+      <div className="muted" style={{ fontSize: '.88rem', lineHeight: 1.5 }}>Open TnG and type the balance you see. {now !== null && <>Undr Ctrl thinks it's <b style={{ color: 'var(--t1)' }}>{fmt.rm(now)}</b>; matching fixes anything that was missed.</>}</div>
+      <MoneyField label="In my TnG now" value={amt} set={setAmt} autoFocus onEnter={save} />
+      <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save} disabled={sen === null}><Icon name="check" size={16} stroke={2.4} />{now === null ? 'Set balance' : 'Match'}</button></div>
+    </Sheet>
+  );
+}
+
+function MoveSheet({ onClose }: { onClose: () => void }) {
+  const today = dayKey(new Date());
+  const moves = useStore((x) => x.s.business.moves ?? []);
+  const fmt = useFmt();
+  const [dir, setDir] = useState<'in' | 'out'>('in');
+  const [amt, setAmt] = useState('');
+  const [note, setNote] = useState('');
+  const sen = readSen(amt);
+  const save = () => { if (!sen) return; act(addMove, { sen, dir, date: today, note }, new Date()); sfx.tink(); haptic('success'); onClose(); };
+  const recent = [...moves].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  return (
+    <Sheet title="Move money" onClose={onClose}>
+      <div className="seg-ctl" style={{ alignSelf: 'flex-start' }}>
+        <button className={dir === 'in' ? 'on' : ''} onClick={() => setDir('in')}>Put into TnG</button>
+        <button className={dir === 'out' ? 'on' : ''} onClick={() => setDir('out')}>Take out of TnG</button>
+      </div>
+      <div className="muted" style={{ fontSize: '.86rem', lineHeight: 1.5 }}>{dir === 'in' ? 'e.g. topping up TnG with your cash. It adds to your business money.' : 'e.g. moving TnG money to your bank or cash. It counts as taken out of the business.'} Neither changes profit or Wealth.</div>
+      <MoneyField label="Amount" value={amt} set={setAmt} autoFocus onEnter={save} />
+      <label className="field"><span>Note (optional)</span><input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note" /></label>
+      {recent.length > 0 && (
+        <div className="stack" style={{ gap: 4 }}>
+          <div className="section-label" style={{ marginTop: 0 }}>Recent moves</div>
+          {recent.map((m) => (
+            <div key={m.id} className="bm-row"><span>{m.dir === 'in' ? 'Put in' : 'Took out'}{m.note ? ` · ${m.note}` : ''} <i className="muted">{fmt.day(m.date)}</i></span><span className="row" style={{ gap: 6 }}><b>{m.dir === 'in' ? '+' : '−'}{fmt.rm(m.sen)}</b><button className="icon-btn" title="Delete" onClick={() => act(deleteMove, m.id)}><Icon name="trash" size={14} /></button></span></div>
+          ))}
+        </div>
+      )}
+      <div className="row"><div className="grow" /><button className="btn primary lg" onClick={save} disabled={!sen}><Icon name="check" size={16} stroke={2.4} />{dir === 'in' ? 'Put in' : 'Take out'}</button></div>
     </Sheet>
   );
 }

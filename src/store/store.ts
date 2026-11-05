@@ -18,7 +18,9 @@ export type BizSheet =
   | { kind: 'paid'; id: string }
   | { kind: 'cost' }
   | { kind: 'platforms' }
-  | { kind: 'item'; id: string };
+  | { kind: 'item'; id: string }
+  | { kind: 'tng' }
+  | { kind: 'move' };
 
 interface UI {
   view: View;

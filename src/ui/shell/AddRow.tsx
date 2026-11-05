@@ -13,11 +13,13 @@ export function CandidateChips({ c }: { c: Candidate }) {
   const fmt = useFmt();
   if (c.kind === 'out') {
     const cat = s.money.categories.find((x) => x.id === c.categoryId);
-    return <><span className="chip warn"><Icon name="wallet" size={12} stroke={2.2} />Money out</span><span className="chip">{fmt.rm(c.sen)}</span><span className="chip"><span className="sdot" style={{ background: cat?.color }} />{cat?.name}</span>{c.note && <span className="chip">“{c.note}”</span>}</>;
+    const w = c.wallet ?? s.settings.lastWallet ?? 'cash';
+    return <><span className="chip warn"><Icon name="wallet" size={12} stroke={2.2} />Money out</span><span className={`chip ${w === 'tng' ? 'tng-chip' : ''}`}>{w === 'tng' ? 'TnG' : 'Cash'}</span><span className="chip">{fmt.rm(c.sen)}</span><span className="chip"><span className="sdot" style={{ background: cat?.color }} />{cat?.name}</span>{c.note && <span className="chip">“{c.note}”</span>}</>;
   }
   if (c.kind === 'in') {
     const src = s.money.sources.find((x) => x.id === c.sourceId);
-    return <><span className="chip ok"><Icon name="wallet" size={12} stroke={2.2} />Money in</span><span className="chip">+{fmt.rm(c.sen)}</span><span className="chip">{src?.name}</span></>;
+    const w = c.wallet ?? s.settings.lastWallet ?? 'cash';
+    return <><span className="chip ok"><Icon name="wallet" size={12} stroke={2.2} />Money in</span><span className={`chip ${w === 'tng' ? 'tng-chip' : ''}`}>{w === 'tng' ? 'To TnG' : 'Cash'}</span><span className="chip">+{fmt.rm(c.sen)}</span><span className="chip">{src?.name}</span></>;
   }
   const list = s.lists.find((l) => l.id === c.listId);
   return (
@@ -36,10 +38,13 @@ export function commitCandidate(c: Candidate, defaults: { listId: string; myDay?
   const now = new Date();
   if (c.kind === 'task') {
     act(addTask, { title: c.title, listId: c.listId ?? defaults.listId, due: c.due, time: c.time, size: c.size, recurrence: c.recurrence, habit: c.habit, myDay: defaults.myDay && !c.habit }, now);
-  } else if (c.kind === 'out') {
-    act(logMoney, { kind: 'out', sen: c.sen, categoryId: c.categoryId, note: c.note, date: dayKey(now) }, now);
   } else {
-    act(logMoney, { kind: 'in', sen: c.sen, sourceId: c.sourceId, note: c.note, date: dayKey(now) }, now);
+    // money: the wallet you named ("tng" / "cash"), otherwise the one you used last
+    const st = useStore.getState();
+    const wallet = c.wallet ?? st.s.settings.lastWallet ?? 'cash';
+    if (c.wallet) st.setSettings({ lastWallet: c.wallet });
+    if (c.kind === 'out') act(logMoney, { kind: 'out', sen: c.sen, categoryId: c.categoryId, note: c.note, date: dayKey(now), wallet }, now);
+    else act(logMoney, { kind: 'in', sen: c.sen, sourceId: c.sourceId, note: c.note, date: dayKey(now), wallet }, now);
   }
   sfx.pop();
 }

@@ -807,3 +807,30 @@ Chloe asked for more juice: richer animation and feedback on both laptop and iPh
   - Tap → new screen: about 60 ms, against 50 ms before Rev 15, while carrying all the added motion.
   - Ticking a task: the worst frame fell from 233 ms to about 133 ms, because the tick's effects now run before the save.
   - The new `scripts/perf-frames.cjs` measures frame times during these animations.
+
+## Rev 16: Business money (TnG) (built 2026-11-05, version 1.4.0)
+
+**Chloe's situation.** Cash comes from her dad's allowance. TnG is effectively the business wallet: customers almost always pay into TnG, and every Funko is bought with TnG. So personal spending paid with TnG is money taken out of the business. She wants to see the numbers; no limits for now.
+
+**The model (`src/core/wallet.ts`, all pure and tested):**
+- Every money entry has `wallet: 'cash' | 'tng'`. A missing value means cash, which covers all older entries.
+- Personal spending with TnG is an owner's draw. It is not a business cost, so profit is unchanged, and Wealth and XP are unchanged too.
+- **Business money** is everything that has gone into or out of TnG, plus an adjustment:
+  - In: sales (price − fees), deposits held, and other business income.
+  - Out: every piece's cost (free pieces cost 0) and other business costs.
+  - Both ways: personal TnG spending (out), money-in received to TnG (in), and moves.
+- **Match my TnG:** you type your real TnG balance, and the app stores `adjustSen = balance − flows`. There is no balance until you do this once.
+- **Moves** (`business.moves`): put money into TnG (for example a cash top-up), or take money out of TnG. These change business money only.
+- **This month** shows: from sales & deposits, pieces & business costs, taken out for you (personal TnG spending + moves out), and put in.
+
+**Where you see it:**
+- **Log money:** "Paid with / Received in: Cash | TnG". It remembers the last choice, and for TnG it says "From your business money".
+- **Quick add:** "tng", "touch n go", "ewallet" or "cash" sets the wallet, and the parsed chips show it.
+- **Business tab:** the Business money card shows the balance (a rolling number), the month's rows, Move money (with recent moves you can delete) and Match my TnG. Before the balance is set, the card offers to set it up.
+- **Personal tab, In & out:** a two-colour bar splits spending into Allowance (cash) and Business money (TnG).
+- **Activity rows:** TnG entries get a tag.
+- **Recap:** "RM X of it came out of your business money (TnG)".
+
+**Sync:** `moves` is a record collection and `bizWallet` is a single setting. The last wallet used is a regular setting, so it syncs.
+
+**Known approximation:** for monthly rows, a sold piece's whole price counts in the month it sold, even if its deposit came in an earlier month. The overall balance is exact.

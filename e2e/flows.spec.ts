@@ -350,6 +350,41 @@ test('sync settings: create account, see synced status, sign out, wrong password
   await expect(page.locator('.sync-card')).toContainText('Synced with your account');
 });
 
+test('business money: set the TnG balance, a TnG lunch takes from it, cash does not, moving money in adds to it', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=money');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+  await page.click('.money-tabs button:has-text("Business")');
+  await page.click('button:has-text("Set my TnG balance")');
+  await page.fill('.sheet input', '342.50');
+  await page.click('.sheet button:has-text("Set balance")');
+  await expect(page.locator('.biz-money .hero-num')).toHaveText('RM 342.50');
+  const log = async (amt: string, wallet: 'Cash' | 'TnG') => {
+    await page.keyboard.press('Control+e');
+    await page.locator('.sheet .cat-pick').first().click();
+    for (const k of amt) await page.keyboard.press(k);
+    await page.click(`.wallet-pick button:has-text("${wallet}")`);
+    await page.locator('.sheet .btn.primary.lg').click();
+    await expect(page.locator('.modal')).toHaveCount(0);
+  };
+  await log('12', 'TnG');
+  await expect(page.locator('.biz-money .hero-num')).toHaveText('RM 330.50');
+  await log('20', 'Cash');
+  await expect(page.locator('.biz-money .hero-num')).toHaveText('RM 330.50');
+  await expect(page.locator('.biz-money')).toContainText('Taken out for you');
+  await expect(page.locator('.biz-money .bm-row', { hasText: 'Taken out for you' })).toContainText('RM 12');
+  await page.click('.biz-money button:has-text("Move money")');
+  await page.fill('.sheet input[inputmode="decimal"]', '50');
+  await page.click('.sheet .btn.primary.lg');
+  await expect(page.locator('.biz-money .hero-num')).toHaveText('RM 380.50');
+  // the next expense remembers TnG
+  await page.keyboard.press('Control+e');
+  await expect(page.locator('.wallet-pick button.on')).toHaveText(/Cash/); // last used was cash
+  await page.keyboard.press('Escape');
+  // the Personal tab shows where spending came from
+  await page.click('.money-tabs button:has-text("Personal")');
+  await expect(page.locator('.wallet-split')).toContainText('Business money (TnG)');
+});
+
 test.describe('phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   test('tab bar instead of sidebar; + → Sold records a sale; More → Settings', async ({ page }) => {

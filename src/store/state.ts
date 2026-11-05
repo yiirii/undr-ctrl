@@ -1,3 +1,4 @@
+import type { BizMove, WalletAnchor } from '../core/wallet';
 import type { Category, Deposit, FocusLogEntry, Goal, IncomeSource, LedgerEntry, List, MoneyEntry, Playlist, Quest, Task, Track } from '../core/types';
 import { STAT_META } from '../core/types';
 import type { FocusState } from '../core/focus';
@@ -25,6 +26,7 @@ export interface Settings {
   lastCloudBackup?: string; // ISO time of last successful cloud backup
   cloudBackupFailed?: boolean;
   haptics?: boolean; // iPhone taps you can feel (default on; this device only)
+  lastWallet?: 'cash' | 'tng'; // what you last paid with, preselected next time
 }
 
 export interface MusicState { tracks: Track[]; playlists: Playlist[]; volume: number; shuffle: boolean; repeat: 'off' | 'all' | 'one'; resumeOnReturn: boolean; linkInsteadOfCopy: boolean; activePlaylist: string }
@@ -35,7 +37,7 @@ export interface AppState {
   lists: List[];
   tasks: Task[];
   money: { categories: Category[]; sources: IncomeSource[]; entries: MoneyEntry[]; goals: Goal[]; deposits: Deposit[]; savingsTargetSen: number; setupDone: boolean; dismissedNudges: string[]; recapsSeen: string[] };
-  business: { items: BizItem[]; expenses: BizExpense[]; income: BizIncome[]; platforms: string[]; name: string };
+  business: { items: BizItem[]; expenses: BizExpense[]; income: BizIncome[]; platforms: string[]; name: string; moves: BizMove[]; wallet?: WalletAnchor };
   bizVersion?: number; // 2 = cash-flow Wealth
   ledger: LedgerEntry[];
   quests: Quest[];
@@ -73,7 +75,7 @@ export function initialState(name = ''): AppState {
     lists: defaultLists(),
     tasks: [],
     money: { categories: defaultCategories(), sources: defaultSources(), entries: [], goals: [], deposits: [], savingsTargetSen: 0, setupDone: false, dismissedNudges: [], recapsSeen: [] },
-    business: { items: [], expenses: [], income: [], platforms: [...DEFAULT_PLATFORMS], name: 'Funko shop' },
+    business: { items: [], expenses: [], income: [], platforms: [...DEFAULT_PLATFORMS], name: 'Funko shop', moves: [] },
     bizVersion: 2,
     ledger: [],
     quests: [],

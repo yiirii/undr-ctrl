@@ -1,3 +1,4 @@
+import { walletFlowsSen, businessMoney, adjustFor, type BizMove, type Wallet } from '../core/wallet';
 // Pure state transitions. Every action returns { state, moments }.
 import type { AppState } from './state';
 import type { Goal, MoneyEntry, Recurrence, Size, Stat, Task } from '../core/types';
@@ -235,7 +236,7 @@ export function deleteList(s: AppState, id: string): Result {
 }
 
 // ---------------- money ----------------
-export interface NewMoney { kind: 'in' | 'out'; sen: number; categoryId?: string; sourceId?: string; note: string; date: string; repeatMonthly?: boolean }
+export interface NewMoney { kind: 'in' | 'out'; sen: number; categoryId?: string; sourceId?: string; note: string; date: string; repeatMonthly?: boolean; wallet?: Wallet }
 
 const hasBudget = (s: AppState) => s.money.categories.some((c) => c.limitSen > 0);
 
@@ -247,10 +248,29 @@ function moneyLedger(s: AppState, e: MoneyEntry, now: Date) {
 
 export function logMoney(s: AppState, n: NewMoney, now: Date): Result {
   if (!(n.sen > 0) || !Number.isFinite(n.sen)) return done(s);
-  const e: MoneyEntry = { id: uid(), kind: n.kind, sen: Math.round(n.sen), note: n.note.trim(), date: n.date, loggedOn: dayKey(now), repeatMonthly: n.repeatMonthly || undefined };
+  const e: MoneyEntry = { id: uid(), kind: n.kind, sen: Math.round(n.sen), note: n.note.trim(), date: n.date, loggedOn: dayKey(now), repeatMonthly: n.repeatMonthly || undefined, ...(n.wallet ? { wallet: n.wallet } : {}) };
   if (n.kind === 'out') e.categoryId = n.categoryId ?? 'other'; else e.sourceId = n.sourceId ?? s.money.sources[0]?.id;
   const next = { ...s, money: { ...s.money, entries: [...s.money.entries, e] }, ledger: [...s.ledger, ...moneyLedger(s, e, now)] };
   return settle(s, next, now, []);
+}
+
+// ---------------- business money (TnG) ----------------
+const flowsNow = (s: AppState) => walletFlowsSen(s.business.items, s.business.expenses, s.business.income, s.money.entries, s.business.moves ?? []);
+/** What's in the business wallet (TnG) now, or null until you've told the app once. */
+export const businessMoneyNow = (s: AppState) => businessMoney(flowsNow(s), s.business.wallet);
+/** "Match my TnG": you say what's really in TnG; the app lines its business money up with it. */
+export function setTngBalance(s: AppState, actualSen: number, now: Date): Result {
+  if (!Number.isFinite(actualSen)) return done(s);
+  return done({ ...s, business: { ...s.business, wallet: { adjustSen: adjustFor(flowsNow(s), Math.round(actualSen)), setOn: dayKey(now) } } });
+}
+/** Money moved between you and the business. Changes business money only: never Wealth, profit or XP. */
+export function addMove(s: AppState, m: Omit<BizMove, 'id'>, _now: Date): Result {
+  if (!(m.sen > 0) || !Number.isFinite(m.sen)) return done(s);
+  const move: BizMove = { id: uid(), sen: Math.round(m.sen), dir: m.dir, date: m.date, ...(m.note?.trim() ? { note: m.note.trim() } : {}) };
+  return done({ ...s, business: { ...s.business, moves: [...(s.business.moves ?? []), move] } });
+}
+export function deleteMove(s: AppState, id: string): Result {
+  return done({ ...s, business: { ...s.business, moves: (s.business.moves ?? []).filter((m) => m.id !== id) } });
 }
 
 export function editMoney(s: AppState, id: string, patch: Partial<NewMoney>, now: Date): Result {

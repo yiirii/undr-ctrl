@@ -73,3 +73,16 @@ describe('money', () => {
   });
   test('empty gives no candidates', () => expect(parseQuick('   ', ctx)).toEqual([]));
 });
+
+describe('quick add: which wallet', () => {
+  const c = (t: string) => parseQuick(t, ctx)[0] as any;
+  test('"tng" or "touch n go" marks money as TnG and is left out of the note', () => {
+    expect(c('12 lunch tng')).toMatchObject({ kind: 'out', sen: 1200, wallet: 'tng', note: 'lunch' });
+    expect(c('8 grab touchngo')).toMatchObject({ wallet: 'tng' });
+    expect(c('+50 dad tng')).toMatchObject({ kind: 'in', wallet: 'tng' });
+  });
+  test('"cash" marks it as cash; saying nothing leaves the wallet open', () => {
+    expect(c('12 lunch cash')).toMatchObject({ wallet: 'cash', note: 'lunch' });
+    expect(c('12 lunch').wallet).toBeUndefined();
+  });
+});

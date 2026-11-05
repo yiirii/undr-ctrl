@@ -82,6 +82,7 @@ export interface MoneyEntry {
   loggedOn: string; // day key it was logged
   repeatMonthly?: boolean;
   autoFrom?: string; // id of the repeating entry this was generated from
+  wallet?: 'cash' | 'tng'; // what paid (out) or received (in); missing = cash. TnG is the business wallet.
 }
 
 export interface Goal {

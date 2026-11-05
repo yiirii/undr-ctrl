@@ -5,8 +5,8 @@ import { addDays, weekday, weekStart } from './dates';
 export interface ParseCtx { lists: List[]; categories: Category[]; sources: IncomeSource[]; today: string }
 export type Candidate =
   | { kind: 'task'; title: string; listId?: string; due?: string; time?: string; size?: Size; recurrence?: Recurrence; habit?: boolean }
-  | { kind: 'out'; sen: number; categoryId: string; note: string }
-  | { kind: 'in'; sen: number; sourceId: string; note: string };
+  | { kind: 'out'; sen: number; categoryId: string; note: string; wallet?: 'cash' | 'tng' }
+  | { kind: 'in'; sen: number; sourceId: string; note: string; wallet?: 'cash' | 'tng' };
 
 const WD: Record<string, number> = { sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tues: 2, tuesday: 2, wed: 3, wednesday: 3, thu: 4, thur: 4, thurs: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6 };
 const MON: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
@@ -135,6 +135,16 @@ function parseTask(text: string, ctx: ParseCtx): Candidate {
   return c;
 }
 
+// "tng", "touchngo", "touch n go", "ewallet" → paid with TnG (the business wallet); "cash" → cash.
+const WALLET_WORDS: Record<string, 'cash' | 'tng'> = { tng: 'tng', touchngo: 'tng', ewallet: 'tng', 'e-wallet': 'tng', cash: 'cash' };
+function takeWallet(words: string[]): { wallet?: 'cash' | 'tng'; rest: string[] } {
+  const joined = words.join(' ').toLowerCase().replace(/touch\s*['’]?\s*n\s*['’]?\s*go/g, 'touchngo').split(/\s+/).filter(Boolean);
+  let wallet: 'cash' | 'tng' | undefined;
+  const rest: string[] = [];
+  joined.forEach((w, i) => { const hit = WALLET_WORDS[w]; if (hit && !wallet) wallet = hit; else rest.push(words.length === joined.length ? words[i] : w); });
+  return { wallet, rest };
+}
+
 export function parseQuick(input: string, ctx: ParseCtx): Candidate[] {
   const text = input.trim();
   if (!text) return [];
@@ -144,7 +154,8 @@ export function parseQuick(input: string, ctx: ParseCtx): Candidate[] {
   if (mi) {
     const sen = parseAmount(mi[1]);
     if (sen) {
-      const words = mi[2].split(/\s+/).filter(Boolean);
+      const tw = takeWallet(mi[2].split(/\s+/).filter(Boolean));
+      const words = tw.rest;
       let sourceId = ctx.sources.find((s) => s.id === 'other-in')?.id ?? ctx.sources[0]?.id ?? 'other-in';
       for (const w of words) {
         const hit = Object.entries(SOURCE_ALIASES).find(([, al]) => al.includes(w.toLowerCase()));
@@ -152,7 +163,7 @@ export function parseQuick(input: string, ctx: ParseCtx): Candidate[] {
         if (byName) { sourceId = byName.id; break; }
         if (hit && ctx.sources.some((s) => s.id === hit[0])) { sourceId = hit[0]; break; }
       }
-      out.push({ kind: 'in', sen, sourceId, note: words.join(' ') });
+      out.push({ kind: 'in', sen, sourceId, note: words.join(' '), ...(tw.wallet ? { wallet: tw.wallet } : {}) });
       return out;
     }
   }
@@ -161,7 +172,8 @@ export function parseQuick(input: string, ctx: ParseCtx): Candidate[] {
   if (mo && !parseTime(mo[1].toLowerCase()) && !/^\d{1,2}\/\d{1,2}$/.test(mo[1])) {
     const sen = parseAmount(mo[1]);
     if (sen) {
-      const words = (mo[2] ?? '').split(/\s+/).filter(Boolean);
+      const tw = takeWallet((mo[2] ?? '').split(/\s+/).filter(Boolean));
+      const words = tw.rest;
       let cat: Category | undefined;
       let explicitIdx = -1;
       words.forEach((w, i) => {
@@ -173,7 +185,7 @@ export function parseQuick(input: string, ctx: ParseCtx): Candidate[] {
       const other = ctx.categories.find((c) => c.id === 'other') ?? ctx.categories[ctx.categories.length - 1];
       const noteWords = explicitIdx >= 0 && words.length > 1 ? words.filter((_, i) => i !== explicitIdx) : words;
       if (cat || other) {
-        const money: Candidate = { kind: 'out', sen, categoryId: (cat ?? other)!.id, note: noteWords.join(' ') };
+        const money: Candidate = { kind: 'out', sen, categoryId: (cat ?? other)!.id, note: noteWords.join(' '), ...(tw.wallet ? { wallet: tw.wallet } : {}) };
         out.push(money, parseTask(text, ctx));
         return out;
       }

@@ -735,3 +735,26 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .main-scroll.entering .tasks > *:nth-child(n+9), .main-scroll.entering .money-grid > *:nth-child(n+9), .main-scroll.entering .habit-strip > *:nth-child(n+9), .main-scroll.entering .bubbles > *:nth-child(n+9), .main-scroll.entering .stack > *:nth-child(n+9), .main-scroll.entering .quests > *:nth-child(n+9) { animation: none; }
 .main-scroll.entering .page > :nth-child(n+11) { --i: 10; }
 .main-scroll.entering .keep, .main-scroll.entering .page > .keep { animation: none; }
+
+/* business money (TnG) */
+.wallet-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.wallet-label { font-size: .72rem; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--t3); }
+.wallet-pick button { display: inline-flex; align-items: center; gap: 6px; }
+.wallet-hint { font-size: .78rem; color: var(--wea); font-weight: 600; }
+.tng-chip { color: var(--wea); background: color-mix(in srgb, var(--wea) 14%, var(--bg2)); }
+.wallet-split { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.ws-bar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; gap: 3px; }
+.ws-bar span { display: block; min-width: 4px; border-radius: 99px; transition: flex-grow .6s cubic-bezier(.22,1,.36,1); }
+.ws-cash { background: var(--t3); }
+.ws-tng { background: var(--wea); }
+.ws-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .82rem; color: var(--t2); }
+.ws-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.ws-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.ws-legend b { color: var(--t1); }
+.tng-tag { margin-left: 6px; padding: 1px 6px; border-radius: 6px; font-size: .68rem; font-weight: 800; color: var(--wea); background: color-mix(in srgb, var(--wea) 15%, transparent); }
+.biz-money .bm-setup { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.bm-hero { display: flex; align-items: flex-end; gap: 16px; }
+.bm-rows { display: flex; flex-direction: column; gap: 2px; }
+.bm-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; padding: 0 10px; border-radius: var(--radius-sm); background: var(--bg2); font-size: .88rem; }
+.bm-row b { font-variant-numeric: tabular-nums; }
+.bm-row i { font-style: normal; font-size: .76rem; margin-left: 6px; }

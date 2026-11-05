@@ -1,3 +1,4 @@
+import { personalSplit } from '../../core/wallet';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { Keep } from '../shapes/Keep';
@@ -50,6 +51,7 @@ export function Money() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const used = m.budgetSen > 0 ? m.outSen / m.budgetSen : 0;
+  const split = personalSplit(s.money.entries, mk);
   const biz = bizMonth(s.business.items, s.business.expenses, mk);
   const kept = m.keptSen + biz.profitSen;
   // Each tab's content is only rebuilt when its data changes, so flipping Personal / Business is instant.
@@ -94,6 +96,15 @@ export function Money() {
           <div className="mcard-h"><h3>In & out</h3><span className="muted">{monthName(mk)}</span></div>
           <InOut inSen={m.inSen} expectedSen={isCurrent ? m.expectedInSen : 0} outSen={m.outSen} bizSen={biz.salesSen || biz.expensesSen || biz.cogsSen ? biz.profitSen : undefined} />
           <div className="kept-line">{kept >= 0 ? <>You've kept <b><Count value={(kept) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></b> so far{biz.profitSen ? <> (including <b style={{ color: biz.profitSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{fmt.rm(biz.profitSen)}</b> business profit)</> : ''}.</> : m.hasBudget ? <>You've spent <b style={{ color: 'var(--bad)' }}>{fmt.rm(-kept)}</b> more than came in.</> : <>That's <b style={{ color: 'var(--t1)' }}>{fmt.rm(-kept)}</b> more out than in. Fine while you're tracking; it shows where money goes.</>}</div>
+          {split.tngSen > 0 && (
+            <div className="wallet-split">
+              <div className="ws-bar"><span className="ws-cash" style={{ flexGrow: split.cashSen }} /><span className="ws-tng" style={{ flexGrow: split.tngSen }} /></div>
+              <div className="ws-legend">
+                <span><i className="ws-cash" />Allowance (cash) <b><Count value={split.cashSen / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></b></span>
+                <span><i className="ws-tng" />Business money (TnG) <b><Count value={split.tngSen / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></b></span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mcard">
@@ -137,7 +148,7 @@ export function Money() {
                       return (
                         <motion.div key={e.id} layout initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="tl-item" onClick={() => setUI({ logSheet: { kind: e.kind, editId: e.id } })}>
                           <CatIcon c={c ?? { icon: src?.icon ?? 'coins', color: 'var(--in)' }} size={34} />
-                          <div style={{ minWidth: 0 }}><div className="tl-note">{e.note || c?.name || src?.name}</div><div className="tl-sub">{c?.name ?? src?.name}{e.autoFrom ? ' · added automatically' : e.repeatMonthly ? ' · repeats monthly' : ''}</div></div>
+                          <div style={{ minWidth: 0 }}><div className="tl-note">{e.note || c?.name || src?.name}</div><div className="tl-sub">{c?.name ?? src?.name}{e.autoFrom ? ' · added automatically' : e.repeatMonthly ? ' · repeats monthly' : ''}{e.wallet === 'tng' && <span className="tng-tag">TnG</span>}</div></div>
                           <div className={`tl-amt ${e.kind}`}>{e.kind === 'in' ? '+' : ''}{fmt.rm(e.sen)}</div>
                         </motion.div>
                       );

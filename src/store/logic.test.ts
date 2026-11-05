@@ -137,3 +137,42 @@ describe('quests', () => {
     expect(s.ledger.filter((e) => e.source === 'quest').length).toBe(1);
   });
 });
+
+describe('business money (TnG)', () => {
+  test('an expense remembers what paid for it; Wealth is the same whichever wallet paid', () => {
+    const a = L.logMoney(fresh(), { kind: 'out', sen: 1200, categoryId: 'food', note: '', date: '2026-11-03', wallet: 'tng' }, NOW).state;
+    const b = L.logMoney(fresh(), { kind: 'out', sen: 1200, categoryId: 'food', note: '', date: '2026-11-03', wallet: 'cash' }, NOW).state;
+    expect(a.money.entries[0].wallet).toBe('tng');
+    expect(b.money.entries[0].wallet).toBe('cash');
+    const w = (s: AppState) => JSON.stringify(deriveProgress(s.ledger).stats.wea);
+    expect(w(a)).toBe(w(b));
+  });
+  test('editing an entry can switch its wallet', () => {
+    let s = L.logMoney(fresh(), { kind: 'out', sen: 900, categoryId: 'food', note: '', date: '2026-11-03', wallet: 'cash' }, NOW).state;
+    s = L.editMoney(s, s.money.entries[0].id, { wallet: 'tng' }, NOW).state;
+    expect(s.money.entries[0].wallet).toBe('tng');
+  });
+  test('telling the app your TnG balance makes business money equal it, then spending lowers it', () => {
+    let s = L.setTngBalance(fresh(), 25000, NOW).state;
+    expect(L.businessMoneyNow(s)).toBe(25000);
+    s = L.logMoney(s, { kind: 'out', sen: 1200, categoryId: 'food', note: '', date: '2026-11-03', wallet: 'tng' }, NOW).state;
+    expect(L.businessMoneyNow(s)).toBe(23800);
+    s = L.logMoney(s, { kind: 'out', sen: 5000, categoryId: 'food', note: '', date: '2026-11-03', wallet: 'cash' }, NOW).state;
+    expect(L.businessMoneyNow(s)).toBe(23800);
+  });
+  test('moving money in or out changes business money but never Wealth or XP; a move can be deleted', () => {
+    let s = L.setTngBalance(fresh(), 10000, NOW).state;
+    const before = s.ledger.length;
+    s = L.addMove(s, { sen: 3000, dir: 'in', date: '2026-11-03', note: 'Topped up' }, NOW).state;
+    expect(L.businessMoneyNow(s)).toBe(13000);
+    s = L.addMove(s, { sen: 500, dir: 'out', date: '2026-11-03' }, NOW).state;
+    expect(L.businessMoneyNow(s)).toBe(12500);
+    expect(s.ledger.length).toBe(before);
+    s = L.deleteMove(s, s.business.moves[1].id).state;
+    expect(L.businessMoneyNow(s)).toBe(13000);
+    expect(L.addMove(s, { sen: 0, dir: 'in', date: '2026-11-03' }, NOW).state).toBe(s);
+  });
+  test('no balance until it is set', () => {
+    expect(L.businessMoneyNow(fresh())).toBeNull();
+  });
+});

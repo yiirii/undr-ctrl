@@ -20,6 +20,7 @@ const COLLS: Coll[] = [
   { k: 'items', get: (s) => s.business.items, set: (s, v) => ({ ...s, business: { ...s.business, items: v as AppState['business']['items'] } }) },
   { k: 'expenses', get: (s) => s.business.expenses, set: (s, v) => ({ ...s, business: { ...s.business, expenses: v as AppState['business']['expenses'] } }) },
   { k: 'income', get: (s) => s.business.income, set: (s, v) => ({ ...s, business: { ...s.business, income: v as AppState['business']['income'] } }) },
+  { k: 'moves', get: (s) => s.business.moves ?? [], set: (s, v) => ({ ...s, business: { ...s.business, moves: v as AppState['business']['moves'] } }) },
   { k: 'ledger', get: (s) => s.ledger, set: (s, v) => ({ ...s, ledger: v as AppState['ledger'] }) },
   { k: 'quests', get: (s) => s.quests, set: (s, v) => ({ ...s, quests: v as AppState['quests'] }) },
 ];
@@ -43,6 +44,7 @@ const ONES: One[] = [
   { id: 'dismissedNudges', merge: 'union', get: (s) => s.money.dismissedNudges, set: (s, v) => ({ ...s, money: { ...s.money, dismissedNudges: v as string[] } }) },
   { id: 'recapsSeen', merge: 'union', get: (s) => s.money.recapsSeen, set: (s, v) => ({ ...s, money: { ...s.money, recapsSeen: v as string[] } }) },
   { id: 'bizName', get: (s) => s.business.name, set: (s, v) => ({ ...s, business: { ...s.business, name: v as string } }) },
+  { id: 'bizWallet', get: (s) => s.business.wallet ?? null, set: (s, v) => ({ ...s, business: { ...s.business, wallet: (v as AppState['business']['wallet'] | null) ?? undefined } }) },
   { id: 'platforms', get: (s) => s.business.platforms, set: (s, v) => ({ ...s, business: { ...s.business, platforms: v as string[] } }) },
   { id: 'achievements', merge: 'union', get: (s) => s.achievements, set: (s, v) => ({ ...s, achievements: v as string[] }) },
   { id: 'questsCompleted', merge: 'max', get: (s) => s.questsCompleted, set: (s, v) => ({ ...s, questsCompleted: v as number }) },

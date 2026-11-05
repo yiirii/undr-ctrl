@@ -25,6 +25,7 @@ export function LogSheet() {
   const [note, setNote] = useState(editing?.note ?? '');
   const [date, setDate] = useState(editing?.date ?? today);
   const [repeat, setRepeat] = useState(!!editing?.repeatMonthly);
+  const [wallet, setWallet] = useState<'cash' | 'tng'>(editing ? editing.wallet ?? 'cash' : s.settings.lastWallet ?? 'cash');
   const [hint, setHint] = useState('');
   const close = () => setUI({ logSheet: false });
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -44,7 +45,8 @@ export function LogSheet() {
   const save = () => {
     if (!pick) { setHint(kind === 'out' ? 'Pick a category first.' : 'Pick where it came from.'); return; }
     if (!sen) { setHint('Type an amount above RM 0.'); return; }
-    const payload = { kind, sen, note, date, repeatMonthly: repeat, ...(kind === 'out' ? { categoryId: pick } : { sourceId: pick }) };
+    const payload = { kind, sen, note, date, repeatMonthly: repeat, wallet, ...(kind === 'out' ? { categoryId: pick } : { sourceId: pick }) };
+    if (!editing && wallet !== s.settings.lastWallet) useStore.getState().setSettings({ lastWallet: wallet });
     if (editing) act(editMoney, editing.id, payload, new Date()); else act(logMoney, payload, new Date());
     sfx.tink();
     haptic('success');
@@ -98,6 +100,14 @@ export function LogSheet() {
           <div className="section-label" style={{ marginTop: 0 }}>2 · How much?</div>
           <div ref={amountRef} className="amount-display" style={{ color: kind === 'in' ? 'var(--in)' : undefined }}><span>RM</span>{raw || '0'}</div>
           <div className="numpad">{['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map((k) => <button key={k} onClick={() => press(k)}>{k}</button>)}</div>
+        </div>
+        <div className="wallet-row">
+          <span className="wallet-label">{kind === 'out' ? 'Paid with' : 'Received in'}</span>
+          <div className="seg-ctl wallet-pick">
+            <button className={wallet === 'cash' ? 'on' : ''} onClick={() => { setWallet('cash'); haptic('light'); }}><Icon name="wallet" size={14} />Cash</button>
+            <button className={wallet === 'tng' ? 'on' : ''} onClick={() => { setWallet('tng'); haptic('light'); }}><Icon name="coins" size={14} />TnG</button>
+          </div>
+          {wallet === 'tng' && <span className="wallet-hint">{kind === 'out' ? 'From your business money' : 'Goes into your business money'}</span>}
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <input className="input grow" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} style={{ minWidth: 200 }} />

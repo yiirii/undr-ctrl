@@ -1,3 +1,4 @@
+import { personalSplit } from '../../../core/wallet';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useStore, act } from '../../../store/store';
@@ -31,6 +32,7 @@ export function Recap({ month, onClose }: { month: string; onClose: () => void }
     return () => window.removeEventListener('keydown', k);
   });
   if (adjust) return <Setup onDone={finish} />;
+  const split = personalSplit(useStore.getState().s.money.entries, month);
   const big = (sen: number, color?: string) => <div className="recap-big" style={{ color }}><Count value={sen / 100} format={(v) => fmt.rm(Math.round(v) * 100)} /></div>;
   const body = [
     <>
@@ -46,6 +48,7 @@ export function Recap({ month, onClose }: { month: string; onClose: () => void }
       </Donut>
       {big(r.outSen)}
       <div className="recap-text">went out. {r.byCategory[0] ? <>Most of it on <b style={{ color: cat(r.byCategory[0].id)?.color }}>{cat(r.byCategory[0].id)?.name}</b>.</> : 'A very quiet month.'}</div>
+      {split.tngSen > 0 && <div className="recap-text" style={{ fontSize: '1rem' }}><b style={{ color: 'var(--wea)' }}>{fmt.rm(split.tngSen)}</b> of it came out of your business money (TnG).</div>}
     </>,
     <>
       <div className="recap-kicker">You kept</div>
