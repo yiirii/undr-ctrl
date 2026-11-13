@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Build the Windows installer and publish it as a GitHub Release so installed laptops update themselves.
-# Usage: ./scripts/release.sh   (uses the version in package.json; bump it first)
+# Publish a new laptop version: GitHub Actions (.github/workflows/release.yml) builds the installer on Windows
+# and publishes the release; installed laptops then update themselves.
+# Usage: bump "version" in package.json, commit, then ./scripts/release.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 V=$(node -p "require('./package.json').version")
-[ -f release/Undr-Ctrl-Setup.exe ] && [ -f release/latest.yml ] && grep -q "version: $V" release/latest.yml || npm run dist
-grep -q "version: $V" release/latest.yml || { echo "release/latest.yml is not for $V"; exit 1; }
-gh release view "v$V" -R yiirii/undr-ctrl >/dev/null 2>&1 && { echo "v$V already released"; exit 0; }
-gh release create "v$V" -R yiirii/undr-ctrl --target main --title "Undr Ctrl $V" --notes "${NOTES:-Undr Ctrl $V}" \
-  release/Undr-Ctrl-Setup.exe release/Undr-Ctrl-Setup.exe.blockmap release/latest.yml
-echo "released v$V"
+git tag -f "v$V"
+git push -q https://github.com/yiirii/undr-ctrl master:main
+git push -q -f https://github.com/yiirii/undr-ctrl "v$V"
+echo "tagged v$V; GitHub is building it: https://github.com/yiirii/undr-ctrl/actions"
