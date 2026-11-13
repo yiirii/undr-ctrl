@@ -874,3 +874,12 @@ Chloe asked for more juice: richer animation and feedback on both laptop and iPh
 ## Rev 19: Clear of the iOS 26 top blur (2026-11-13, web 1.5.2)
 
 iOS 26 draws a progressive blur over the top edge of Home Screen web apps, and it reaches about 25–30 pt below the status bar. The level strip sat inside it and looked smudged. A new token `--top-clear` = safe-area-top + 38 px now sets the phone strip's top padding, the top of full-screen sheets and the task detail panel, and the combo chip's position, so no text sits in the blurred band.
+
+## Rev 20: Level moves to the tab bar (2026-11-13, web 1.5.3)
+
+Chloe still found the top strip soft under the iOS 26 blur and asked for it to become a bottom tab.
+
+- **The top strip is removed on the phone.** Pages start at `--top-clear` (safe-area-top + 38 px) plus 6 px, so titles begin below the blurred band and scroll under it like a normal iOS app.
+- **The More tab becomes the level tab.** Its icon is a ring that fills with XP towards the next level, with the level number inside, and its label is "Lv N". The tab bar stays balanced: My Day · Money · + · Insights · Lv.
+- **The level tab opens the "You" sheet.** At the top is a card with a large XP ring, your title, "into / need XP to Lv N+1" and an XP bar; tapping the card opens Profile. Under it come the old More items (Planned, Habits, Quests), Lists and Settings. Profile is no longer a row in the sheet, because the card replaces it.
+- **The "+N XP" fly-in** now lands on the level tab's ring and makes it glow.

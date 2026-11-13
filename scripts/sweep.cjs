@@ -27,7 +27,7 @@ const problems = []; const _push = problems.push.bind(problems); problems.push =
     if (!PHONE) { await p.locator('.nav-item', { hasText: new RegExp(`^\\s*${label}`) }).first().click({ timeout: 3000 }); await p.waitForTimeout(260); return; }
     const tab = p.locator('.pn-tab', { hasText: new RegExp(`^\\s*${label}\\s*$`) });
     if (await tab.count()) await tab.first().click({ timeout: 3000 });
-    else { await p.locator('.pn-tab', { hasText: 'More' }).click({ timeout: 3000 }); await p.locator('.more-row', { hasText: new RegExp(`^\\s*${label}\\s*$`) }).first().click({ timeout: 3000 }); }
+    else { await p.locator('.pn-me').click({ timeout: 3000 }); if (label === 'Profile') await p.locator('.me-card').click({ timeout: 3000 }); else await p.locator('.more-row', { hasText: new RegExp(`^\\s*${label}\\s*$`) }).first().click({ timeout: 3000 }); }
     await p.waitForTimeout(260);
   };
   const navRound = async (after) => {

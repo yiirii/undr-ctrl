@@ -469,25 +469,18 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 
 /* ================= Phone layout (≤ 720px) ================= */
 :root { /* iOS 26 blurs the top edge of the screen a little below the status bar: keep text clear of it */ --top-clear: calc(env(safe-area-inset-top) + 38px); }
-.phone-top, .phone-nav { display: none; }
+.phone-nav { display: none; }
 @media (max-width: 720px) {
   html, body { overscroll-behavior: none; }
   .app.is-phone { flex-direction: column; height: 100dvh; }
   .app.is-phone .main { flex: 1; min-height: 0; }
-  .phone-top { flex: none; display: flex; align-items: center; gap: 12px; padding: var(--top-clear) 16px 12px; background: var(--side-bg, var(--bg1)); border: 0; border-bottom: 1px solid var(--line); color: var(--t3); font: inherit; text-align: left; cursor: pointer; }
-  .pt-lv { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: 10px; font-size: .8rem; font-weight: 800; color: var(--xp); background: color-mix(in srgb, var(--xp) 14%, var(--bg0)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--xp) 24%, transparent); }
-  .pt-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-  .pt-row { display: flex; align-items: baseline; gap: 8px; line-height: 1.15; }
-  .phone-top .phone-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .9rem; font-weight: 700; color: var(--t1); }
-  .pt-xp { flex: none; font-size: .74rem; font-weight: 800; color: var(--xp); }
-  .pt-xp i { font-style: normal; font-weight: 600; color: var(--t3); }
   .phone-nav { display: flex; align-items: center; justify-content: space-around; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 6px calc(env(safe-area-inset-bottom) + 6px); background: color-mix(in srgb, var(--bg1) 94%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--line); }
   .pn-tab { flex: 1; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: none; color: var(--t3); font: inherit; font-size: .66rem; font-weight: 700; cursor: pointer; }
   .pn-tab.on { color: var(--t1); }
   .pn-plus { width: 56px; height: 56px; border-radius: 18px; border: 0; margin: -18px 6px 0; display: grid; place-items: center; background: var(--t1); color: var(--bg0); box-shadow: 0 8px 24px rgba(0,0,0,.35); cursor: pointer; }
   .pn-plus:active { transform: scale(.94); }
 
-  .page { padding: 18px 16px calc(110px + env(safe-area-inset-bottom)); }
+  .page { padding: calc(var(--top-clear) + 6px) 16px calc(110px + env(safe-area-inset-bottom)); }
   .ph { flex-wrap: wrap; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
   .ph h1 { font-size: 1.6rem; }
   .ph-actions, .ph-money .ph-actions { margin-left: 0; width: 100%; flex-wrap: wrap !important; white-space: normal !important; gap: 8px; }
@@ -646,7 +639,7 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .fx-fly { position: absolute; font-weight: 900; font-size: .95rem; white-space: nowrap; text-shadow: 0 2px 10px color-mix(in srgb, currentColor 45%, transparent), 0 1px 0 rgba(0,0,0,.35); will-change: transform, opacity; }
 
 /* something just landed in this bar: a light sweep + soft pop */
-.pbar-track, .segbar, .phone-top .pt-main { position: relative; }
+.pbar-track, .segbar { position: relative; }
 .fx-gain { animation: fxGainPop .5s cubic-bezier(.34,1.56,.64,1); }
 .fx-gain::after { content: ''; position: absolute; inset: -3px 0; border-radius: 99px; pointer-events: none; background: linear-gradient(100deg, transparent 15%, rgba(255,255,255,.75) 50%, transparent 85%); animation: fxSweep .8s cubic-bezier(.22,1,.36,1) forwards; }
 @keyframes fxGainPop { 30% { transform: scaleY(1.6); } }
@@ -818,3 +811,17 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .update-txt span { font-size: .72rem; color: var(--t3); }
 .update-go { font-size: .78rem; font-weight: 800; color: var(--accent); padding: 0 6px; }
 @keyframes upd-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
+
+/* ── Level tab + "You" sheet (phone) ─────────────────── */
+.lv-ring { position: relative; display: grid; place-items: center; color: var(--t3); }
+.lv-ring svg { position: absolute; inset: 0; }
+.lv-ring-fill { transition: stroke-dashoffset .6s cubic-bezier(.22,1,.36,1); }
+.lv-ring b { position: relative; font-size: .68rem; font-weight: 900; color: var(--xp); font-variant-numeric: tabular-nums; }
+.pn-me .lv-ring { width: 26px; height: 26px; }
+.pn-me.on .lv-ring { color: var(--t1); }
+.me-card { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px; margin-bottom: 4px; border: 0; border-radius: 18px; text-align: left; font: inherit; color: var(--t3); cursor: pointer; background: color-mix(in srgb, var(--xp) 8%, var(--bg3)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--xp) 18%, transparent); }
+.me-card .lv-ring b { font-size: 1.15rem; }
+.me-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.me-card-title { font-size: 1.05rem; font-weight: 800; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-card-xp { font-size: .8rem; color: var(--t3); }
+.me-card-xp b { color: var(--xp); }

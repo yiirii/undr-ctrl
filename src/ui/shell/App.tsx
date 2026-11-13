@@ -17,7 +17,7 @@ import { BizSheets } from '../views/money/Business';
 import { useSync } from '../../sync/service';
 import { SyncPanel } from '../views/SyncPanel';
 import { Ambient } from '../shapes/Ambient';
-import { PhoneNav, PhoneTop, QuickActions, MoreSheet, useIsPhone } from './PhoneNav';
+import { PhoneNav, QuickActions, MoreSheet, useIsPhone } from './PhoneNav';
 import { Icon } from '../shapes/icons';
 import { cloudBackup } from '../../persistence/cloud';
 import { bridge } from '../../bridge';
@@ -155,7 +155,7 @@ export function App() {
   if (!onboarded) return <><FirstScreen /><Moments /></>;
   return (
     <div className={`app ${phone ? 'is-phone' : ''}`}>
-      {phone ? <PhoneTop /> : <Sidebar />}
+      {!phone && <Sidebar />}
       <main className="main">
         {(ui.saveError || ui.recovered) && (
           <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 30 }}>

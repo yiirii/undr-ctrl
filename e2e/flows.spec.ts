@@ -421,7 +421,7 @@ test('undo: logging money, ticking a task and selling a piece can each be undone
 
 test.describe('phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  test('tab bar instead of sidebar; + → Sold records a sale; More → Settings', async ({ page }) => {
+  test('tab bar instead of sidebar; + → Sold records a sale; level tab → Settings', async ({ page }) => {
     await open(page, 'reset=1&seed=demo&view=myday');
     for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
     await expect(page.locator('.phone-nav')).toBeVisible();
@@ -436,7 +436,7 @@ test.describe('phone', () => {
     const sold = await page.evaluate(() => (window as any).__lofi.getState().s.business.items.filter((i: any) => i.status === 'sold' && i.platform === 'Carousell' && i.soldSen === 6000).length);
     expect(sold).toBe(1);
     if (await page.locator('.levelup').isVisible().catch(() => false)) await page.locator('.levelup').click();
-    await page.locator('.pn-tab', { hasText: 'More' }).click();
+    await page.locator('.pn-me').click();
     await page.locator('.more-row', { hasText: 'Settings' }).click();
     await expect(page.locator('.main-scroll h1')).toHaveText('Settings');
     await page.locator('.pn-tab', { hasText: 'Money' }).click();
@@ -449,7 +449,7 @@ test.describe('phone', () => {
     expect(await page.evaluate(() => [...document.querySelectorAll('.page-kept')].map((e) => (e as HTMLElement).dataset.view).sort())).toEqual(['insights', 'money', 'planned']);
     // change data while Planned is hidden; it must show the change when opened
     await page.evaluate(() => { const st = (window as any).__lofi.getState(); st.patch((s: any) => ({ ...s, tasks: [...s.tasks, { ...s.tasks.find((t: any) => t.due && !t.done), id: 'fresh1', title: 'Fresh while hidden', done: false }] })); });
-    await page.locator('.pn-tab', { hasText: 'More' }).tap();
+    await page.locator('.pn-me').tap();
     await page.locator('.more-row', { hasText: 'Planned' }).tap();
     await expect(page.locator('.main-scroll .task-title', { hasText: 'Fresh while hidden' })).toBeVisible();
     // scroll position is kept per page

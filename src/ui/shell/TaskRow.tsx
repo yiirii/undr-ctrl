@@ -6,7 +6,7 @@ import { useIsPhone } from './PhoneNav';
 
 const SWIPE = 84; // px to the right that ticks a task off on the phone
 /** The XP bar that's on screen now (sidebar on the laptop, top strip on the phone). */
-export const xpTarget = () => Array.from(document.querySelectorAll('.xp-target .pbar-track')).find((e) => (e as HTMLElement).offsetParent !== null) ?? null;
+export const xpTarget = () => Array.from(document.querySelectorAll('.xp-target .pbar-track, .phone-nav .xp-ring')).find((e) => (e as HTMLElement).offsetParent !== null) ?? null;
 /** CSS colour (may be a var()) → a concrete colour for canvas and inline effects. */
 export const resolveColor = (c: string) => { const m = /^var\((--[\w-]+)\)$/.exec(c.trim()); return m ? cssVar(m[1]) || '#fff' : c; };
 import type { Task } from '../../core/types';

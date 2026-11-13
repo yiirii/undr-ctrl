@@ -26,20 +26,17 @@ const MORE_META: Record<string, { label: string; icon: string }> = {
   planned: { label: 'Planned', icon: 'calendar' }, habits: { label: 'Habits', icon: 'diamond' }, quests: { label: 'Quests', icon: 'flag' }, profile: { label: 'Profile', icon: 'hex' },
 };
 
-/** Top strip on phone: level + XP, tap for Profile. */
-export function PhoneTop() {
-  const p = useProgress();
-  const title = useTitle();
-  const go = useStore((x) => x.go);
+/** Your level as a ring: XP to the next level fills it, the level number sits inside. */
+function LevelRing({ level, into, need, size = 26 }: { level: number; into: number; need: number; size?: number }) {
+  const r = size / 2 - 2.2, c = 2 * Math.PI * r, f = need > 0 ? Math.min(1, into / need) : 0;
   return (
-    <button className="phone-top" onClick={() => go('profile')} aria-label={`Level ${p.char.level}, ${title}. Open profile`}>
-      <span className="pt-lv"><Icon name="hex" size={12} stroke={2.6} />Lv {p.char.level}</span>
-      <span className="pt-main">
-        <span className="pt-row"><span className="phone-title">{title}</span><span className="pt-xp num">{p.char.into}<i>/{p.char.need} XP</i></span></span>
-        <Bar className="xp-target" value={p.char.into} max={p.char.need} color="var(--xp)" height={6} />
-      </span>
-      <Icon name="right" size={16} />
-    </button>
+    <span className="lv-ring xp-ring" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeOpacity={0.18} strokeWidth={2.6} />
+        <circle className="lv-ring-fill" cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--xp)" strokeWidth={2.6} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - f)} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      </svg>
+      <b>{level}</b>
+    </span>
   );
 }
 
@@ -49,6 +46,7 @@ export function PhoneNav() {
   const setUI = useStore((x) => x.setUI);
   const go = useStore((x) => x.go);
   const moreActive = !['myday', 'money', 'insights'].includes(view);
+  const p = useProgress();
   const qaOpen = useStore((x) => !!x.ui.quickActions);
   // One highlight slides under the active tab. Tab centres are measured once (and on resize),
   // so switching tabs only changes a transform: no layout work on the tap.
@@ -102,7 +100,7 @@ export function PhoneNav() {
       {tab(TABS[0])}{tab(TABS[1])}
       <button className="pn-plus" aria-label="Quick add" onClick={() => { sfx.pop(); haptic('medium'); setUI({ quickActions: true }); }}><motion.span style={{ display: 'grid' }} animate={{ rotate: qaOpen ? 135 : 0, scale: qaOpen ? 0.9 : 1 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }}><Icon name="plus" size={26} stroke={2.6} /></motion.span></button>
       {tab(TABS[2])}
-      <button className={`pn-tab ${moreActive ? 'on' : ''}`} onClick={() => { haptic('light'); setUI({ moreOpen: true }); }}><motion.span className="pn-ico" initial={false} animate={moreActive ? { scale: [1, 1.24, 1], y: [0, -3, 0] } : { scale: 1, y: 0 }} transition={{ duration: 0.42, ease: 'easeOut' }}><Icon name="dots" size={22} /></motion.span><span>More</span></button>
+      <button className={`pn-tab pn-me ${moreActive ? 'on' : ''}`} aria-label={`Level ${p.char.level}: you and more`} onClick={() => { haptic('light'); setUI({ moreOpen: true }); }}><motion.span className="pn-ico" initial={false} animate={moreActive ? { scale: [1, 1.24, 1], y: [0, -3, 0] } : { scale: 1, y: 0 }} transition={{ duration: 0.42, ease: 'easeOut' }}><LevelRing level={p.char.level} into={p.char.into} need={p.char.need} /></motion.span><span>Lv {p.char.level}</span></button>
     </nav>
   );
 }
@@ -162,11 +160,23 @@ export function MoreSheet() {
   const go = useStore((x) => x.go);
   const close = () => setUI({ moreOpen: false });
   const to = (v: View) => { haptic('light'); go(v); setUI({ moreOpen: false, detailId: null }); };
-  const pages = (s.settings.navOrder.length ? s.settings.navOrder : [...NAV_PAGES]).filter((k) => MORE_META[k] && !s.settings.hiddenPages.includes(k));
+  const pages = (s.settings.navOrder.length ? s.settings.navOrder : [...NAV_PAGES]).filter((k) => MORE_META[k] && k !== 'profile' && !s.settings.hiddenPages.includes(k));
+  const p = useProgress();
+  const title = useTitle();
   return (
     <AnimatePresence>
       {open && (
-        <PhoneSheet key="more" title="More" onClose={close}>
+        <PhoneSheet key="more" title="You" onClose={close}>
+          <button className="me-card" onClick={() => to('profile')}>
+            <LevelRing level={p.char.level} into={p.char.into} need={p.char.need} size={54} />
+            <span className="me-card-main">
+              <span className="me-card-title">{title}</span>
+              <span className="me-card-xp"><b>{p.char.into}</b> / {p.char.need} XP to Lv {p.char.level + 1}</span>
+              <Bar value={p.char.into} max={p.char.need} color="var(--xp)" height={6} />
+            </span>
+            <Icon name="right" size={18} />
+          </button>
+          <div className="more-sep">More</div>
           <div className="more-list">
             {pages.map((k) => <button key={k} className="more-row" onClick={() => to(k as View)}><Icon name={MORE_META[k].icon} size={19} />{MORE_META[k].label}</button>)}
             <div className="more-sep">Lists</div>
