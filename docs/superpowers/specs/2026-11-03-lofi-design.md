@@ -870,3 +870,7 @@ Chloe asked for more juice: richer animation and feedback on both laptop and iPh
 - **Top strip:** it is now taller, with a gold "Lv N" badge on the left. Next to it, the title is in full white with "into/need XP" beside it, and there is a 6 px XP bar under them. A chevron shows that tapping opens Profile. The strip leaves the iPhone's top safe area clear, with 10 px above and 12 px below. The old sidebar margin had pushed the level chip off-centre; that is fixed.
 - **Tab highlight:** it now wraps the whole tab, icon and label. Its size is measured from the tab, at most 84 px wide, and it still moves by transform only.
 - Only the phone layout changed, so the laptop app stays at 1.5.0.
+
+## Rev 19: Clear of the iOS 26 top blur (2026-11-13, web 1.5.2)
+
+iOS 26 draws a progressive blur over the top edge of Home Screen web apps, and it reaches about 25–30 pt below the status bar. The level strip sat inside it and looked smudged. A new token `--top-clear` = safe-area-top + 38 px now sets the phone strip's top padding, the top of full-screen sheets and the task detail panel, and the combo chip's position, so no text sits in the blurred band.
