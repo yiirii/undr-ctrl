@@ -11,7 +11,6 @@ import { dayKey } from '../../core/dates';
 import { myDayTasks, addList } from '../../store/logic';
 import { MiniTimer } from './MiniTimer';
 import { MiniPlayer } from '../music/MiniPlayer';
-import { UpdateChip } from './updates';
 
 const PAGE_META: Record<string, { label: string; icon: string }> = {
   myday: { label: 'My Day', icon: 'sun' },
@@ -127,7 +126,6 @@ export function Sidebar() {
       </nav>
 
       <div className="side-foot">
-        <UpdateChip collapsed={collapsed} />
         <MiniPlayer />
         <div className="row" style={{ gap: 2 }}>
           <button className={`nav-item ${view === 'settings' ? 'on' : ''}`} onClick={() => go('settings')} style={{ flex: 1 }} title="Settings">{view === 'settings' && <motion.span layoutId="nav-pill" className="nav-pill" transition={NAV_SPRING} />}<Icon name="gear" /><span>Settings</span></button>

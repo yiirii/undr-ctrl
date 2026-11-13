@@ -3,7 +3,6 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { loadWithFallback, saveAtomic, writeCloudBackup } from './storage';
-import { setupUpdates } from './updater';
 
 app.setName('Undr Ctrl');
 app.setAppUserModelId('app.undrctrl.desktop');
@@ -157,7 +156,6 @@ app.whenReady().then(() => {
 
   createWindow();
   createTray();
-  setupUpdates((st) => send('update-state', st), () => { quitting = true; });
   // apply the saved "start with Windows" choice (default on)
   const saved = loadWithFallback(dataDir)?.data as { settings?: { startWithWindows?: boolean } } | undefined;
   applyStartup(saved?.settings?.startWithWindows ?? true);

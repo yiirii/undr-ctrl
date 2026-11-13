@@ -883,3 +883,8 @@ Chloe still found the top strip soft under the iOS 26 blur and asked for it to b
 - **The More tab becomes the level tab.** Its icon is a ring that fills with XP towards the next level, with the level number inside, and its label is "Lv N". The tab bar stays balanced: My Day · Money · + · Insights · Lv.
 - **The level tab opens the "You" sheet.** At the top is a card with a large XP ring, your title, "into / need XP to Lv N+1" and an XP bar; tapping the card opens Profile. Under it come the old More items (Planned, Habits, Quests), Lists and Settings. Profile is no longer a row in the sheet, because the card replaces it.
 - **The "+N XP" fly-in** now lands on the level tab's ring and makes it glow.
+
+## Rev 21: Updates: laptop by hand, iPhone by itself (2026-11-13, version 1.5.4)
+
+- **Laptop:** Chloe prefers to install updates by hand from the installer Claude sends. The Rev 17 auto-updater is removed: `electron-updater`, `electron/updater.ts`, the sidebar "Update ready" chip, the Settings Updates row, the GitHub publish config and the release script. A GitHub Actions workflow file was pushed once by mistake; it only runs on `v*` tags, so it does nothing, and it is deleted from the repo where pushing allows.
+- **iPhone:** `src/ui/shell/webUpdate.ts` checks for a new version every time the app comes back to the front (at least 60 s apart) and every 30 min while it's open. It fetches `index.html?fresh=…`, which the service worker passes straight through to the site, and compares the hashed main script name. When there is a new build, it reloads at a calm moment: no sheet, panel or overlay open, nothing being typed, no data change for 3 s, and the app visible. Before Rev 21 a new version only arrived once iOS fully restarted the app.

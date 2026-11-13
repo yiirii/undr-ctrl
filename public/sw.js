@@ -13,6 +13,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (url.searchParams.has('fresh')) return; // the app's "is there a newer version?" check always asks the site
   if (req.mode === 'navigate') {
     const net = fetch(req).then((res) => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./index.html', copy)); } return res; });
     const cached = () => caches.match('./index.html').then((r) => r || caches.match('./'));
