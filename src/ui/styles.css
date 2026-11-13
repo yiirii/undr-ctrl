@@ -473,8 +473,13 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
   html, body { overscroll-behavior: none; }
   .app.is-phone { flex-direction: column; height: 100dvh; }
   .app.is-phone .main { flex: 1; min-height: 0; }
-  .phone-top { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 8px) 16px 8px; background: var(--side-bg, var(--bg1)); border: 0; border-bottom: 1px solid var(--line); color: var(--t2); font: inherit; font-size: .8rem; font-weight: 600; text-align: left; cursor: pointer; }
-  .phone-top .phone-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+  .phone-top { flex: none; display: flex; align-items: center; gap: 12px; padding: calc(env(safe-area-inset-top) + 10px) 16px 12px; background: var(--side-bg, var(--bg1)); border: 0; border-bottom: 1px solid var(--line); color: var(--t3); font: inherit; text-align: left; cursor: pointer; }
+  .pt-lv { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: 10px; font-size: .8rem; font-weight: 800; color: var(--xp); background: color-mix(in srgb, var(--xp) 14%, var(--bg0)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--xp) 24%, transparent); }
+  .pt-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .pt-row { display: flex; align-items: baseline; gap: 8px; line-height: 1.15; }
+  .phone-top .phone-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .9rem; font-weight: 700; color: var(--t1); }
+  .pt-xp { flex: none; font-size: .74rem; font-weight: 800; color: var(--xp); }
+  .pt-xp i { font-style: normal; font-weight: 600; color: var(--t3); }
   .phone-nav { display: flex; align-items: center; justify-content: space-around; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 6px calc(env(safe-area-inset-bottom) + 6px); background: color-mix(in srgb, var(--bg1) 94%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--line); }
   .pn-tab { flex: 1; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: none; color: var(--t3); font: inherit; font-size: .66rem; font-weight: 700; cursor: pointer; }
   .pn-tab.on { color: var(--t1); }
@@ -640,7 +645,7 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .fx-fly { position: absolute; font-weight: 900; font-size: .95rem; white-space: nowrap; text-shadow: 0 2px 10px color-mix(in srgb, currentColor 45%, transparent), 0 1px 0 rgba(0,0,0,.35); will-change: transform, opacity; }
 
 /* something just landed in this bar: a light sweep + soft pop */
-.pbar-track, .segbar, .phone-top .grow { position: relative; }
+.pbar-track, .segbar, .phone-top .pt-main { position: relative; }
 .fx-gain { animation: fxGainPop .5s cubic-bezier(.34,1.56,.64,1); }
 .fx-gain::after { content: ''; position: absolute; inset: -3px 0; border-radius: 99px; pointer-events: none; background: linear-gradient(100deg, transparent 15%, rgba(255,255,255,.75) 50%, transparent 85%); animation: fxSweep .8s cubic-bezier(.22,1,.36,1) forwards; }
 @keyframes fxGainPop { 30% { transform: scaleY(1.6); } }
@@ -690,7 +695,7 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .pn-tab { position: relative; }
 .pn-tab > :not(.pn-pill) { position: relative; z-index: 1; }
 .pn-ico { display: grid; }
-.pn-pill { position: absolute; top: 9px; left: 0; width: 58px; height: 30px; margin-left: -29px; border-radius: 15px; background: color-mix(in srgb, var(--t1) 12%, transparent); z-index: 0; pointer-events: none; will-change: transform; }
+.pn-pill { position: absolute; top: 6px; left: 0; width: 72px; height: 50px; margin-left: -36px; border-radius: 16px; background: color-mix(in srgb, var(--t1) 12%, transparent); z-index: 0; pointer-events: none; will-change: transform; }
 .pn-pill.ready { transition: transform .46s cubic-bezier(.34,1.35,.64,1); }
 .phone-nav { position: fixed; }
 

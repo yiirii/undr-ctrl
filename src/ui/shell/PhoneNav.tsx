@@ -32,10 +32,13 @@ export function PhoneTop() {
   const title = useTitle();
   const go = useStore((x) => x.go);
   return (
-    <button className="phone-top" onClick={() => go('profile')}>
-      <span className="me-lv"><Icon name="hex" size={11} stroke={2.6} />Lv {p.char.level}</span>
-      <span className="phone-title">{title}</span>
-      <span className="grow"><Bar className="xp-target" value={p.char.into} max={p.char.need} color="var(--xp)" height={5} /></span>
+    <button className="phone-top" onClick={() => go('profile')} aria-label={`Level ${p.char.level}, ${title}. Open profile`}>
+      <span className="pt-lv"><Icon name="hex" size={12} stroke={2.6} />Lv {p.char.level}</span>
+      <span className="pt-main">
+        <span className="pt-row"><span className="phone-title">{title}</span><span className="pt-xp num">{p.char.into}<i>/{p.char.need} XP</i></span></span>
+        <Bar className="xp-target" value={p.char.into} max={p.char.need} color="var(--xp)" height={6} />
+      </span>
+      <Icon name="right" size={16} />
     </button>
   );
 }
@@ -53,8 +56,18 @@ export function PhoneNav() {
   const pillRef = useRef<HTMLSpanElement>(null);
   const centres = useRef<number[]>([]);
   const activeIdx = view === 'myday' ? 0 : view === 'money' ? 1 : view === 'insights' ? 2 : 3;
+  const activeIdxRef = useRef(activeIdx);
+  activeIdxRef.current = activeIdx;
   useLayoutEffect(() => {
-    const measure = () => { const tabs = navRef.current?.querySelectorAll<HTMLElement>('.pn-tab'); centres.current = tabs ? Array.from(tabs, (t) => t.offsetLeft + t.offsetWidth / 2) : []; };
+    const measure = () => {
+      const tabs = navRef.current?.querySelectorAll<HTMLElement>('.pn-tab');
+      centres.current = tabs ? Array.from(tabs, (t) => t.offsetLeft + t.offsetWidth / 2) : [];
+      // the highlight wraps the whole tab: icon and label
+      const t = tabs?.[0], pill = pillRef.current;
+      if (t && pill) { const w = Math.min(t.offsetWidth - 6, 84); pill.style.width = `${w}px`; pill.style.marginLeft = `${-w / 2}px`; pill.style.top = `${t.offsetTop + 2}px`; pill.style.height = `${t.offsetHeight - 4}px`; }
+      const el = pillRef.current, x = centres.current[activeIdxRef.current];
+      if (el && x !== undefined) el.style.transform = `translateX(${x}px)`;
+    };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);

@@ -864,3 +864,9 @@ Chloe asked for more juice: richer animation and feedback on both laptop and iPh
 - To release: bump the version, then run `./scripts/release.sh`. It builds and uploads `Undr-Ctrl-Setup.exe`, the `.blockmap` and `latest.yml` to release `vX.Y.Z`.
 - 1.5.0 has to be installed by hand once; updates are automatic from then on.
 - Open: Claude's sessions are not allowed to create GitHub releases (HTTP 403). Future releases need Chloe to upload the three files in GitHub's Releases page, or a GitHub Actions workflow that builds and publishes on a version tag, if she agrees.
+
+## Rev 18: iPhone top strip and tab highlight (2026-11-13, web 1.5.1)
+
+- **Top strip:** it is now taller, with a gold "Lv N" badge on the left. Next to it, the title is in full white with "into/need XP" beside it, and there is a 6 px XP bar under them. A chevron shows that tapping opens Profile. The strip leaves the iPhone's top safe area clear, with 10 px above and 12 px below. The old sidebar margin had pushed the level chip off-centre; that is fixed.
+- **Tab highlight:** it now wraps the whole tab, icon and label. Its size is measured from the tab, at most 84 px wide, and it still moves by transform only.
+- Only the phone layout changed, so the laptop app stays at 1.5.0.
