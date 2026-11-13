@@ -863,3 +863,4 @@ Chloe asked for more juice: richer animation and feedback on both laptop and iPh
 - Dev runs never update.
 - To release: bump the version, then run `./scripts/release.sh`. It builds and uploads `Undr-Ctrl-Setup.exe`, the `.blockmap` and `latest.yml` to release `vX.Y.Z`.
 - 1.5.0 has to be installed by hand once; updates are automatic from then on.
+- Open: Claude's sessions are not allowed to create GitHub releases (HTTP 403). Future releases need Chloe to upload the three files in GitHub's Releases page, or a GitHub Actions workflow that builds and publishes on a version tag, if she agrees.
