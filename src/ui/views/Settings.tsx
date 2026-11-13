@@ -1,3 +1,4 @@
+import { UpdateStatus } from '../shell/updates';
 import { useRef, useState } from 'react';
 import { useStore, useProgress, act } from '../../store/store';
 import { NAV_PAGES } from '../../store/state';
@@ -57,6 +58,7 @@ function General() {
     <div className="stack" style={{ maxWidth: 760 }}>
       <div className="mcard stack">
         <Row label="Your name"><input className="input" style={{ width: 240 }} value={s.profile.name} onChange={(e) => patch((x) => ({ ...x, profile: { ...x.profile, name: e.target.value } }))} /></Row>
+        {bridge() && <UpdateStatus />}
         {bridge() && <Row label="Start with Windows" hint="Opens quietly to the tray when you log in, so reminders always work. Music never auto-plays."><Toggle on={st.startWithWindows} set={(v) => { set({ startWithWindows: v }); bridge()?.setStartup(v); }} /></Row>}
         <Row label="Start page"><Select ariaLabel="Start page" style={{ width: 200 }} value={st.startPage as string} onChange={(v) => set({ startPage: v as never })} options={[...NAV_PAGES.filter((k) => k !== 'quests'), ...s.lists.map((l) => `list:${l.id}`)].map((k) => ({ value: k as string, label: PAGE_LABEL[k] ?? s.lists.find((l) => `list:${l.id}` === k)?.name ?? k }))} /></Row>
         <Row label="Week starts on"><div className="seg-ctl"><button className={st.weekStartsMonday ? 'on' : ''} onClick={() => set({ weekStartsMonday: true })}>Monday</button><button className={!st.weekStartsMonday ? 'on' : ''} onClick={() => set({ weekStartsMonday: false })}>Sunday</button></div></Row>

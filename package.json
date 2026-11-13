@@ -1,8 +1,8 @@
 {
   "name": "undr-ctrl",
   "productName": "Undr Ctrl",
-  "version": "1.4.0",
-  "description": "Undr Ctrl — a calm, gamified to-do, money and focus app",
+  "version": "1.5.0",
+  "description": "Undr Ctrl \u2014 a calm, gamified to-do, money and focus app",
   "author": "Chloe",
   "private": true,
   "main": "dist-electron/main.js",
@@ -12,7 +12,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "dist": "npm run build && electron-builder --win --x64 --publish never",
-    "sweep": "node scripts/sweep.cjs"
+    "sweep": "node scripts/sweep.cjs",
+    "release": "./scripts/release.sh"
   },
   "build": {
     "appId": "app.undrctrl.desktop",
@@ -37,7 +38,14 @@
       "artifactName": "Undr-Ctrl-Setup.exe",
       "shortcutName": "Undr Ctrl"
     },
-    "publish": []
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "yiirii",
+        "repo": "undr-ctrl",
+        "releaseType": "release"
+      }
+    ]
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.3.0",
@@ -46,6 +54,7 @@
     "@fontsource/manrope": "^5.3.0",
     "@fontsource/nunito": "^5.3.0",
     "@fontsource/space-grotesk": "^5.3.0",
+    "electron-updater": "^6.8.11",
     "firebase": "^11.10.0",
     "framer-motion": "^11.18.2",
     "music-metadata": "^11.16.1",

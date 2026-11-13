@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { initialState, migrate, type AppState, type View } from './state';
 import * as L from './logic';
 import { moments } from './moments';
+import { revertTo } from './undo';
 import { pickAdapter, type Adapter } from '../persistence/adapter';
 import { deriveProgress, type Progress } from '../core/ledger';
 import { dayKey } from '../core/dates';
@@ -32,6 +33,7 @@ interface UI {
   bizSheet?: BizSheet;
   moreOpen?: boolean; // phone: the More sheet
   quickActions?: boolean; // phone: the + sheet
+  undo?: { id: number; label: string } | null; // the "Undo" toast for the last action
   saveError: boolean;
   recovered: boolean;
   loaded: boolean;
@@ -107,4 +109,28 @@ export function useProgress(): Progress {
   if (!memo || memo.ledger !== ledger) memo = { ledger, p: deriveProgress(ledger) };
   return memo.p;
 }
+// ---------------- undo ----------------
+let lastUndo: { id: number; before: AppState } | null = null;
+let undoSeq = 0;
+/** Run an action and offer "Undo" for a few seconds. `label` is shown on the toast. */
+export function actUndoable<F extends (s: AppState, ...a: any[]) => L.Result>(label: string, fn: F, ...args: Args<F>) {
+  const st = useStore.getState();
+  const before = st.s;
+  st.run(fn, ...args);
+  if (useStore.getState().s === before) return; // nothing happened
+  const id = ++undoSeq;
+  lastUndo = { id, before };
+  useStore.getState().setUI({ undo: { id, label } });
+}
+/** Put things back the way they were before the last undoable action. */
+export function undoLast() {
+  const st = useStore.getState();
+  if (!lastUndo || st.ui.undo?.id !== lastUndo.id) return;
+  const next = revertTo(lastUndo.before, st.s, new Date());
+  lastUndo = null;
+  st.patch(() => next);
+  st.setUI({ undo: null });
+}
+export function dismissUndo(id: number) { const st = useStore.getState(); if (st.ui.undo?.id === id) { st.setUI({ undo: null }); lastUndo = null; } }
+
 export const act = <F extends (s: AppState, ...a: any[]) => L.Result>(fn: F, ...args: Args<F>) => useStore.getState().run(fn, ...args);

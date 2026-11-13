@@ -834,3 +834,32 @@ Chloe asked for more juice: richer animation and feedback on both laptop and iPh
 **Sync:** `moves` is a record collection and `bizWallet` is a single setting. The last wallet used is a regular setting, so it syncs.
 
 **Known approximation:** for monthly rows, a sold piece's whole price counts in the month it sold, even if its deposit came in an earlier month. The overall balance is exact.
+
+## Rev 17: Undo, shop insights, laptop updates (built 2026-11-13, version 1.5.0)
+
+**Chloe's choices (from the improvement list):** no bulk asking prices, since she changes prices on the platforms and won't keep them in step. Reminders on the iPhone were dropped ("seems like a hassle"). Photos were built and then dropped at her request ("the search is fine already"). Nothing about photos ships.
+
+**Undo** (`src/store/undo.ts`, `UndoToast`):
+- Undoable actions put a 6-second toast at the bottom with an Undo button. Ctrl+Z does the same outside text fields.
+- Covered: logging, editing and deleting money; adding a task; ticking and unticking; deleting a task; buying, selling, reserving, balance paid, cancelling a reservation, deleting a piece, unselling, keep/unkeep, business costs and income, and moves.
+- `revertTo(before, after)` restores tasks, lists, money, business and focus from just before the action.
+- The ledger stays append-only. XP the action added is reversed with a compensation entry, and XP the action had reversed is added back. Quest, achievement, drip and recap XP are never taken back, and achievements, quests and settings are left as they are.
+- Only the latest action can be undone.
+
+**Sitting a while** (`staleStock`): pieces in stock for 30 days or more, grouped by name and sorted oldest first. They appear on Business above In stock, with days and a warning chip from 60 days. The card shows 5 rows, with Show all.
+
+**Funko shop insights** (`shopStats`), on a new Insights tab, covering all time:
+- Three totals: pieces sold, average days to sell, and average profit per piece.
+- The top 5 best sellers (by count) and the 5 most profitable, each with bars.
+- A platforms table with sold, profit and average days, and a Fastest chip.
+- A summary of the "sitting a while" pieces.
+
+**Laptop auto-update** (`electron/updater.ts`, `electron-updater`):
+- Checks GitHub Releases on yiirii/undr-ctrl 15 s after start and then every 4 h.
+- Downloads in the background.
+- When the download is done, "Update ready · v… · Restart" appears in the sidebar.
+- Settings has an Updates row showing the version, its status and Check now.
+- If she never presses Restart, the update installs when the app quits.
+- Dev runs never update.
+- To release: bump the version, then run `./scripts/release.sh`. It builds and uploads `Undr-Ctrl-Setup.exe`, the `.blockmap` and `latest.yml` to release `vX.Y.Z`.
+- 1.5.0 has to be installed by hand once; updates are automatic from then on.

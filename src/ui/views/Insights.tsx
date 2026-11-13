@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import { spendingInsights, productivityInsights } from '../../core/insights';
+import { shopStats, staleStock } from '../../core/shopStats';
 import { dayKey, WEEKDAYS, monthName, MONTHS } from '../../core/dates';
 import { STAT_META } from '../../core/types';
 import { statLevel } from '../../core/rules';
@@ -10,7 +11,7 @@ import { SPRING, Count } from '../shapes/Progress';
 import { Icon } from '../shapes/icons';
 import { useFmt } from '../format';
 
-type Tab = 'money' | 'productivity';
+type Tab = 'money' | 'productivity' | 'shop';
 
 export function Insights() {
   const [tab, setTab] = useState<Tab>('money');
@@ -18,9 +19,9 @@ export function Insights() {
     <div className="page page-wide">
       <div className="ph">
         <div><h1>Insights</h1><div className="sub">Patterns from what you've logged</div></div>
-        <div className="ph-actions"><div className="seg-ctl"><button className={tab === 'money' ? 'on' : ''} onClick={() => setTab('money')}>Where money goes</button><button className={tab === 'productivity' ? 'on' : ''} onClick={() => setTab('productivity')}>Productivity</button></div></div>
+        <div className="ph-actions"><div className="seg-ctl"><button className={tab === 'money' ? 'on' : ''} onClick={() => setTab('money')}>Where money goes</button><button className={tab === 'productivity' ? 'on' : ''} onClick={() => setTab('productivity')}>Productivity</button><button className={tab === 'shop' ? 'on' : ''} onClick={() => setTab('shop')}>Funko shop</button></div></div>
       </div>
-      {tab === 'money' ? <MoneyInsights /> : <ProductivityInsights />}
+      {tab === 'money' ? <MoneyInsights /> : tab === 'productivity' ? <ProductivityInsights /> : <ShopInsights />}
     </div>
   );
 }
@@ -193,6 +194,63 @@ function ProductivityInsights() {
             })}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Funko shop ----------------
+function ShopInsights() {
+  const s = useStore((x) => x.s);
+  const fmt = useFmt();
+  const today = dayKey(new Date());
+  const r = useMemo(() => shopStats(s.business.items), [s.business.items]);
+  const stale = useMemo(() => staleStock(s.business.items, today), [s.business.items, today]);
+  if (!r.soldCount) return <Empty text="Record a few sales and this page shows your best sellers, how long pieces take to sell, your profit per piece and which platform works best." />;
+  const days = (d: number) => (d < 1 ? 'Same day' : `${Math.round(d)} day${Math.round(d) === 1 ? '' : 's'}`);
+  const maxCount = Math.max(1, ...r.bestSellers.map((x) => x.count));
+  const maxProfit = Math.max(1, ...r.mostProfit.map((x) => Math.abs(x.profitSen)));
+  const maxPlat = Math.max(1, ...r.platforms.map((x) => x.count));
+  const fastest = [...r.platforms].filter((p) => p.count >= 2).sort((a, b) => a.avgDays - b.avgDays)[0];
+  const money = (sen: number) => <Count value={sen / 100} format={(v) => fmt.rm(Math.round(v * 100))} />;
+  return (
+    <div className="money-grid">
+      <div className="shop-kpis">
+        <div className="mcard kpi"><div className="hero-label">Pieces sold</div><div className="hero-num"><Count value={r.soldCount} /></div><div className="muted kpi-sub">all time</div></div>
+        <div className="mcard kpi"><div className="hero-label">Average time to sell</div><div className="hero-num">{days(r.avgDays)}</div><div className="muted kpi-sub">from buying to selling</div></div>
+        <div className="mcard kpi"><div className="hero-label">Profit per piece</div><div className="hero-num" style={{ color: r.avgProfitSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{money(r.avgProfitSen)}</div><div className="muted kpi-sub">on average</div></div>
+      </div>
+      <div className="two">
+        <div className="mcard">
+          <div className="mcard-h"><h3>Best sellers</h3><span className="muted">pieces sold</span></div>
+          <div className="rank">{r.bestSellers.map((x, i) => (
+            <div key={x.name} className="rank-row"><span className="rank-n">{i + 1}</span><div className="grow" style={{ minWidth: 0 }}><div className="rank-name">{x.name}</div><div className="rank-bar"><motion.span initial={{ scaleX: 0 }} animate={{ scaleX: x.count / maxCount }} transition={{ ...SPRING, delay: i * 0.05 }} style={{ background: 'var(--in)' }} /></div></div><b>{x.count}</b></div>
+          ))}</div>
+        </div>
+        <div className="mcard">
+          <div className="mcard-h"><h3>Most profitable</h3><span className="muted">total profit</span></div>
+          <div className="rank">{r.mostProfit.map((x, i) => (
+            <div key={x.name} className="rank-row"><span className="rank-n">{i + 1}</span><div className="grow" style={{ minWidth: 0 }}><div className="rank-name">{x.name}</div><div className="rank-bar"><motion.span initial={{ scaleX: 0 }} animate={{ scaleX: Math.abs(x.profitSen) / maxProfit }} transition={{ ...SPRING, delay: i * 0.05 }} style={{ background: x.profitSen >= 0 ? 'var(--wea)' : 'var(--bad)' }} /></div></div><b style={{ color: x.profitSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{x.profitSen >= 0 ? '+' : ''}{fmt.rm(x.profitSen)}</b></div>
+          ))}</div>
+        </div>
+      </div>
+      <div className="mcard">
+        <div className="mcard-h"><h3>Platforms</h3><span className="muted">all time</span><div className="grow" />{fastest && <span className="chip ok">Fastest: {fastest.platform}</span>}</div>
+        <div className="plat-table">
+          <div className="plat-head"><span>Where</span><span>Sold</span><span>Profit</span><span>Sells in</span></div>
+          {r.platforms.map((p, i) => (
+            <div key={p.platform} className="plat-row">
+              <span className="plat-name">{p.platform}<span className="rank-bar"><motion.span initial={{ scaleX: 0 }} animate={{ scaleX: p.count / maxPlat }} transition={{ ...SPRING, delay: i * 0.05 }} style={{ background: 'var(--int)' }} /></span></span>
+              <b>{p.count}</b><b style={{ color: p.profitSen >= 0 ? 'var(--in)' : 'var(--bad)' }}>{fmt.rm(p.profitSen)}</b><b>{days(p.avgDays)}</b>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mcard">
+        <div className="mcard-h"><h3>Sitting a while</h3><span className="muted">in stock 30+ days</span></div>
+        {stale.length === 0 ? <div className="muted">Nothing has waited 30 days yet. Nice turnover.</div> : (
+          <div className="muted" style={{ lineHeight: 1.5 }}><b style={{ color: 'var(--t1)' }}>{stale.reduce((n, g) => n + g.count, 0)} piece{stale.reduce((n, g) => n + g.count, 0) === 1 ? '' : 's'}</b> worth <b style={{ color: 'var(--t1)' }}>{fmt.rm(stale.reduce((n, g) => n + g.costSen, 0))}</b> have waited 30+ days. The oldest is {stale[0].name} ({stale[0].days} days). See them on Money → Business.</div>
+        )}
       </div>
     </div>
   );

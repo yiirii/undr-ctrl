@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { stagger, haptic, pop, sparks, centerOf } from '../../motion/juice';
 import { cssVar } from '../../motion/particles';
-import { useStore, act } from '../../../store/store';
+import { useStore, act, actUndoable } from '../../../store/store';
 import { logMoney, editMoney, deleteMoney } from '../../../store/logic';
 import { parseAmount } from '../../../core/money';
 import { addDays, dayKey } from '../../../core/dates';
@@ -47,7 +47,7 @@ export function LogSheet() {
     if (!sen) { setHint('Type an amount above RM 0.'); return; }
     const payload = { kind, sen, note, date, repeatMonthly: repeat, wallet, ...(kind === 'out' ? { categoryId: pick } : { sourceId: pick }) };
     if (!editing && wallet !== s.settings.lastWallet) useStore.getState().setSettings({ lastWallet: wallet });
-    if (editing) act(editMoney, editing.id, payload, new Date()); else act(logMoney, payload, new Date());
+    if (editing) actUndoable('Saved changes', editMoney, editing.id, payload, new Date()); else actUndoable(`Logged ${kind === 'in' ? '+' : ''}${fmt.rm(sen)}${wallet === 'tng' ? ' · TnG' : ''}`, logMoney, payload, new Date());
     sfx.tink();
     haptic('success');
     if (saveRef.current) { const at = centerOf(saveRef.current); sparks(at.x, at.y, [cssVar(kind === 'in' ? '--in' : '--xp'), cssVar('--t1')], 16); }
@@ -122,7 +122,7 @@ export function LogSheet() {
         </button>
         {hint && <div className="chip warn" style={{ alignSelf: 'flex-start' }}>{hint}</div>}
         <div className="row">
-          {editing && <button className="btn ghost danger" onClick={() => { act(deleteMoney, editing.id, new Date()); close(); }}><Icon name="trash" size={16} />Delete</button>}
+          {editing && <button className="btn ghost danger" onClick={() => { actUndoable('Deleted the entry', deleteMoney, editing.id, new Date()); close(); }}><Icon name="trash" size={16} />Delete</button>}
           <div className="grow" />
           <button ref={saveRef} className="btn primary lg" onClick={save}><Icon name="check" size={18} stroke={2.4} />{editing ? 'Save' : sen ? `Log ${kind === 'in' ? '+' : ''}${fmt.rm(sen)}` : 'Log it'}</button>
         </div>

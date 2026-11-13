@@ -385,6 +385,40 @@ test('business money: set the TnG balance, a TnG lunch takes from it, cash does 
   await expect(page.locator('.wallet-split')).toContainText('Business money (TnG)');
 });
 
+test('undo: logging money, ticking a task and selling a piece can each be undone in one tap', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=myday');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
+  const state = () => page.evaluate(() => (window as any).__lofi.getState().s);
+  // tick a task, then undo
+  const n0 = (await state()).tasks.filter((t: any) => t.doneAt).length;
+  await page.locator('.main-scroll .tasks .task:not(.done) .check').first().click();
+  await expect(page.locator('.undo-toast')).toContainText('Ticked off');
+  await page.click('.undo-btn');
+  await expect(page.locator('.undo-toast')).toHaveCount(0);
+  expect((await state()).tasks.filter((t: any) => t.doneAt).length).toBe(n0);
+  // log money, then undo with Ctrl+Z
+  const e0 = (await state()).money.entries.length;
+  await page.keyboard.press('Control+e');
+  await page.locator('.sheet .cat-pick').first().click();
+  await page.keyboard.press('7');
+  await page.locator('.sheet .btn.primary.lg').click();
+  await expect(page.locator('.undo-toast')).toContainText('Logged RM 7');
+  expect((await state()).money.entries.length).toBe(e0 + 1);
+  await page.keyboard.press('Control+z');
+  await expect.poll(async () => (await state()).money.entries.length).toBe(e0);
+  // sell a piece, then undo
+  await page.click('.nav-item:has-text("Money")');
+  await page.click('.money-tabs button:has-text("Business")');
+  const sold0 = (await state()).business.items.filter((i: any) => i.status === 'sold').length;
+  await page.click('button:has-text("Sold")');
+  await page.locator('.sheet .tl-item').first().click();
+  await page.locator('.sheet input[inputmode="decimal"]').first().fill('90');
+  await page.click('button:has-text("Record sale")');
+  await expect(page.locator('.undo-toast')).toContainText('Sold');
+  await page.click('.undo-btn');
+  await expect.poll(async () => (await state()).business.items.filter((i: any) => i.status === 'sold').length).toBe(sold0);
+});
+
 test.describe('phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   test('tab bar instead of sidebar; + → Sold records a sale; More → Settings', async ({ page }) => {

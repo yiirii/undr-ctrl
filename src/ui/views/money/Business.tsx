@@ -1,8 +1,9 @@
 import { stagger, haptic } from '../../motion/juice';
 import { businessMonthFlows, takenOutMonth } from '../../../core/wallet';
+import { staleStock } from '../../../core/shopStats';
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { useStore, act, type BizSheet } from '../../../store/store';
+import { useStore, act, actUndoable, type BizSheet } from '../../../store/store';
 import {
   addBizItems, sellBizItem, unsellBizItem, editBizItem, deleteBizItem, addBizExpense, deleteBizExpense, deleteBizIncome,
   keepBizItem, unkeepBizItem, setBizValue, reserveBizItem, completeReservation, cancelReservation, setPlatforms,
@@ -57,6 +58,8 @@ export function Business({ mk }: { mk: string }) {
   const incomeThisMonth = b.income.filter((e) => monthKey(e.date) === mk);
   const empty = b.items.length === 0 && b.expenses.length === 0;
   const sellable = st.count + col.count;
+  const stale = useMemo(() => staleStock(b.items, today), [b.items, today]);
+  const [showStale, setShowStale] = useState(false);
 
   return (
     <div className="money-grid">
@@ -142,6 +145,20 @@ export function Business({ mk }: { mk: string }) {
             </div>
           </div>
 
+          {stale.length > 0 && (
+            <div className="mcard stale-card">
+              <div className="mcard-h"><h3>Sitting a while</h3><span className="muted">in stock 30+ days</span></div>
+              <div className="stale-list">
+                {stale.slice(0, showStale ? stale.length : 5).map((g) => (
+                  <button key={g.name} className="stale-row" onClick={() => setSheet({ kind: 'item', id: g.ids[0] })}>
+                    <span className="grow stale-name">{g.name}{g.count > 1 && <i> ×{g.count}</i>}</span>
+                    <span className={`chip ${g.days >= 60 ? 'warn' : ''}`}>{g.days} days</span>
+                  </button>
+                ))}
+              </div>
+              {stale.length > 5 && <button className="btn ghost sm" style={{ alignSelf: 'flex-start', marginTop: 8 }} onClick={() => setShowStale(!showStale)}>{showStale ? 'Show less' : `Show all ${stale.length}`}</button>}
+            </div>
+          )}
           <div className="mcard">
             <div className="mcard-h"><h3>In stock</h3>{dq && <span className="muted">{stockGroups.reduce((n, g) => n + g.length, 0)} match</span>}<div className="grow" /><SearchField value={q} onChange={setQ} width={220} className="sm" /></div>
             {stockGroups.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>{q ? 'Nothing matches.' : 'Everything is sold or reserved. Time to restock?'}</div>}
@@ -221,14 +238,14 @@ export function Business({ mk }: { mk: string }) {
                   <div key={e.id} className="tl-item" style={{ cursor: 'default' }}>
                     <div className="grow"><div className="tl-note">{e.label}</div><div className="tl-sub">{fmt.day(e.date)}</div></div>
                     <div className="tl-amt" style={{ color: 'var(--in)' }}>+{fmt.rm(e.sen)}</div>
-                    <button className="icon-btn" title="Delete" onClick={() => act(deleteBizIncome, e.id, new Date())}><Icon name="trash" size={14} /></button>
+                    <button className="icon-btn" title="Delete" onClick={() => actUndoable('Deleted', deleteBizIncome, e.id, new Date())}><Icon name="trash" size={14} /></button>
                   </div>
                 ))}
                 {costsThisMonth.map((e) => (
                   <div key={e.id} className="tl-item" style={{ cursor: 'default' }}>
                     <div className="grow"><div className="tl-note">{e.label}</div><div className="tl-sub">{fmt.day(e.date)}</div></div>
                     <div className="tl-amt">{fmt.rm(e.sen)}</div>
-                    <button className="icon-btn" title="Delete" onClick={() => act(deleteBizExpense, e.id, new Date())}><Icon name="trash" size={14} /></button>
+                    <button className="icon-btn" title="Delete" onClick={() => actUndoable('Deleted the cost', deleteBizExpense, e.id, new Date())}><Icon name="trash" size={14} /></button>
                   </div>
                 ))}
                 {!costsThisMonth.length && !incomeThisMonth.length && <div className="muted" style={{ fontSize: '.86rem' }}>Packaging, shipping supplies, booth fees… log them with “Other cost”.</div>}
@@ -396,7 +413,7 @@ function BuySheet({ kept: keptInit, onClose }: { kept?: boolean; onClose: () => 
   const save = (next: boolean) => {
     if (!name.trim()) { if (next && added.n > 0 && !cost) return onClose(); return setHint('Give it a name.'); }
     if (c === null) return setHint('Type what it cost you, or tap Free.');
-    act(addBizItems, { name, costSen: c, qty, boughtOn: date, askSen: parseAmount(ask) ?? undefined, kept }, new Date());
+    actUndoable(`Added ${qty > 1 ? `${qty} × ` : ''}${name.trim()} to ${kept ? 'your collection' : 'stock'}`, addBizItems, { name, costSen: c, qty, boughtOn: date, askSen: parseAmount(ask) ?? undefined, kept }, new Date());
     sfx.tink();
     if (!next) return onClose();
     setAdded({ n: added.n + qty, last: name.trim() });
@@ -461,7 +478,7 @@ function SellSheet({ presetId, onClose }: { presetId?: string; onClose: () => vo
     if (!it) return setHint('Pick what you sold.');
     if (!p) return setHint('Type the sale price.');
     setSaved(true);
-    act(sellBizItem, it.id, { soldSen: p, feesSen: f, soldOn: date, platform, ship }, new Date());
+    actUndoable(`Sold ${it.name} for ${fmt.rm(p)}`, sellBizItem, it.id, { soldSen: p, feesSen: f, soldOn: date, platform, ship }, new Date());
     onClose();
   };
   return (
@@ -506,7 +523,7 @@ function ReserveSheet({ presetId, onClose }: { presetId?: string; onClose: () =>
     if (!d) return setHint('Reservations need a deposit. Type how much they paid.');
     if (pr && pr < d) return setHint('The agreed price is less than the deposit.');
     setSaved(true);
-    act(reserveBizItem, it.id, { depositSen: d, dueOn: due, platform, note, priceSen: pr ?? undefined }, new Date());
+    actUndoable(`Reserved ${it.name}`, reserveBizItem, it.id, { depositSen: d, dueOn: due, platform, note, priceSen: pr ?? undefined }, new Date());
     sfx.tink();
     onClose();
   };
@@ -548,7 +565,7 @@ function PaidSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const bl = bal.trim() === '' ? null : parseAmount(bal) ?? (Number(bal) === 0 ? 0 : null);
   const total = r.depositSen + (bl ?? 0);
   const profit = total - it.costSen - (parseAmount(fees) ?? 0);
-  const save = () => { if (bl === null) return; act(completeReservation, id, { balanceSen: bl, feesSen: parseAmount(fees) ?? 0, soldOn: date, ship }, new Date()); onClose(); };
+  const save = () => { if (bl === null) return; actUndoable('Balance paid · sold', completeReservation, id, { balanceSen: bl, feesSen: parseAmount(fees) ?? 0, soldOn: date, ship }, new Date()); onClose(); };
   return (
     <Sheet title="Balance paid" onClose={onClose}>
       <div className="tl-item" style={{ cursor: 'default' }}><div className="grow"><div className="tl-note">{it.name}</div><div className="tl-sub">Deposit {fmt.rm(r.depositSen)}{it.platform ? ` · ${it.platform}` : ''} · {costText(it.costSen, fmt.rm).toLowerCase()}</div></div></div>
@@ -568,10 +585,11 @@ function PaidSheet({ id, onClose }: { id: string; onClose: () => void }) {
 
 function CostSheet({ onClose }: { onClose: () => void }) {
   const today = dayKey(new Date());
+  const fmt = useFmt();
   const [label, setLabel] = useState('');
   const [amt, setAmt] = useState('');
   const [date, setDate] = useState(today);
-  const save = () => { const sen = parseAmount(amt); if (!sen) return; act(addBizExpense, { sen, label, date }, new Date()); sfx.tink(); onClose(); };
+  const save = () => { const sen = parseAmount(amt); if (!sen) return; actUndoable(`Logged ${fmt.rm(sen)} cost`, addBizExpense, { sen, label, date }, new Date()); sfx.tink(); onClose(); };
   return (
     <Sheet title="Other business cost" onClose={onClose}>
       <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>{['Packaging', 'Shipping supplies', 'Protectors', 'Postage', 'Booth fee'].map((l) => <button key={l} className={`btn sm ${label === l ? '' : 'ghost'}`} onClick={() => setLabel(l)}>{l}</button>)}</div>
@@ -648,17 +666,17 @@ function ItemSheet({ id, onClose, go }: { id: string; onClose: () => void; go: (
         <div className="confirm-box stack">
           <div style={{ fontSize: '.9rem' }}>Cancel this reservation? The piece goes back to stock.</div>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn" onClick={() => { act(cancelReservation, id, { keepDeposit: true }, new Date()); onClose(); }}>I kept the deposit</button>
-            <button className="btn" onClick={() => { act(cancelReservation, id, { keepDeposit: false }, new Date()); onClose(); }}>I refunded it</button>
+            <button className="btn" onClick={() => { actUndoable('Reservation cancelled', cancelReservation, id, { keepDeposit: true }, new Date()); onClose(); }}>I kept the deposit</button>
+            <button className="btn" onClick={() => { actUndoable('Reservation cancelled', cancelReservation, id, { keepDeposit: false }, new Date()); onClose(); }}>I refunded it</button>
             <button className="btn ghost" onClick={() => setCancel(false)}>Never mind</button>
           </div>
         </div>
       )}
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-        <button className="btn ghost danger" onClick={() => { act(deleteBizItem, id, new Date()); onClose(); }}><Icon name="trash" size={16} />Delete</button>
-        {it.status === 'sold' && <button className="btn ghost" onClick={() => { act(unsellBizItem, id, new Date()); onClose(); }}><Icon name="undo" size={16} />Undo sale</button>}
-        {it.status === 'stock' && <button className="btn ghost" onClick={() => { act(keepBizItem, id); onClose(); }}><Icon name="heart" size={16} />Keep it</button>}
-        {it.status === 'kept' && <button className="btn ghost" onClick={() => { act(unkeepBizItem, id); onClose(); }}><Icon name="bag" size={16} />Move to stock</button>}
+        <button className="btn ghost danger" onClick={() => { actUndoable(`Deleted ${it.name}`, deleteBizItem, id, new Date()); onClose(); }}><Icon name="trash" size={16} />Delete</button>
+        {it.status === 'sold' && <button className="btn ghost" onClick={() => { actUndoable('Sale undone', unsellBizItem, id, new Date()); onClose(); }}><Icon name="undo" size={16} />Undo sale</button>}
+        {it.status === 'stock' && <button className="btn ghost" onClick={() => { actUndoable('Moved to your collection', keepBizItem, id); onClose(); }}><Icon name="heart" size={16} />Keep it</button>}
+        {it.status === 'kept' && <button className="btn ghost" onClick={() => { actUndoable('Moved to stock', unkeepBizItem, id); onClose(); }}><Icon name="bag" size={16} />Move to stock</button>}
         {it.status === 'reserved' && !cancel && <button className="btn ghost" onClick={() => setCancel(true)}><Icon name="x" size={16} />Cancel reservation</button>}
         <div className="grow" />
         {(it.status === 'stock' || it.status === 'kept') && <button className="btn" onClick={() => go({ kind: 'reserve', id })}><Icon name="lock" size={16} />Reserve</button>}
@@ -744,7 +762,7 @@ function MoveSheet({ onClose }: { onClose: () => void }) {
   const [amt, setAmt] = useState('');
   const [note, setNote] = useState('');
   const sen = readSen(amt);
-  const save = () => { if (!sen) return; act(addMove, { sen, dir, date: today, note }, new Date()); sfx.tink(); haptic('success'); onClose(); };
+  const save = () => { if (!sen) return; actUndoable(dir === 'in' ? `Put ${fmt.rm(sen)} into TnG` : `Took ${fmt.rm(sen)} out of TnG`, addMove, { sen, dir, date: today, note }, new Date()); sfx.tink(); haptic('success'); onClose(); };
   const recent = [...moves].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   return (
     <Sheet title="Move money" onClose={onClose}>

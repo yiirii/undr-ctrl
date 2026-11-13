@@ -11,6 +11,7 @@ import { Money, MoneyOverlays } from '../views/Money';
 import { Focus, FocusTicker } from '../views/Focus';
 import { Onboarding } from '../views/Onboarding';
 import { Moments } from '../motion/Moments';
+import { UndoToast } from './UndoToast';
 import { Reminders } from './Reminders';
 import { BizSheets } from '../views/money/Business';
 import { useSync } from '../../sync/service';
@@ -175,6 +176,7 @@ export function App() {
       <FocusTicker />
       <Reminders />
       <Moments />
+      <UndoToast />
     </div>
   );
 }

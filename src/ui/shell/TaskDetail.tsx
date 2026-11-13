@@ -1,6 +1,6 @@
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { useStore, act } from '../../store/store';
+import { useStore, act, actUndoable } from '../../store/store';
 import { updateTask, deleteTask, toggleMyDay, focusStart, addStep, toggleStep, renameStep, deleteStep } from '../../store/logic';
 import { taskStat } from '../../store/facts';
 import { CheckCircle } from './TaskRow';
@@ -97,7 +97,7 @@ export function TaskDetail({ id }: { id: string }) {
       <div className="row">
         <span className="muted" style={{ fontSize: '.74rem' }}>Created {new Date(t.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
         <div className="grow" />
-        <button className="btn ghost danger sm" onClick={() => { act(deleteTask, id); setUI({ detailId: null }); }}><Icon name="trash" size={15} />Delete</button>
+        <button className="btn ghost danger sm" onClick={() => { actUndoable(`Deleted “${t.title}”`, deleteTask, id); setUI({ detailId: null }); }}><Icon name="trash" size={15} />Delete</button>
       </div>
     </motion.aside>
   );

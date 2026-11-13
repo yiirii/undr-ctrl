@@ -2,7 +2,9 @@
 import type { Track } from './core/types';
 
 export interface Reminder { id: string; at: number; title: string; body: string }
+export interface UpdateState { phase: 'idle' | 'checking' | 'downloading' | 'ready' | 'latest' | 'error'; version?: string; percent?: number; current: string }
 export interface LofiBridge {
+  updates?: { state(): Promise<UpdateState>; check(): Promise<UpdateState>; install(): void; onState(cb: (st: UpdateState) => void): () => void };
   storage: { load(): Promise<{ data: unknown; recovered: boolean } | null>; save(json: string): Promise<boolean>; saveSync(json: string): boolean };
   music: { import(link?: boolean): Promise<Track[]>; importPaths(paths: string[], link?: boolean): Promise<Track[]>; remove(id: string, file: string): Promise<void>; exists(file: string): Promise<boolean> };
   notify(title: string, body: string, taskId?: string): void;

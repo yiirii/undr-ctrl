@@ -19,6 +19,12 @@ contextBridge.exposeInMainWorld('lofi', {
   onWindowHidden: (cb: () => void) => on('window-hidden', cb),
   onWindowShown: (cb: () => void) => on('window-shown', cb),
   onOpenQuickAdd: (cb: () => void) => on('open-quick-add', cb),
+  updates: {
+    state: () => ipcRenderer.invoke('update:state'),
+    check: () => ipcRenderer.invoke('update:check'),
+    install: () => ipcRenderer.send('update:install'),
+    onState: (cb: (st: unknown) => void) => on('update-state', cb),
+  },
   onFocusTask: (cb: (id: string) => void) => on('focus-task', (id) => cb(id as string)),
   exportData: (json: string) => ipcRenderer.invoke('data:export', json),
   importData: () => ipcRenderer.invoke('data:import'),

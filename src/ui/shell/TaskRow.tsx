@@ -11,7 +11,7 @@ export const xpTarget = () => Array.from(document.querySelectorAll('.xp-target .
 export const resolveColor = (c: string) => { const m = /^var\((--[\w-]+)\)$/.exec(c.trim()); return m ? cssVar(m[1]) || '#fff' : c; };
 import type { Task } from '../../core/types';
 import { STAT_META } from '../../core/types';
-import { useStore, act } from '../../store/store';
+import { useStore, act, actUndoable } from '../../store/store';
 import { completeTask, uncompleteTask, focusStart } from '../../store/logic';
 import { taskStat } from '../../store/facts';
 import { taskXp } from '../../core/rules';
@@ -66,7 +66,7 @@ export function TaskRow({ task, showList = false, focusable = true }: { task: Ta
 
   const toggle = (el?: HTMLElement | null) => {
     if (pending) return;
-    if (done) { act(uncompleteTask, task.id, new Date()); sfx.click(); haptic('light'); return; }
+    if (done) { actUndoable(`Unticked “${task.title}”`, uncompleteTask, task.id, new Date()); sfx.click(); haptic('light'); return; }
     sfx.check();
     haptic('success');
     const at = el ? centerOf(el) : null;
@@ -78,7 +78,7 @@ export function TaskRow({ task, showList = false, focusable = true }: { task: Ta
     setPending(true); setFlash(true);
     const commit = () => {
       const before = useStore.getState().s.ledger.length;
-      act(completeTask, task.id, new Date());
+      actUndoable(`Ticked off “${task.title}”`, completeTask, task.id, new Date());
       const added = useStore.getState().s.ledger.slice(before).find((e) => e.source === 'task' || e.source === 'habit');
       if (added && at) flyTo(at, xpTarget(), `+${added.amount} XP`);
       setPending(false);

@@ -531,7 +531,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
   .more-row .sdot { width: 10px; height: 10px; border-radius: 50%; margin: 0 5px; }
   .more-sep { font-size: .72rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--t3); margin: 12px 6px 4px; min-height: 1px; }
 
-  .toasts { bottom: calc(env(safe-area-inset-bottom) + 90px) !important; right: 12px !important; left: 12px !important; }
+  .toasts { bottom: calc(env(safe-area-inset-bottom) + 150px) !important; right: 12px !important; left: 12px !important; }
   .combo-chip { top: calc(env(safe-area-inset-top) + 56px); }
 }
 @media (max-width: 720px) {
@@ -758,3 +758,57 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .bm-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; padding: 0 10px; border-radius: var(--radius-sm); background: var(--bg2); font-size: .88rem; }
 .bm-row b { font-variant-numeric: tabular-nums; }
 .bm-row i { font-style: normal; font-size: .76rem; margin-left: 6px; }
+
+/* undo toast */
+.undo-wrap { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 95; pointer-events: none; }
+.undo-toast { pointer-events: auto; position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; min-height: 46px; border-radius: 14px; background: var(--t1); color: var(--bg0); box-shadow: 0 12px 32px rgba(0,0,0,.4); font-weight: 700; font-size: .9rem; white-space: nowrap; max-width: calc(100vw - 32px); }
+.undo-label { overflow: hidden; text-overflow: ellipsis; }
+.undo-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 10px; border: 0; background: color-mix(in srgb, var(--bg0) 12%, transparent); color: var(--bg0); font: inherit; font-weight: 800; cursor: pointer; flex: none; }
+.undo-btn:active { transform: scale(.94); }
+.undo-timer { position: absolute; left: 0; right: 0; bottom: 0; height: 2.5px; background: color-mix(in srgb, var(--bg0) 35%, transparent); transform-origin: left; animation: toastTimer linear forwards; }
+@media (max-width: 720px) { .undo-wrap { bottom: calc(env(safe-area-inset-bottom) + 92px); } }
+
+/* ── Sitting a while ─────────────────────────────────── */
+.stale-card { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 18%, transparent); }
+.stale-list { display: flex; flex-direction: column; gap: 6px; }
+.stale-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; border-radius: var(--radius); background: color-mix(in srgb, var(--bg0) 45%, var(--bg3)); text-align: left; transition: background .15s; }
+.stale-row:hover { background: var(--bg4); }
+.stale-name { min-width: 0; font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stale-name i { font-style: normal; color: var(--t3); font-weight: 700; }
+
+/* ── Funko shop insights ─────────────────────────────── */
+.shop-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap, 16px); }
+.kpi .hero-num { font-size: 1.9rem; }
+.kpi-sub { font-size: .78rem; margin-top: 2px; }
+.rank { display: flex; flex-direction: column; gap: 12px; }
+.rank-row { display: flex; align-items: center; gap: 12px; }
+.rank-row > b { font-variant-numeric: tabular-nums; font-size: .9rem; }
+.rank-n { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--bg0); font-size: .76rem; font-weight: 800; color: var(--t2); }
+.rank-row:first-child .rank-n { background: color-mix(in srgb, var(--xp) 22%, var(--bg0)); color: var(--xp); }
+.rank-name { font-size: .88rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; }
+.rank-bar { display: block; height: 5px; border-radius: 99px; background: var(--bg0); overflow: hidden; }
+.rank-bar > span { display: block; height: 100%; border-radius: inherit; transform-origin: left; }
+.plat-table { display: flex; flex-direction: column; }
+.plat-head, .plat-row { display: grid; grid-template-columns: minmax(0, 2fr) .7fr 1fr 1fr; gap: 12px; align-items: center; }
+.plat-head { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--t3); padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.plat-row { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .88rem; font-variant-numeric: tabular-nums; }
+.plat-row:last-child { border-bottom: 0; }
+.plat-head span:not(:first-child), .plat-row > span:not(:first-child) { text-align: right; }
+.plat-name { display: flex; flex-direction: column; gap: 6px; font-weight: 700; min-width: 0; }
+@media (max-width: 720px) {
+  .shop-kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .shop-kpis .kpi:first-child { grid-column: 1 / -1; }
+  .kpi .hero-num { font-size: 1.5rem; }
+  .plat-head, .plat-row { grid-template-columns: minmax(0, 1.6fr) .6fr 1fr .9fr; gap: 8px; font-size: .82rem; }
+}
+
+/* ── Laptop update ready ─────────────────────────────── */
+.update-chip { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 8px 8px 8px; border-radius: var(--radius); text-align: left; background: color-mix(in srgb, var(--accent) 14%, var(--bg2)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); transition: background .15s; }
+.update-chip:hover { background: color-mix(in srgb, var(--accent) 22%, var(--bg2)); }
+.update-chip.mini { justify-content: center; padding: 8px 0; }
+.update-dot { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 9px; background: var(--accent-fill, var(--accent)); color: var(--accent-ink, #fff); animation: upd-pulse 2.4s ease-in-out infinite; }
+.update-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.update-txt b { font-size: .84rem; color: var(--t1); }
+.update-txt span { font-size: .72rem; color: var(--t3); }
+.update-go { font-size: .78rem; font-weight: 800; color: var(--accent); padding: 0 6px; }
+@keyframes upd-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }

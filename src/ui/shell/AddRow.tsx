@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useStore, act } from '../../store/store';
+import { useStore, act, actUndoable } from '../../store/store';
 import { parseQuick, type Candidate } from '../../core/parser';
 import { addTask, logMoney } from '../../store/logic';
 import { dayKey } from '../../core/dates';
@@ -37,14 +37,14 @@ export function CandidateChips({ c }: { c: Candidate }) {
 export function commitCandidate(c: Candidate, defaults: { listId: string; myDay?: boolean }) {
   const now = new Date();
   if (c.kind === 'task') {
-    act(addTask, { title: c.title, listId: c.listId ?? defaults.listId, due: c.due, time: c.time, size: c.size, recurrence: c.recurrence, habit: c.habit, myDay: defaults.myDay && !c.habit }, now);
+    actUndoable(`Added “${c.title}”`, addTask, { title: c.title, listId: c.listId ?? defaults.listId, due: c.due, time: c.time, size: c.size, recurrence: c.recurrence, habit: c.habit, myDay: defaults.myDay && !c.habit }, now);
   } else {
     // money: the wallet you named ("tng" / "cash"), otherwise the one you used last
     const st = useStore.getState();
     const wallet = c.wallet ?? st.s.settings.lastWallet ?? 'cash';
     if (c.wallet) st.setSettings({ lastWallet: c.wallet });
-    if (c.kind === 'out') act(logMoney, { kind: 'out', sen: c.sen, categoryId: c.categoryId, note: c.note, date: dayKey(now), wallet }, now);
-    else act(logMoney, { kind: 'in', sen: c.sen, sourceId: c.sourceId, note: c.note, date: dayKey(now), wallet }, now);
+    if (c.kind === 'out') actUndoable(`Logged RM ${(c.sen / 100).toFixed(c.sen % 100 ? 2 : 0)}`, logMoney, { kind: 'out', sen: c.sen, categoryId: c.categoryId, note: c.note, date: dayKey(now), wallet }, now);
+    else actUndoable(`Logged +RM ${(c.sen / 100).toFixed(c.sen % 100 ? 2 : 0)}`, logMoney, { kind: 'in', sen: c.sen, sourceId: c.sourceId, note: c.note, date: dayKey(now), wallet }, now);
   }
   sfx.pop();
 }
