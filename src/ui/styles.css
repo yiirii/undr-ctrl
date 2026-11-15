@@ -111,7 +111,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pbar-track { position: relative; display: flex; width: 100%; background: var(--bg0); border-radius: 99px; overflow: hidden; }
 .pbar-fill { height: 100%; border-radius: 99px; position: relative; overflow: hidden; }
 .pbar-tail { height: 100%; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--bad) 85%, black) 0 5px, color-mix(in srgb, var(--bad) 55%, black) 5px 10px); border-radius: 0 99px 99px 0; margin-left: -4px; padding-left: 4px; }
-.pbar-track.is-full .pbar-fill::after, .seg-full::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.55) 50%, transparent 80%); transform: translateX(-100%); animation: shimmer 2.6s ease-in-out 1 .2s; }
+.pbar-track.is-full .pbar-fill::after, .seg-full::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,.45) 42% 58%, transparent 58%); transform: translateX(-100%); animation: shimmer 2.6s ease-in-out 1 .2s; }
 @keyframes shimmer { to { transform: translateX(100%); } }
 .segbar { display: flex; width: 100%; }
 .seg { flex: 1; background: var(--bg0); border-radius: 99px; overflow: hidden; position: relative; }
@@ -248,7 +248,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .focus-phase { font-size: .74rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: var(--t3); margin-top: 8px; }
 .focus-task { font-size: 1.15rem; font-weight: 700; max-width: 520px; }
 .hex-shimmer { overflow: hidden; -webkit-mask: linear-gradient(#000 0 0); }
-.hex-shimmer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.7) 50%, transparent 70%); transform: translateX(-120%); animation: shimmer 1.4s ease .3s 1; }
+.hex-shimmer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,.55) 42% 58%, transparent 58%); transform: translateX(-120%); animation: shimmer 1.4s ease .3s 1; }
 
 /* ---------- money (no tables, no grids of cells) ---------- */
 .cat-ic { border-radius: 30%; display: grid; place-items: center; flex: none; }
@@ -641,7 +641,7 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 /* something just landed in this bar: a light sweep + soft pop */
 .pbar-track, .segbar { position: relative; }
 .fx-gain { animation: fxGainPop .5s cubic-bezier(.34,1.56,.64,1); }
-.fx-gain::after { content: ''; position: absolute; inset: -3px 0; border-radius: 99px; pointer-events: none; background: linear-gradient(100deg, transparent 15%, rgba(255,255,255,.75) 50%, transparent 85%); animation: fxSweep .8s cubic-bezier(.22,1,.36,1) forwards; }
+.fx-gain::after { content: ''; position: absolute; inset: -3px 0; border-radius: 99px; pointer-events: none; background: linear-gradient(100deg, transparent 40%, rgba(255,255,255,.6) 40% 60%, transparent 60%); animation: fxSweep .8s cubic-bezier(.22,1,.36,1) forwards; }
 @keyframes fxGainPop { 30% { transform: scaleY(1.6); } }
 @keyframes fxSweep { from { transform: translateX(-100%); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
 
@@ -656,7 +656,7 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 
 /* primary buttons: a light sheen passes over them on hover (laptop) */
 .btn { position: relative; overflow: hidden; isolation: isolate; }
-.btn.primary::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%); transform: translateX(-120%); }
+.btn.primary::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,.28) 42% 56%, transparent 56%); transform: translateX(-120%); }
 @media (hover: hover) {
   .btn.primary:hover::after { transform: translateX(120%); transition: transform .7s cubic-bezier(.22,1,.36,1); }
   .btn:hover:not(:disabled) { transform: translateY(-1px); }
@@ -669,7 +669,7 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .task.done .task-title::after { content: ''; position: absolute; left: 0; right: 0; top: 54%; height: 1.5px; border-radius: 2px; background: var(--t3); transform-origin: left center; animation: strikeDraw .32s cubic-bezier(.65,0,.35,1) both; }
 .task.striking .task-title { color: var(--t2); transition: color .3s ease .15s; }
 @keyframes strikeDraw { from { transform: scaleX(0); } }
-.task.just-done::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 34%, transparent), color-mix(in srgb, var(--c) 8%, transparent) 70%, transparent); transform-origin: left center; animation: rowFlash .8s cubic-bezier(.22,1,.36,1) forwards; }
+.task.just-done::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: color-mix(in srgb, var(--c) 18%, transparent); transform-origin: left center; animation: rowFlash .8s cubic-bezier(.22,1,.36,1) forwards; }
 @keyframes rowFlash { 0% { transform: scaleX(0); opacity: 1; } 45% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
 .task .check { z-index: 1; }
 /* phone: swipe right to tick off; the check appears from the left as you pull */
@@ -814,3 +814,34 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .me-card-title { font-size: 1.05rem; font-weight: 800; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .me-card-xp { font-size: .8rem; color: var(--t3); }
 .me-card-xp b { color: var(--xp); }
+
+/* ── Material: flat colours that still feel physical ─────────────────────────
+   No gradients anywhere. Depth comes from solid, hard-edged shapes:
+   a solid darker "lip" under buttons (it disappears when pressed, like a keycap),
+   a 1px lighter top edge, and flat highlight shapes for shine. Release springs back. */
+.btn { box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 2px 0 color-mix(in srgb, var(--bg3) 55%, #000); transition: transform .38s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, background .15s ease, filter .15s ease; }
+.btn.ghost { box-shadow: none; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 0 color-mix(in srgb, var(--bg3) 55%, #000); transition-duration: .06s; }
+.btn.ghost:active:not(:disabled) { transform: scale(.97); box-shadow: none; }
+.btn.primary { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-fill) 70%, #fff), 0 3px 0 color-mix(in srgb, var(--accent-fill) 58%, #000); }
+.btn.primary:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-fill) 70%, #fff), 0 0 0 color-mix(in srgb, var(--accent-fill) 58%, #000); }
+.pn-plus { box-shadow: inset 0 1.5px 0 #fff, 0 4px 0 color-mix(in srgb, var(--t1) 52%, #000), 0 10px 0 -4px rgba(0,0,0,.28); transition: transform .42s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease; }
+.pn-plus:active { transform: translateY(4px) scale(.98) !important; box-shadow: inset 0 1.5px 0 #fff, 0 0 0 color-mix(in srgb, var(--t1) 52%, #000), 0 4px 0 -4px rgba(0,0,0,.28); transition-duration: .06s; }
+
+/* cards: a 1px light top edge and a solid shadow ledge */
+.mcard { box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 3px 0 rgba(0,0,0,.14); }
+
+/* checkboxes: a small well when empty; a bead with a flat highlight when done */
+.check { box-shadow: inset 0 2px 0 rgba(0,0,0,.28); }
+.check .fill { box-shadow: inset 0 -2px 0 rgba(0,0,0,.18); }
+.check .fill::after { content: ''; position: absolute; left: 22%; top: 16%; width: 30%; height: 22%; border-radius: 50%; background: rgba(255,255,255,.55); transform: rotate(-30deg); pointer-events: none; }
+.task.just-done .check .fill { animation: jelly .62s cubic-bezier(.22,1,.36,1); }
+@keyframes jelly { 0% { transform: scale(.4, .4); } 35% { transform: scale(1.22, .82); } 55% { transform: scale(.9, 1.1); } 75% { transform: scale(1.05, .96); } 100% { transform: scale(1, 1); } }
+
+/* progress: a flat light band along the top of the fill, like light on liquid */
+.pbar-fill::before, .seg-fill::before { content: ''; position: absolute; left: 3px; right: 3px; top: 18%; height: 22%; min-height: 1px; border-radius: 99px; background: rgba(255,255,255,.28); pointer-events: none; }
+
+/* level ring */
+.lv-ring b { text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+
+.reduced-motion .task.just-done .check .fill { animation: none !important; }

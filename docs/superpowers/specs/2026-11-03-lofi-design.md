@@ -888,3 +888,18 @@ Chloe still found the top strip soft under the iOS 26 blur and asked for it to b
 
 - **Laptop:** Chloe prefers to install updates by hand from the installer Claude sends. The Rev 17 auto-updater is removed: `electron-updater`, `electron/updater.ts`, the sidebar "Update ready" chip, the Settings Updates row, the GitHub publish config and the release script. A GitHub Actions workflow file was pushed once by mistake; it only runs on `v*` tags, so it does nothing, and it is deleted from the repo where pushing allows.
 - **iPhone:** `src/ui/shell/webUpdate.ts` checks for a new version every time the app comes back to the front (at least 60 s apart) and every 30 min while it's open. It fetches `index.html?fresh=…`, which the service worker passes straight through to the site, and compares the hashed main script name. When there is a new build, it reloads at a calm moment: no sheet, panel or overlay open, nothing being typed, no data change for 3 s, and the app visible. Before Rev 21 a new version only arrived once iOS fully restarted the app.
+
+## Rev 22: Tactile, flat material (2026-11-16, version 1.6.0)
+
+Chloe liked how the (Not Boring) apps feel and wants that quality in Undr Ctrl. Her rules: the animations must be fluid and things must look real without looking odd. **Flat colours only: no gradients anywhere.** "3D-looking" is fine if it looks good. We make our own take and don't copy their designs.
+
+**How depth is made without gradients:** solid, hard-edged shapes, as if lit from above.
+- **Buttons are keycaps.** A solid darker "lip" sits under each button: 2 px for normal buttons, 3 px for primary buttons, 4 px for the phone's +. Each has a 1 px lighter top edge. Pressing pushes the button down by the lip's height and the lip disappears. On release it springs back with a slight overshoot, `cubic-bezier(.34,1.56,.64,1)` over about 0.4 s, and the press itself takes 60 ms.
+- **Cards** have a 1 px light top edge and a solid 3 px shadow ledge.
+- **Checkboxes** are a small inset "well" when empty and a bead when done. The bead has a flat white oval highlight at the upper left and a solid inner shade at the bottom. Ticking a task squashes and stretches the bead like jelly (0.62 s).
+- **Progress bars** have a flat light band along the top of the fill, like light on liquid.
+- **Light sweeps** (shimmer, XP gain, the primary button sheen) are flat, hard-edged bands that move, not soft gradients. The task-tick row flash is a flat tint.
+- **The level ring** is a solid gold stroke.
+- **Themes and accents:** Dusk's main background and Aurora's sidebar are now flat colours. The earned Sunset and Aurora accents are solid colours and are no longer called "gradient". Repeating stripes and hard-stop shapes are still allowed, because they render flat.
+- **Sound:** each sound plays with a small random change in pitch (±2.5%), loudness and length, so repeated taps never sound identical.
+- **Performance:** `perf-frames` at 4× slowdown shows the same frame times before and after, within run-to-run noise.

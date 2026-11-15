@@ -15,9 +15,9 @@ export const THEMES = {
   light: { dark: false, bg0: '#e6e7ea', bg1: '#f2f3f5', bg2: '#fbfbfc', bg3: '#eef0f3', bg4: '#e3e5e9', line: '#dcdfe4', t1: '#1e1f22', t2: '#4e5058', t3: '#6d717a', ...meaningLight, ...statsLight },
   nord: { dark: true, bg0: '#242933', bg1: '#2e3440', bg2: '#353c4a', bg3: '#3b4252', bg4: '#434c5e', line: '#434c5e', t1: '#eceff4', t2: '#c8cfdb', t3: '#929cb0', ...meaningDark, ...statsDark },
   sepia: { dark: false, bg0: '#e9dfcc', bg1: '#f1e8d6', bg2: '#f8f1e3', bg3: '#efe5d1', bg4: '#e6dac3', line: '#ddd0b6', t1: '#3b2f22', t2: '#5c4a37', t3: '#7f6a52', ...meaningLight, ...statsLight },
-  dusk: { dark: true, bg0: '#17151f', bg1: '#221f2d', bg2: '#2a2638', bg3: '#332e44', bg4: '#3c3650', line: '#3a3450', t1: '#f1eef9', t2: '#bdb5d4', t3: '#8a83a3', ...meaningDark, ...statsDark, gradient: 'linear-gradient(160deg, #2e2843 0%, #1d1a29 70%)' },
+  dusk: { dark: true, bg0: '#17151f', bg1: '#221f2d', bg2: '#2a2638', bg3: '#332e44', bg4: '#3c3650', line: '#3a3450', t1: '#f1eef9', t2: '#bdb5d4', t3: '#8a83a3', ...meaningDark, ...statsDark },
   forest: { dark: true, bg0: '#151b18', bg1: '#1d2521', bg2: '#232d28', bg3: '#2a3630', bg4: '#334139', line: '#304038', t1: '#ecf3ee', t2: '#b3c2b8', t3: '#7f9286', ...meaningDark, ...statsDark },
-  aurora: { dark: true, bg0: '#14161c', bg1: '#1b1e26', bg2: '#22252f', bg3: '#2a2e3a', bg4: '#333847', line: '#323746', t1: '#eef1f7', t2: '#b6bccb', t3: '#828a9c', ...meaningDark, ...statsDark, sidebarGradient: 'linear-gradient(200deg, #1c2a33, #231d33, #1b2a26)' },
+  aurora: { dark: true, bg0: '#14161c', bg1: '#1b1e26', bg2: '#22252f', bg3: '#2a2e3a', bg4: '#333847', line: '#323746', t1: '#eef1f7', t2: '#b6bccb', t3: '#828a9c', ...meaningDark, ...statsDark, sidebarGradient: '#1c2830' },
 } satisfies Record<string, Tokens>;
 export type ThemeId = keyof typeof THEMES | 'system';
 export const THEME_LABELS: Record<ThemeId, string> = { discord: 'Discord Grey', midnight: 'Midnight', light: 'Light', nord: 'Nord', sepia: 'Sepia', system: 'Follow system', dusk: 'Dusk', forest: 'Forest', aurora: 'Aurora' };
@@ -31,8 +31,8 @@ export const ACCENTS: Accent[] = [
   { id: 'coral', label: 'Coral', color: '#ff6b5b' },
   { id: 'gold', label: 'Gold', color: '#f6c453' },
   { id: 'rose', label: 'Rose', color: '#ff7aa8' },
-  { id: 'sunset', label: 'Sunset', color: '#ff8a5c', gradient: 'linear-gradient(90deg,#ff6b8b,#ffb36b)' },
-  { id: 'aurora', label: 'Aurora', color: '#5fe0c0', gradient: 'linear-gradient(90deg,#5fe0c0,#8b7cff,#ff7aa8)' },
+  { id: 'sunset', label: 'Sunset', color: '#ff8a5c' },
+  { id: 'aurora', label: 'Aurora', color: '#5fe0c0' },
 ];
 
 export const FONTS = ['Inter', 'Manrope', 'Nunito', 'Space Grotesk', 'IBM Plex Sans', 'JetBrains Mono'] as const;

@@ -65,7 +65,9 @@ function play(notes: [number, number][], scale = 1) {
     if (c.state === 'suspended') c.resume();
     const v = voice[pack];
     const t0 = c.currentTime + 0.01;
-    for (const [mult, delay] of notes) tone(v.base * mult, t0 + delay, v.len * scale, 0.18 * vol, v.type, pack);
+    // never quite the same sound twice: a touch of pitch, loudness and length variation, like real objects
+    const pitch = 1 + (Math.random() - 0.5) * 0.05, loud = 0.88 + Math.random() * 0.24, len = 0.92 + Math.random() * 0.16;
+    for (const [mult, delay] of notes) tone(v.base * mult * pitch * (1 + (Math.random() - 0.5) * 0.008), t0 + delay, v.len * scale * len, 0.18 * vol * loud, v.type, pack);
   } catch { /* audio unavailable */ }
 }
 
