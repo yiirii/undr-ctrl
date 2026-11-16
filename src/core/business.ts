@@ -141,3 +141,17 @@ export function matchesQuery(i: Pick<BizItem, 'name' | 'note'>, q: string): bool
   const hay = ` ${norm(`${i.name} ${i.note ?? ''}`)} `;
   return words.every((w) => hay.includes(w));
 }
+
+export type GroupSort = 'az' | 'new' | 'old';
+/** When a piece was added: ids begin with the time they were made (base-36 ms). Older ids fall back to the bought date. */
+export function addedAt(i: BizItem): number {
+  const ms = parseInt(i.id.slice(0, 8), 36);
+  return ms > 1_577_836_800_000 && ms < 4_102_444_800_000 ? ms : Date.parse(i.boughtOn);
+}
+/** Sort groups of pieces: A to Z (ignoring case), newest added first, or oldest added first. */
+export function sortGroups<T extends BizItem[]>(groups: T[], mode: GroupSort): T[] {
+  const out = [...groups];
+  if (mode === 'az') return out.sort((a, b) => a[0].name.localeCompare(b[0].name, undefined, { sensitivity: 'base', numeric: true }));
+  const key = (g: T) => (mode === 'new' ? Math.max(...g.map(addedAt)) : Math.min(...g.map(addedAt)));
+  return out.sort((a, b) => (mode === 'new' ? key(b) - key(a) : key(a) - key(b)));
+}

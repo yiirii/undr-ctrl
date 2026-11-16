@@ -9,7 +9,8 @@ import {
   keepBizItem, unkeepBizItem, setBizValue, reserveBizItem, completeReservation, cancelReservation, setPlatforms,
   setTngBalance, addMove, deleteMove, businessMoneyNow,
 } from '../../../store/logic';
-import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, matchesQuery, type BizItem } from '../../../core/business';
+import { bizMonth, bizSixMonths, itemProfit, stockSummary, platformMonth, collectionSummary, reservationsDue, matchesQuery, sortGroups, type BizItem, type GroupSort } from '../../../core/business';
+import { Select } from '../../shapes/Select';
 import { parseAmount, parseCost } from '../../../core/money';
 import { addDays, dayKey, diffDays, monthName, MONTHS, monthKey } from '../../../core/dates';
 import { Icon } from '../../shapes/icons';
@@ -31,6 +32,11 @@ function groupItems(items: BizItem[]) {
   return [...g.values()].sort((a, c) => a[0].boughtOn.localeCompare(c[0].boughtOn));
 }
 
+const SORTS: { value: GroupSort; label: string }[] = [{ value: 'az', label: 'A to Z' }, { value: 'new', label: 'Newest first' }, { value: 'old', label: 'Oldest first' }];
+function SortPick({ value, onChange }: { value: GroupSort; onChange: (v: GroupSort) => void }) {
+  return <Select compact className="sort-pick" ariaLabel="Sort" value={value} options={SORTS} onChange={onChange} prefix={<Icon name="sliders" size={14} />} />;
+}
+
 export function Business({ mk }: { mk: string }) {
   const s = useStore((x) => x.s);
   const patch = useStore((x) => x.patch);
@@ -49,8 +55,10 @@ export function Business({ mk }: { mk: string }) {
   const scale = Math.max(m.salesSen + m.otherIncomeSen, costs, 1);
   // typing stays instant; the (possibly long) card lists catch up a beat later
   const dq = useDeferredValue(q);
-  const stockGroups = useMemo(() => groupItems(b.items.filter((x) => x.status === 'stock' && matchesQuery(x, dq))), [b.items, dq]);
-  const kept = useMemo(() => groupItems(b.items.filter((x) => x.status === 'kept' && matchesQuery(x, dq))), [b.items, dq]);
+  const stockSort: GroupSort = s.settings.stockSort ?? 'old', collSort: GroupSort = s.settings.collSort ?? 'old';
+  const setSettings = useStore((x) => x.setSettings);
+  const stockGroups = useMemo(() => sortGroups(groupItems(b.items.filter((x) => x.status === 'stock' && matchesQuery(x, dq))), stockSort), [b.items, dq, stockSort]);
+  const kept = useMemo(() => sortGroups(groupItems(b.items.filter((x) => x.status === 'kept' && matchesQuery(x, dq))), collSort), [b.items, dq, collSort]);
   const [showStock, setShowStock] = useState(PAGE);
   const [showKept, setShowKept] = useState(PAGE);
   const soldThisMonth = b.items.filter((i) => i.status === 'sold' && i.soldOn && monthKey(i.soldOn) === mk).sort((a, c) => c.soldOn!.localeCompare(a.soldOn!));
@@ -160,7 +168,7 @@ export function Business({ mk }: { mk: string }) {
             </div>
           )}
           <div className="mcard">
-            <div className="mcard-h"><h3>In stock</h3>{dq && <span className="muted">{stockGroups.reduce((n, g) => n + g.length, 0)} match</span>}<div className="grow" /><SearchField value={q} onChange={setQ} width={220} className="sm" /></div>
+            <div className="mcard-h"><h3>In stock</h3>{dq && <span className="muted">{stockGroups.reduce((n, g) => n + g.length, 0)} match</span>}<div className="grow" /><SortPick value={stockSort} onChange={(v) => setSettings({ stockSort: v })} /><SearchField value={q} onChange={setQ} width={220} className="sm" /></div>
             {stockGroups.length === 0 && <div className="muted" style={{ fontSize: '.86rem' }}>{q ? 'Nothing matches.' : 'Everything is sold or reserved. Time to restock?'}</div>}
             <div className="stock">
               <AnimatePresence initial={false}>
@@ -188,7 +196,7 @@ export function Business({ mk }: { mk: string }) {
           </div>
 
           <div className="mcard">
-            <div className="mcard-h"><h3>My collection</h3><span className="muted">{col.count} piece{col.count === 1 ? '' : 's'}</span><div className="grow" /><button className="btn sm ghost" onClick={() => setSheet({ kind: 'buy', kept: true })}><Icon name="plus" size={14} />Add</button></div>
+            <div className="mcard-h"><h3>My collection</h3><span className="muted">{col.count} piece{col.count === 1 ? '' : 's'}</span><div className="grow" /><SortPick value={collSort} onChange={(v) => setSettings({ collSort: v })} /><button className="btn sm ghost" onClick={() => setSheet({ kind: 'buy', kept: true })}><Icon name="plus" size={14} />Add</button></div>
             {col.count > 0 && (
               <div className="row" style={{ gap: 26, marginBottom: 16, flexWrap: 'wrap' }}>
                 <div><div className="hero-label">Paid</div><div className="stat-num"><Count value={(col.costSen) / 100} format={(v) => fmt.rm(Math.round(v * 100))} /></div></div>

@@ -27,6 +27,8 @@ export interface Settings {
   cloudBackupFailed?: boolean;
   haptics?: boolean; // iPhone taps you can feel (default on; this device only)
   lastWallet?: 'cash' | 'tng'; // what you last paid with, preselected next time
+  stockSort?: 'az' | 'new' | 'old'; // In stock order (default: oldest added first)
+  collSort?: 'az' | 'new' | 'old'; // My collection order
 }
 
 export interface MusicState { tracks: Track[]; playlists: Playlist[]; volume: number; shuffle: boolean; repeat: 'off' | 'all' | 'one'; resumeOnReturn: boolean; linkInsteadOfCopy: boolean; activePlaylist: string }

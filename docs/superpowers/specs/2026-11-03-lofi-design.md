@@ -903,3 +903,7 @@ Chloe liked how the (Not Boring) apps feel and wants that quality in Undr Ctrl. 
 - **Themes and accents:** Dusk's main background and Aurora's sidebar are now flat colours. The earned Sunset and Aurora accents are solid colours and are no longer called "gradient". Repeating stripes and hard-stop shapes are still allowed, because they render flat.
 - **Sound:** each sound plays with a small random change in pitch (±2.5%), loudness and length, so repeated taps never sound identical.
 - **Performance:** `perf-frames` at 4× slowdown shows the same frame times before and after, within run-to-run noise.
+
+## Rev 23: Sort stock and collection (2026-11-16, version 1.6.1)
+
+In stock and My collection each have a compact sort picker: A to Z (ignores case, sorts numbers naturally), Newest first or Oldest first. The default is Oldest first, the order they had before. "Date added" is when the piece was entered, read from the time at the start of its id; older ids fall back to the bought date. A group of identical pieces sorts by its newest piece (for newest first) or its oldest piece (for oldest first). The two choices are settings (`stockSort`, `collSort`), so they sync between laptop and iPhone. The logic is `sortGroups` and `addedAt` in `core/business.ts`, with tests.

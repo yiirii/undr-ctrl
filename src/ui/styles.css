@@ -845,3 +845,8 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .lv-ring b { text-shadow: 0 1px 0 rgba(0,0,0,.35); }
 
 .reduced-motion .task.just-done .check .fill { animation: none !important; }
+
+/* sort picker on In stock / My collection: sized to its text */
+.dd.sort-pick { width: auto; flex: none; height: 32px; gap: 8px; padding: 0 10px; font-size: .82rem; font-weight: 700; color: var(--t2); }
+.dd.sort-pick .dd-chev { margin-left: 2px; }
+@media (max-width: 720px) { .dd.sort-pick { height: 36px; } }

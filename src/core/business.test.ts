@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { matchesQuery, wealthForBuy, itemProfit, bizMonth, stockSummary, wealthForSale, wealthForBizExpense, bizSixMonths, type BizItem, type BizExpense } from './business';
+import { sortGroups, addedAt } from './business';
 import { suggestFromHistory, defaultCategories, type MoneyState } from './money';
 import type { MoneyEntry } from './types';
 
@@ -73,5 +74,25 @@ describe('search', () => {
     expect(matchesQuery(it, 'damaged')).toBe(true);
     expect(matchesQuery(it, 'groot 50')).toBe(false);
     expect(matchesQuery(it, '   ')).toBe(true);
+  });
+});
+
+describe('sorting stock and collection', () => {
+  const it = (id: string, name: string, boughtOn = '2026-11-01') => ({ id, name, costSen: 1000, boughtOn, status: 'stock' }) as unknown as BizItem;
+  // ids start with the time they were added (base-36 ms), so "date added" follows the id
+  const t = (ms: number) => (Date.parse('2026-11-01') + ms).toString(36);
+  const kiki = [it(t(3000) + 'a', 'Kiki #1176')], groot = [it(t(1000) + 'b', 'groot #49'), it(t(5000) + 'c', 'Groot #49')], ash = [it(t(2000) + 'd', 'Ash #12')];
+  const groups = [kiki, groot, ash];
+  test('A to Z ignores case', () => {
+    expect(sortGroups(groups, 'az').map((g) => g[0].name)).toEqual(['Ash #12', 'groot #49', 'Kiki #1176']);
+  });
+  test('newest first uses the latest piece added in a group; oldest first the earliest', () => {
+    expect(sortGroups(groups, 'new').map((g) => g[0].name)).toEqual(['groot #49', 'Kiki #1176', 'Ash #12']);
+    expect(sortGroups(groups, 'old').map((g) => g[0].name)).toEqual(['groot #49', 'Ash #12', 'Kiki #1176']);
+  });
+  test('an id without a time falls back to the bought date', () => {
+    const a = [it('legacy-x', 'Old', '2025-01-01')], b = [it(t(Date.parse('2026-01-01')) + 'z', 'New', '2026-01-01')];
+    expect(addedAt(a[0])).toBe(Date.parse('2025-01-01'));
+    expect(sortGroups([b, a], 'old').map((g) => g[0].name)).toEqual(['Old', 'New']);
   });
 });
