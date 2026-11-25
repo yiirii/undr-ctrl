@@ -111,7 +111,6 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pbar-track { position: relative; display: flex; width: 100%; background: var(--bg0); border-radius: 99px; overflow: hidden; }
 .pbar-fill { height: 100%; border-radius: 99px; position: relative; overflow: hidden; }
 .pbar-tail { height: 100%; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--bad) 85%, black) 0 5px, color-mix(in srgb, var(--bad) 55%, black) 5px 10px); border-radius: 0 99px 99px 0; margin-left: -4px; padding-left: 4px; }
-.pbar-track.is-full .pbar-fill::after, .seg-full::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,.45) 42% 58%, transparent 58%); transform: translateX(-100%); animation: shimmer 2.6s ease-in-out 1 .2s; }
 @keyframes shimmer { to { transform: translateX(100%); } }
 .segbar { display: flex; width: 100%; }
 .seg { flex: 1; background: var(--bg0); border-radius: 99px; overflow: hidden; position: relative; }
@@ -248,7 +247,6 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .focus-phase { font-size: .74rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: var(--t3); margin-top: 8px; }
 .focus-task { font-size: 1.15rem; font-weight: 700; max-width: 520px; }
 .hex-shimmer { overflow: hidden; -webkit-mask: linear-gradient(#000 0 0); }
-.hex-shimmer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,.55) 42% 58%, transparent 58%); transform: translateX(-120%); animation: shimmer 1.4s ease .3s 1; }
 
 /* ---------- money (no tables, no grids of cells) ---------- */
 .cat-ic { border-radius: 30%; display: grid; place-items: center; flex: none; }
@@ -641,7 +639,6 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 /* something just landed in this bar: a light sweep + soft pop */
 .pbar-track, .segbar { position: relative; }
 .fx-gain { animation: fxGainPop .5s cubic-bezier(.34,1.56,.64,1); }
-.fx-gain::after { content: ''; position: absolute; inset: -3px 0; border-radius: 99px; pointer-events: none; background: linear-gradient(100deg, transparent 40%, rgba(255,255,255,.6) 40% 60%, transparent 60%); animation: fxSweep .8s cubic-bezier(.22,1,.36,1) forwards; }
 @keyframes fxGainPop { 30% { transform: scaleY(1.6); } }
 @keyframes fxSweep { from { transform: translateX(-100%); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
 
@@ -656,9 +653,7 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 
 /* primary buttons: a light sheen passes over them on hover (laptop) */
 .btn { position: relative; overflow: hidden; isolation: isolate; }
-.btn.primary::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,.28) 42% 56%, transparent 56%); transform: translateX(-120%); }
 @media (hover: hover) {
-  .btn.primary:hover::after { transform: translateX(120%); transition: transform .7s cubic-bezier(.22,1,.36,1); }
   .btn:hover:not(:disabled) { transform: translateY(-1px); }
   .task:hover { box-shadow: 0 6px 18px -10px rgba(0,0,0,.55); }
   .tl-item:hover, .habit-pill:hover, .cat-pick:hover, .theme-tile:hover { transform: translateY(-2px); }
@@ -819,27 +814,23 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
    No gradients anywhere. Depth comes from solid, hard-edged shapes:
    a solid darker "lip" under buttons (it disappears when pressed, like a keycap),
    a 1px lighter top edge, and flat highlight shapes for shine. Release springs back. */
-.btn { box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 2px 0 color-mix(in srgb, var(--bg3) 55%, #000); transition: transform .38s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, background .15s ease, filter .15s ease; }
+.btn { box-shadow: 0 2px 0 color-mix(in srgb, var(--bg3) 55%, #000); transition: transform .38s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, background .15s ease, filter .15s ease; }
 .btn.ghost { box-shadow: none; }
-.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 0 color-mix(in srgb, var(--bg3) 55%, #000); transition-duration: .06s; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 color-mix(in srgb, var(--bg3) 55%, #000); transition-duration: .06s; }
 .btn.ghost:active:not(:disabled) { transform: scale(.97); box-shadow: none; }
-.btn.primary { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-fill) 70%, #fff), 0 3px 0 color-mix(in srgb, var(--accent-fill) 58%, #000); }
-.btn.primary:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-fill) 70%, #fff), 0 0 0 color-mix(in srgb, var(--accent-fill) 58%, #000); }
-.pn-plus { box-shadow: inset 0 1.5px 0 #fff, 0 4px 0 color-mix(in srgb, var(--t1) 52%, #000), 0 10px 0 -4px rgba(0,0,0,.28); transition: transform .42s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease; }
-.pn-plus:active { transform: translateY(4px) scale(.98) !important; box-shadow: inset 0 1.5px 0 #fff, 0 0 0 color-mix(in srgb, var(--t1) 52%, #000), 0 4px 0 -4px rgba(0,0,0,.28); transition-duration: .06s; }
+.btn.primary { box-shadow: 0 3px 0 color-mix(in srgb, var(--accent-fill) 58%, #000); }
+.btn.primary:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 color-mix(in srgb, var(--accent-fill) 58%, #000); }
+.pn-plus { box-shadow: 0 4px 0 color-mix(in srgb, var(--t1) 52%, #000), 0 10px 0 -4px rgba(0,0,0,.28); transition: transform .42s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease; }
+.pn-plus:active { transform: translateY(4px) scale(.98) !important; box-shadow: 0 0 0 color-mix(in srgb, var(--t1) 52%, #000), 0 4px 0 -4px rgba(0,0,0,.28); transition-duration: .06s; }
 
 /* cards: a 1px light top edge and a solid shadow ledge */
-.mcard { box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 3px 0 rgba(0,0,0,.14); }
 
 /* checkboxes: a small well when empty; a bead with a flat highlight when done */
 .check { box-shadow: inset 0 2px 0 rgba(0,0,0,.28); }
-.check .fill { box-shadow: inset 0 -2px 0 rgba(0,0,0,.18); }
-.check .fill::after { content: ''; position: absolute; left: 22%; top: 16%; width: 30%; height: 22%; border-radius: 50%; background: rgba(255,255,255,.55); transform: rotate(-30deg); pointer-events: none; }
 .task.just-done .check .fill { animation: jelly .62s cubic-bezier(.22,1,.36,1); }
 @keyframes jelly { 0% { transform: scale(.4, .4); } 35% { transform: scale(1.22, .82); } 55% { transform: scale(.9, 1.1); } 75% { transform: scale(1.05, .96); } 100% { transform: scale(1, 1); } }
 
 /* progress: a flat light band along the top of the fill, like light on liquid */
-.pbar-fill::before, .seg-fill::before { content: ''; position: absolute; left: 3px; right: 3px; top: 18%; height: 22%; min-height: 1px; border-radius: 99px; background: rgba(255,255,255,.28); pointer-events: none; }
 
 /* level ring */
 .lv-ring b { text-shadow: 0 1px 0 rgba(0,0,0,.35); }
@@ -852,7 +843,7 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 @media (max-width: 720px) { .dd.sort-pick { height: 36px; } }
 
 /* ── Habit month calendar (in a habit's detail panel) ───────────────────── */
-.hcal { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: calc(var(--radius) + 4px); background: var(--bg2); box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 3px 0 rgba(0,0,0,.14); }
+.hcal { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: calc(var(--radius) + 4px); background: var(--bg2); }
 .hcal-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .hcal-stats > div { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
 .hcal-stats b { font-family: var(--font-head); font-size: 1.25rem; font-weight: 800; color: var(--t1); font-variant-numeric: tabular-nums; }
@@ -866,15 +857,14 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .hcal-clip { overflow: hidden; touch-action: pan-y; padding: 3px; margin: -3px; }
 .hcal-day { position: relative; aspect-ratio: 1; display: grid; place-items: center; border-radius: 9px; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--t3); background: transparent; transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .15s; }
 .hcal-day:active { transform: scale(.9); transition-duration: .06s; }
-.hcal-day.done { background: var(--c); color: color-mix(in srgb, var(--c) 30%, #000); box-shadow: inset 0 -2px 0 rgba(0,0,0,.2); }
-.hcal-day.done::after { content: ''; position: absolute; left: 14%; top: 11%; width: 20%; height: 12%; max-width: 12px; max-height: 7px; border-radius: 50%; background: rgba(255,255,255,.45); transform: rotate(-30deg); pointer-events: none; }
+.hcal-day.done { background: var(--c); color: color-mix(in srgb, var(--c) 30%, #000); }
 .hcal-day.missed { background: var(--bg0); box-shadow: inset 0 2px 0 rgba(0,0,0,.25); }
 .hcal-day.today { background: var(--bg0); color: var(--t1); box-shadow: inset 0 0 0 2px var(--c); }
 .hcal-day.future { color: color-mix(in srgb, var(--t3) 55%, transparent); }
 .hcal-day.before { color: color-mix(in srgb, var(--t3) 35%, transparent); }
 .hcal-day.off i { width: 4px; height: 4px; border-radius: 50%; background: var(--t3); opacity: .45; }
 .hcal-day.picked { box-shadow: 0 0 0 2px var(--t1); }
-.hcal-day.done.picked { box-shadow: inset 0 -2px 0 rgba(0,0,0,.2), 0 0 0 2px var(--t1); }
+.hcal-day.done.picked { box-shadow: 0 0 0 2px var(--t1); }
 .hcal-note { min-height: 20px; font-size: .82rem; color: var(--t2); text-align: center; }
 .hcal-note b { color: var(--t1); }
 .main-scroll.entering .hcal-day, .detail .hcal-day { animation: hcalIn .4s cubic-bezier(.22,1,.36,1) backwards; animation-delay: calc(var(--i, 0) * 9ms); }

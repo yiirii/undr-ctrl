@@ -926,3 +926,14 @@ Chloe's choices: a calendar for each habit, laid out as a month you can step thr
 - Tapping a day shows its date and state underneath. Tapping it again clears that.
 - **Code:** `core/habitCalendar.ts` (tested) and `ui/shell/HabitCalendar.tsx`.
 - **Build note:** Wine now crashes in Claude's workspace, and electron-builder used Wine to make the NSIS uninstaller. `npm run dist` now runs `scripts/dist-win.cjs`, which makes electron-builder read the uninstaller straight out of its helper exe instead (its built-in `UninstallerReader`). This was checked: the result is a valid NSIS PE.
+
+## Rev 25: Minimal, no shine (2026-11-25, version 1.7.1)
+
+Chloe doesn't want "shine"; she wants it more minimalist. Removed:
+- the highlight ovals on ticked checkboxes and done calendar days
+- the inner shades on those beads and squares
+- the light band on progress fills
+- every moving light sweep: on full bars, badges, XP gain and the primary button's hover
+- the light top edges on buttons and cards, and the cards' shadow ledge
+
+Kept, because they're motion and feel rather than shine: the keycap press (buttons sink by their solid lip and spring back), the jelly squash on ticks, the pop when XP lands, and the empty-checkbox well. Colours stay flat.
