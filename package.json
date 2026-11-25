@@ -11,7 +11,7 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build && node scripts/build-electron.mjs",
     "test": "vitest run",
     "e2e": "playwright test",
-    "dist": "npm run build && electron-builder --win --x64 --publish never",
+    "dist": "npm run build && node scripts/dist-win.cjs",
     "sweep": "node scripts/sweep.cjs"
   },
   "build": {

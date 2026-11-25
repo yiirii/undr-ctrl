@@ -925,3 +925,4 @@ Chloe's choices: a calendar for each habit, laid out as a month you can step thr
 - **Moving between months:** arrows or a sideways swipe; the grid springs across. You can go back to the month the habit started, but not past this month. The squares pop in one after another when it opens.
 - Tapping a day shows its date and state underneath. Tapping it again clears that.
 - **Code:** `core/habitCalendar.ts` (tested) and `ui/shell/HabitCalendar.tsx`.
+- **Build note:** Wine now crashes in Claude's workspace, and electron-builder used Wine to make the NSIS uninstaller. `npm run dist` now runs `scripts/dist-win.cjs`, which makes electron-builder read the uninstaller straight out of its helper exe instead (its built-in `UninstallerReader`). This was checked: the result is a valid NSIS PE.
