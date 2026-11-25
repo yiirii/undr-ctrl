@@ -531,6 +531,20 @@ test.describe('iPhone first run', () => {
   });
 });
 
+test('habit calendar: opening a habit shows its month with done days and stats; tap a day; go back a month', async ({ page }) => {
+  await open(page, 'reset=1&seed=demo&view=habits');
+  await page.locator('.habit-card').first().click();
+  await expect(page.locator('.hcal')).toBeVisible();
+  await expect(page.locator('.hcal-stats')).toContainText('Streak');
+  const done = page.locator('.hcal-day.done');
+  expect(await done.count()).toBeGreaterThan(0);
+  await done.first().click();
+  await expect(page.locator('.hcal-note')).toContainText('Done');
+  const month = await page.locator('.hcal-month').innerText();
+  await page.click('.hcal button[aria-label="Previous month"]');
+  await expect(page.locator('.hcal-month')).not.toHaveText(month);
+});
+
 test('custom dropdowns: pick with the mouse, the keyboard, and close with Esc without closing the panel', async ({ page }) => {
   await open(page, 'reset=1&seed=demo&view=myday');
   for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');

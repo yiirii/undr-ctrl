@@ -11,6 +11,7 @@ import { dayKey } from '../../core/dates';
 import { Icon } from '../shapes/icons';
 import { Select } from '../shapes/Select';
 import { SPRING, Bar } from '../shapes/Progress';
+import { HabitCalendar } from './HabitCalendar';
 
 function recKind(r?: Recurrence) { return r ? r.kind : 'none'; }
 
@@ -38,6 +39,7 @@ export function TaskDetail({ id }: { id: string }) {
         <button className="icon-btn" title="Close (Esc)" onClick={() => setUI({ detailId: null })}><Icon name="x" /></button>
       </div>
       <input className="detail-title" value={t.title} onChange={(e) => up({ title: e.target.value })} />
+      {t.habit && t.recurrence && <HabitCalendar t={t} color={(() => { const st = taskStat(s, t); return st ? STAT_META[st].hue : 'var(--accent)'; })()} />}
       {!t.habit && <Steps task={t} color={(() => { const st = taskStat(s, t); return st && s.appearance.useStatColours ? STAT_META[st].hue : 'var(--accent)'; })()} />}
 
       {!t.habit && (

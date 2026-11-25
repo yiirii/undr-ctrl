@@ -850,3 +850,33 @@ input[list]::-webkit-calendar-picker-indicator { opacity: .45; }
 .dd.sort-pick { width: auto; flex: none; height: 32px; gap: 8px; padding: 0 10px; font-size: .82rem; font-weight: 700; color: var(--t2); }
 .dd.sort-pick .dd-chev { margin-left: 2px; }
 @media (max-width: 720px) { .dd.sort-pick { height: 36px; } }
+
+/* ── Habit month calendar (in a habit's detail panel) ───────────────────── */
+.hcal { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: calc(var(--radius) + 4px); background: var(--bg2); box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 3px 0 rgba(0,0,0,.14); }
+.hcal-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.hcal-stats > div { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.hcal-stats b { font-family: var(--font-head); font-size: 1.25rem; font-weight: 800; color: var(--t1); font-variant-numeric: tabular-nums; }
+.hcal-stats > div:first-child b { color: var(--c); }
+.hcal-stats span { font-size: .66rem; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: .5px; line-height: 1.2; }
+.hcal-head { display: flex; align-items: center; justify-content: space-between; }
+.hcal-head .icon-btn:disabled { opacity: .25; pointer-events: none; }
+.hcal-month { font-weight: 800; font-size: .95rem; }
+.hcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.hcal-dow span { text-align: center; font-size: .68rem; font-weight: 800; color: var(--t3); }
+.hcal-clip { overflow: hidden; touch-action: pan-y; padding: 3px; margin: -3px; }
+.hcal-day { position: relative; aspect-ratio: 1; display: grid; place-items: center; border-radius: 9px; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--t3); background: transparent; transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .15s; }
+.hcal-day:active { transform: scale(.9); transition-duration: .06s; }
+.hcal-day.done { background: var(--c); color: color-mix(in srgb, var(--c) 30%, #000); box-shadow: inset 0 -2px 0 rgba(0,0,0,.2); }
+.hcal-day.done::after { content: ''; position: absolute; left: 14%; top: 11%; width: 20%; height: 12%; max-width: 12px; max-height: 7px; border-radius: 50%; background: rgba(255,255,255,.45); transform: rotate(-30deg); pointer-events: none; }
+.hcal-day.missed { background: var(--bg0); box-shadow: inset 0 2px 0 rgba(0,0,0,.25); }
+.hcal-day.today { background: var(--bg0); color: var(--t1); box-shadow: inset 0 0 0 2px var(--c); }
+.hcal-day.future { color: color-mix(in srgb, var(--t3) 55%, transparent); }
+.hcal-day.before { color: color-mix(in srgb, var(--t3) 35%, transparent); }
+.hcal-day.off i { width: 4px; height: 4px; border-radius: 50%; background: var(--t3); opacity: .45; }
+.hcal-day.picked { box-shadow: 0 0 0 2px var(--t1); }
+.hcal-day.done.picked { box-shadow: inset 0 -2px 0 rgba(0,0,0,.2), 0 0 0 2px var(--t1); }
+.hcal-note { min-height: 20px; font-size: .82rem; color: var(--t2); text-align: center; }
+.hcal-note b { color: var(--t1); }
+.main-scroll.entering .hcal-day, .detail .hcal-day { animation: hcalIn .4s cubic-bezier(.22,1,.36,1) backwards; animation-delay: calc(var(--i, 0) * 9ms); }
+@keyframes hcalIn { from { opacity: 0; transform: scale(.6); } }
+.reduced-motion .hcal-day { animation: none !important; }

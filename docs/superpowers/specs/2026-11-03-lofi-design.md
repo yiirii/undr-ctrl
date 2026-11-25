@@ -907,3 +907,21 @@ Chloe liked how the (Not Boring) apps feel and wants that quality in Undr Ctrl. 
 ## Rev 23: Sort stock and collection (2026-11-16, version 1.6.1)
 
 In stock and My collection each have a compact sort picker: A to Z (ignores case, sorts numbers naturally), Newest first or Oldest first. The default is Oldest first, the order they had before. "Date added" is when the piece was entered, read from the time at the start of its id; older ids fall back to the bought date. A group of identical pieces sorts by its newest piece (for newest first) or its oldest piece (for oldest first). The two choices are settings (`stockSort`, `collSort`), so they sync between laptop and iPhone. The logic is `sortGroups` and `addedAt` in `core/business.ts`, with tests.
+
+## Rev 24: Habit month calendar (2026-11-25, version 1.7.0)
+
+Chloe's choices: a calendar for each habit, laid out as a month you can step through. It opens when you tap a habit. Off days show a faint dot, and done days are filled squares in the habit's colour. Tapping a day shows what happened that day, and streak stats sit above the calendar.
+
+- **Where:** at the top of the habit's detail panel, under the title. It uses the habit's stat colour.
+- **Stats** (`habitStats`): current streak (same rule as the habit's streak), best streak, % done and total completions. "% done" counts the scheduled days completed out of all scheduled days from the habit's start to today. Today only counts once it's done.
+- **Calendar** (`habitMonth`): weeks start on Monday or Sunday, following the setting. Each day has one of six looks:
+  - done: flat bead square in the habit colour, with a flat highlight and a 2 px inner shade at the bottom
+  - missed: dark inset well
+  - off (not a scheduled day): faint dot
+  - today: ring in the habit colour
+  - future: dim number
+  - before the habit started: very dim number
+  A completion on an off day still shows as done.
+- **Moving between months:** arrows or a sideways swipe; the grid springs across. You can go back to the month the habit started, but not past this month. The squares pop in one after another when it opens.
+- Tapping a day shows its date and state underneath. Tapping it again clears that.
+- **Code:** `core/habitCalendar.ts` (tested) and `ui/shell/HabitCalendar.tsx`.
